@@ -63,21 +63,25 @@ const legendColors = [
 const createImageSegmenter = async () => {
   const audio = await FilesetResolver.forVisionTasks(
     "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.2/wasm"
-  )
+  );
+
+  
+
+  // Dynamically fetch the .tflite model file
+  const modelAssetPath = new URL("./data/deeplab_v3.tflite", import.meta.url).href;
 
   imageSegmenter = await ImageSegmenter.createFromOptions(audio, {
     baseOptions: {
-      modelAssetPath:
-        "https://storage.googleapis.com/mediapipe-models/image_segmenter/deeplab_v3/float32/1/deeplab_v3.tflite",
-      delegate: "GPU"
+      modelAssetPath: modelAssetPath, // Use dynamically resolved model path
+      delegate: "GPU",
     },
     runningMode: runningMode,
     outputCategoryMask: true,
-    outputConfidenceMasks: true // Enable confidence masks
-  })
-  labels = imageSegmenter.getLabels() // Retrieve category labels
-  demosSection.classList.remove("invisible") // Show demo section
-}
+    outputConfidenceMasks: true, // Enable confidence masks
+  });
+  labels = imageSegmenter.getLabels(); // Retrieve category labels
+  demosSection.classList.remove("invisible"); // Show demo section
+};
 createImageSegmenter()
 
 // Removed code related to imageContainers and handleClick
