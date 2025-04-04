@@ -18,6 +18,13 @@ import {
   FilesetResolver
 } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.2"
 
+import {
+  PoseLandmarker,
+  DrawingUtils
+} from "https://cdn.skypack.dev/@mediapipe/tasks-vision@0.10.0"
+
+
+
 // Get DOM elements for video, canvas, and other UI components
 const video = document.getElementById("webcam")
 const canvasElement = document.getElementById("canvas")
@@ -28,7 +35,7 @@ let enableWebcamButton
 let webcamRunning = false
 const videoHeight = "360px"
 const videoWidth = "480px"
-let runningMode = "IMAGE" // Default running mode
+let runningMode = "VIDEO"; // Set default running mode to VIDEO
 const resultWidthHeigth = 256 // Output resolution for segmentation
 
 let imageSegmenter // Instance of the ImageSegmenter
@@ -59,6 +66,27 @@ const legendColors = [
   [0, 161, 194, 255] // Vivid Blue
 ]
 
+let poseLandmarker;
+
+// Before we can use PoseLandmarker class we must wait for it to finish
+// loading. Machine Learning models can be large and take a moment to
+// get everything needed to run.
+const createPoseLandmarker = async () => {
+  const vision = await FilesetResolver.forVisionTasks(
+    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/wasm"
+  )
+  poseLandmarker = await PoseLandmarker.createFromOptions(vision, {
+    baseOptions: {
+      modelAssetPath: `https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task`,
+      delegate: "GPU"
+    },
+    runningMode: runningMode, // Ensure running mode is VIDEO
+    numPoses: 2
+  })
+  demosSection.classList.remove("invisible")
+}
+createPoseLandmarker()
+
 // Function to create and initialize the ImageSegmenter
 const createImageSegmenter = async () => {
   const audio = await FilesetResolver.forVisionTasks(
@@ -75,7 +103,7 @@ const createImageSegmenter = async () => {
       modelAssetPath: modelAssetPath, // Use dynamically resolved model path
       delegate: "GPU",
     },
-    runningMode: runningMode,
+    runningMode: runningMode, // Ensure running mode is VIDEO
     outputCategoryMask: true,
     outputConfidenceMasks: true, // Enable confidence masks
   });
@@ -87,8 +115,12 @@ createImageSegmenter()
 // Removed code related to imageContainers and handleClick
 // Removed callback logic for static image segmentation
 
-// Callback function to process segmentation results for video
+// Callback function to process segmentation and pose landmark results for video
 function callbackForVideo(result) {
+  // Ensure canvas size matches video dimensions
+  canvasElement.width = video.videoWidth;
+  canvasElement.height = video.videoHeight;
+
   let imageData = canvasCtx.getImageData(
     0,
     0,
@@ -111,6 +143,19 @@ function callbackForVideo(result) {
   const dataNew = new ImageData(uint8Array, video.videoWidth, video.videoHeight)
   canvasCtx.putImageData(dataNew, 0, 0)
 
+  // Perform pose landmark detection and draw skeleton
+  if (poseLandmarker) {
+    poseLandmarker.detectForVideo(video, performance.now(), poseResult => {
+      for (const landmark of poseResult.landmarks) {
+        const drawingUtils = new DrawingUtils(canvasCtx)
+        drawingUtils.drawLandmarks(landmark, {
+          radius: data => DrawingUtils.lerp(data.from.z, -0.15, 0.1, 5, 1)
+        })
+        drawingUtils.drawConnectors(landmark, PoseLandmarker.POSE_CONNECTIONS)
+      }
+    })
+  }
+
   // Continue processing frames if webcam is running
   if (webcamRunning === true) {
     window.requestAnimationFrame(predictWebcam)
@@ -129,6 +174,10 @@ function hasGetUserMedia() {
 // Perform segmentation on the webcam stream
 let lastWebcamTime = -1
 async function predictWebcam() {
+  // Dynamically set canvas size to match video dimensions
+  canvasElement.width = video.videoWidth;
+  canvasElement.height = video.videoHeight;
+
   if (video.currentTime === lastWebcamTime) {
     if (webcamRunning === true) {
       window.requestAnimationFrame(predictWebcam)
@@ -143,17 +192,15 @@ async function predictWebcam() {
     return
   }
 
-  // Switch to VIDEO mode if currently in IMAGE mode
-  if (runningMode === "IMAGE") {
-    runningMode = "VIDEO"
-    await imageSegmenter.setOptions({
-      runningMode: runningMode
-    })
+  // Ensure running mode remains VIDEO
+  if (runningMode !== "VIDEO") {
+    runningMode = "VIDEO";
+    await imageSegmenter.setOptions({ runningMode: runningMode });
+    await poseLandmarker.setOptions({ runningMode: runningMode });
   }
-  let startTimeMs = performance.now()
 
   // Start segmenting the webcam stream
-  imageSegmenter.segmentForVideo(video, startTimeMs, callbackForVideo)
+  imageSegmenter.segmentForVideo(video, performance.now(), callbackForVideo)
 }
 
 // Enable or disable webcam segmentation
