@@ -1,64 +1,92 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-
 <head>
-  <meta charset="UTF-8" />
-  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Vite App</title>
-  <style>
-    .webcam-container {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 10px; /* Add spacing between elements */
-    }
-
-    video, canvas {
-      display: block;
-      width: 480px; /* Consistent width for video and canvases */
-      height: 360px; /* Consistent height for video and canvases */
-      border: 1px solid #ccc; /* Optional: Add a border for clarity */
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MediaPipe Selfie Segmentation</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: #222;
+        }
+        .container {
+            position: relative;
+        }
+        video, canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+    </style>
 </head>
-
 <body>
-  <script type="module" src="/src/main.js"></script>
-
-  <!-- Copyright 2023 The MediaPipe Authors.
-  Licensed under the Apache License, Version 2.0 (the "License");
-  you may not use this file except in compliance with the License.
-  You may obtain a copy of the License at
-       http://www.apache.org/licenses/LICENSE-2.0
-  Unless required by applicable law or agreed to in writing, software
-  distributed under the License is distributed on an "AS IS" BASIS,
-  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  See the License for the specific language governing permissions and
-  limitations under the License. -->
-
-  <link href="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.css" rel="stylesheet">
-  <script src="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.js"></script>
-
-  <section id="demos" class="invisible">
-    
-    <div class="webcam-container">
-      <video class="in-video" id="webcam" autoplay></video>
-      <canvas class="out-canvas-0" id="canvas" width="1280px" height="720px"></canvas>
-      <canvas class="out-canvas-1" id="blurredCanvas" width="1280px" height="720px"></canvas> <!-- New canvas for blurred output -->
-
-      <div class="slider-container">
-        <label for="thresholdSlider">Threshold:</label>
-        <input type="range" id="thresholdSlider" min="0" max="100" value="50" />
-      </div>
-
-      <button id="webcamButton" class="mdc-button mdc-button--raised">
-        <span class="mdc-button__ripple"></span>
-        <span class="mdc-button__label">ENABLE WEBCAM</span>
-      </button>
+    <div class="container">
+        <video id="video" autoplay playsinline></video>
+        <canvas id="output"></canvas>
     </div>
-  </section>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/selfie_segmentation.js"></script>
+    <script>
+      console.log("Loading MediaPipe Selfie Segmentation...");
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('output');
+        const ctx = canvas.getContext('2d');
+        
+        async function setupCamera() {
+            try {
+                console.log("Requesting camera access...");
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                video.srcObject = stream;
+                await new Promise(resolve => video.onloadedmetadata = resolve);
+                console.log("Camera access granted.");
+            } catch (error) {
+                console.error("Error accessing camera:", error);
+            }
+        }
+        
+        async function startSegmentation() {
+            console.log("Starting segmentation...");
+            await setupCamera();
+            video.play();
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            
+            console.log("Initializing MediaPipe Selfie Segmentation...");
+            const selfieSegmentation = new SelfieSegmentation({locateFile: (file) =>
+                `https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/${file}`
+            });
+            selfieSegmentation.setOptions({ modelSelection: 1 });
+            await selfieSegmentation.initialize(); // Ensure WASM module is initialized
+            selfieSegmentation.onResults(results => {
+                ctx.save();
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height); // Draw the original video frame
 
+                if (results.segmentationMask) {
+                    // Draw the segmentation mask
+                    ctx.globalCompositeOperation = 'destination-in';
+                    ctx.drawImage(results.segmentationMask, 0, 0, canvas.width, canvas.height);
+
+                    // Apply a semi-transparent green overlay
+                    ctx.globalCompositeOperation = 'destination-over';
+                    ctx.fillStyle = 'rgba(0, 255, 0, 0.5)';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                }
+
+                ctx.restore();
+            });
+
+            function processFrame() {
+              console.log("Processing frame...");
+                selfieSegmentation.send({image: video}).catch(err => console.error("Error processing frame:", err));
+                requestAnimationFrame(processFrame);
+            }
+            processFrame();
+        }
+
+        startSegmentation();
+    </script>
 </body>
-
 </html>
