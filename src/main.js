@@ -1,4 +1,3 @@
-
 import "./style.css";
 
 import {
@@ -119,13 +118,13 @@ function callbackForVideo(result) {
   let j = 0
 
   for (let i = 0; i < mask.length; ++i) {
-    const maskVal = Math.round(mask[i] * 255.0)
-    const legendColor = legendColors[maskVal % legendColors.length]
-    imageData[j] = (legendColor[0] + imageData[j]) / 2
-    imageData[j + 1] = (legendColor[1] + imageData[j + 1]) / 2
-    imageData[j + 2] = (legendColor[2] + imageData[j + 2]) / 2
-    imageData[j + 3] = 255 // Full opacity
-    j += 4
+    const maskVal = Math.ceil(mask[i]); // Mask value is between 0 and 1
+    const grayscale = maskVal * 255; // Scale to 0-255 for full brightness range
+    imageData[j] = grayscale; // Red channel
+    imageData[j + 1] = 0; // Green channel
+    imageData[j + 2] = 0; // Blue channel
+    imageData[j + 3] = 255; // Full opacity
+    j += 4;
   }
   const uint8Array = new Uint8ClampedArray(imageData.buffer)
   const dataNew = new ImageData(uint8Array, video.videoWidth, video.videoHeight)
@@ -189,6 +188,9 @@ async function predictWebcam() {
 
   // Start segmenting the webcam stream
   imageSegmenter.segmentForVideo(video, performance.now(), callbackForVideo)
+
+  // Apply the threshold shader to the video feed
+  applyThresholdShader();
 }
 
 // Enable or disable webcam segmentation
@@ -221,4 +223,149 @@ if (hasGetUserMedia()) {
   enableWebcamButton.addEventListener("click", enableCam)
 } else {
   console.warn("getUserMedia() is not supported by your browser")
+}
+
+// Initialize WebGL for the threshold shader
+const thresholdCanvas = document.getElementById("blurredCanvas");
+const gl = thresholdCanvas.getContext("webgl");
+
+if (!gl) {
+  console.error("WebGL not supported");
+}
+
+// Get the slider element for threshold adjustment
+const thresholdSlider = document.getElementById("thresholdSlider");
+
+// Updated vertex shader source to flip the texture vertically
+const vertexShaderSource = `
+  attribute vec2 a_position;
+  attribute vec2 a_texCoord;
+  varying vec2 v_texCoord;
+  void main() {
+    gl_Position = vec4(a_position, 0, 1);
+    v_texCoord = vec2(a_texCoord.x, 1.0 - a_texCoord.y); // Flip vertically
+  }
+`;
+
+// Fragment shader source for thresholding with adjustable threshold
+const fragmentShaderSource = `
+  precision mediump float;
+  varying vec2 v_texCoord;
+  uniform sampler2D u_image;
+  uniform float u_threshold;
+  void main() {
+    vec4 color = texture2D(u_image, v_texCoord);
+    float grayscale = dot(color.rgb, vec3(0.299, 0.587, 0.114));
+    float value = step(u_threshold, grayscale);
+    gl_FragColor = vec4(vec3(value), 1.0);
+  }
+`;
+
+// Add a WebGL shader for dilation
+const dilationFragmentShaderSource = `
+  precision mediump float;
+  varying vec2 v_texCoord;
+  uniform sampler2D u_image;
+  void main() {
+    float kernel[9];
+    kernel[0] = 1.0; kernel[1] = 1.0; kernel[2] = 1.0;
+    kernel[3] = 1.0; kernel[4] = 1.0; kernel[5] = 1.0;
+    kernel[6] = 1.0; kernel[7] = 1.0; kernel[8] = 1.0;
+
+    vec2 texOffset = vec2(1.0 / float(textureSize(u_image, 0).x), 1.0 / float(textureSize(u_image, 0).y));
+    float maxVal = 0.0;
+
+    for (int i = -1; i <= 1; i++) {
+      for (int j = -1; j <= 1; j++) {
+        vec4 color = texture2D(u_image, v_texCoord + vec2(float(i) * texOffset.x, float(j) * texOffset.y));
+        maxVal = max(maxVal, color.r);
+      }
+    }
+
+    gl_FragColor = vec4(vec3(maxVal), 1.0);
+  }
+`;
+
+// Compile shader
+function compileShader(gl, source, type) {
+  const shader = gl.createShader(type);
+  gl.shaderSource(shader, source);
+  gl.compileShader(shader);
+  if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+    console.error("Shader compile failed:", gl.getShaderInfoLog(shader));
+    gl.deleteShader(shader);
+    return null;
+  }
+  return shader;
+}
+
+// Create WebGL program
+function createProgram(gl, vertexShaderSource, fragmentShaderSource) {
+  const vertexShader = compileShader(gl, vertexShaderSource, gl.VERTEX_SHADER);
+  const fragmentShader = compileShader(gl, fragmentShaderSource, gl.FRAGMENT_SHADER);
+  const program = gl.createProgram();
+  gl.attachShader(program, vertexShader);
+  gl.attachShader(program, fragmentShader);
+  gl.linkProgram(program);
+  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+    console.error("Program link failed:", gl.getProgramInfoLog(program));
+    gl.deleteProgram(program);
+    return null;
+  }
+  return program;
+}
+
+const program = createProgram(gl, vertexShaderSource, fragmentShaderSource);
+
+// Set up WebGL attributes and uniforms
+const positionLocation = gl.getAttribLocation(program, "a_position");
+const texCoordLocation = gl.getAttribLocation(program, "a_texCoord");
+const thresholdLocation = gl.getUniformLocation(program, "u_threshold");
+const imageLocation = gl.getUniformLocation(program, "u_image");
+
+const positionBuffer = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+  -1, -1, 1, -1, -1, 1,
+  -1, 1, 1, -1, 1, 1,
+]), gl.STATIC_DRAW);
+
+const texCoordBuffer = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, texCoordBuffer);
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+  0, 0, 1, 0, 0, 1,
+  0, 1, 1, 0, 1, 1,
+]), gl.STATIC_DRAW);
+
+const texture = gl.createTexture();
+gl.bindTexture(gl.TEXTURE_2D, texture);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+
+// Function to apply the threshold shader
+function applyThresholdShader() {
+  gl.bindTexture(gl.TEXTURE_2D, texture);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, video);
+
+  gl.useProgram(program);
+
+  gl.enableVertexAttribArray(positionLocation);
+  gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+  gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+
+  gl.enableVertexAttribArray(texCoordLocation);
+  gl.bindBuffer(gl.ARRAY_BUFFER, texCoordBuffer);
+  gl.vertexAttribPointer(texCoordLocation, 2, gl.FLOAT, false, 0, 0);
+
+  // Set the threshold value from the slider
+  const thresholdValue = parseFloat(thresholdSlider.value) / 100.0; // Normalize to 0-1
+  gl.uniform1f(thresholdLocation, thresholdValue);
+
+  gl.activeTexture(gl.TEXTURE0);
+  gl.bindTexture(gl.TEXTURE_2D, texture);
+  gl.uniform1i(imageLocation, 0);
+
+  gl.drawArrays(gl.TRIANGLES, 0, 6);
 }

@@ -6,6 +6,21 @@
   <link rel="icon" type="image/svg+xml" href="/vite.svg" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Vite App</title>
+  <style>
+    .webcam-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px; /* Add spacing between elements */
+    }
+
+    video, canvas {
+      display: block;
+      width: 480px; /* Consistent width for video and canvases */
+      height: 360px; /* Consistent height for video and canvases */
+      border: 1px solid #ccc; /* Optional: Add a border for clarity */
+    }
+  </style>
 </head>
 
 <body>
@@ -27,9 +42,15 @@
 
   <section id="demos" class="invisible">
     
-    <div class="webcam">
-      <video id="webcam" autoplay></video>
-      <canvas id="canvas" width="1280px" height="720px"></canvas>
+    <div class="webcam-container">
+      <video class="in-video" id="webcam" autoplay></video>
+      <canvas class="out-canvas-0" id="canvas" width="1280px" height="720px"></canvas>
+      <canvas class="out-canvas-1" id="blurredCanvas" width="1280px" height="720px"></canvas> <!-- New canvas for blurred output -->
+
+      <div class="slider-container">
+        <label for="thresholdSlider">Threshold:</label>
+        <input type="range" id="thresholdSlider" min="0" max="100" value="50" />
+      </div>
 
       <button id="webcamButton" class="mdc-button mdc-button--raised">
         <span class="mdc-button__ripple"></span>

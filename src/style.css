@@ -45,7 +45,7 @@ canvas {
   position: absolute;
   top: 0;
   left: 0;
-  mix-blend-mode: multiply;
+  /* mix-blend-mode: multiply; */
 }
 
 section {
@@ -83,4 +83,51 @@ section {
   display: none; /* Hide the segmentOnClick section */
 }
 
+.slider-container {
+  margin-top: 20px;
+  text-align: center;
+  position: absolute;
+  z-index: 9999999;
+}
 
+.slider-container label {
+  font-size: 14px;
+  margin-right: 10px;
+}
+
+.slider-container input[type="range"] {
+  width: 200px;
+}
+
+.webcam-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.out-canvas-0 {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 50%;
+  height: 50%;
+}
+
+
+.out-canvas-1 {
+  position: absolute;
+  top: 50%;
+  left: 0%;
+  width: 50%;
+  height: 50%;
+}
+
+.in-video {
+  position: absolute;
+  top: 0;
+  left: 0%;
+  width: 50%;
+  height: 50%;
+}
