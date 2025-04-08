@@ -3,90 +3,99 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MediaPipe Selfie Segmentation</title>
-    <style>
-        body {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            background: #222;
-        }
-        .container {
-            position: relative;
-        }
-        video, canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-        }
-    </style>
+    <title>MediaPipe Image Segmenter</title>
 </head>
 <body>
-    <div class="container">
-        <video id="video" autoplay playsinline></video>
-        <canvas id="output"></canvas>
-    </div>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/selfie_segmentation.js"></script>
-    <script>
-      console.log("Loading MediaPipe Selfie Segmentation...");
-        const video = document.getElementById('video');
-        const canvas = document.getElementById('output');
-        const ctx = canvas.getContext('2d');
-        
-        async function setupCamera() {
+    <h2>Webcam Feed for Segmentation</h2>
+    <video id="webcam" autoplay playsinline></video>
+    <br><br>
+    <canvas id="canvas"></canvas>
+
+    <script type="module">
+        import { ImageSegmenter, FilesetResolver } from "./node_modules/@mediapipe/tasks-vision";
+
+        let segmenter;
+        const video = document.getElementById("webcam");
+
+        async function loadSegmenter() {
+            const vision = await FilesetResolver.forVisionTasks("./node_modules/@mediapipe/tasks-vision/wasm");
+
+            segmenter = await ImageSegmenter.createFromOptions(vision, {
+                baseOptions: {
+                    modelAssetPath: "./selfie_multiclass_256x256.tflite"  // Ensure the correct path to your model
+                },
+                runningMode: "VIDEO",
+            });
+
+            console.log("Segmenter loaded successfully.");
+        }
+
+        async function startWebcam() {
             try {
-                console.log("Requesting camera access...");
                 const stream = await navigator.mediaDevices.getUserMedia({ video: true });
                 video.srcObject = stream;
-                await new Promise(resolve => video.onloadedmetadata = resolve);
-                console.log("Camera access granted.");
+                video.addEventListener("loadeddata", () => {
+                    console.log("Webcam feed started.");
+                    processVideoFrame();
+                });
             } catch (error) {
-                console.error("Error accessing camera:", error);
+                console.error("Error accessing webcam:", error);
             }
         }
-        
-        async function startSegmentation() {
-            console.log("Starting segmentation...");
-            await setupCamera();
-            video.play();
+
+        async function processVideoFrame() {
+            if (!segmenter) {
+                console.error("Segmenter not loaded.");
+                return;
+            }
+
+            const canvas = document.createElement("canvas");
+            const ctx = canvas.getContext("2d");
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
-            
-            console.log("Initializing MediaPipe Selfie Segmentation...");
-            const selfieSegmentation = new SelfieSegmentation({locateFile: (file) =>
-                `https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/${file}`
-            });
-            selfieSegmentation.setOptions({ modelSelection: 1 });
-            await selfieSegmentation.initialize(); // Ensure WASM module is initialized
-            selfieSegmentation.onResults(results => {
-                ctx.save();
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height); // Draw the original video frame
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-                if (results.segmentationMask) {
-                    // Draw the segmentation mask
-                    ctx.globalCompositeOperation = 'destination-in';
-                    ctx.drawImage(results.segmentationMask, 0, 0, canvas.width, canvas.height);
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const result = await segmenter.segmentForVideo(imageData, performance.now());
 
-                    // Apply a semi-transparent green overlay
-                    ctx.globalCompositeOperation = 'destination-over';
-                    ctx.fillStyle = 'rgba(0, 255, 0, 0.5)';
-                    ctx.fillRect(0, 0, canvas.width, canvas.height);
-                }
-
-                ctx.restore();
-            });
-
-            function processFrame() {
-              console.log("Processing frame...");
-                selfieSegmentation.send({image: video}).catch(err => console.error("Error processing frame:", err));
-                requestAnimationFrame(processFrame);
+            if (result && result.confidenceMasks) {
+                console.log("Segmentation result received:", result);
+                drawMask(result.confidenceMasks);
+            } else {
+                console.warn("No segmentation result available.");
             }
-            processFrame();
+
+            requestAnimationFrame(processVideoFrame);
         }
 
-        startSegmentation();
+        function drawMask(confidenceMasks) {
+            const canvas = document.getElementById("canvas");
+            const ctx = canvas.getContext("2d");
+
+            // Assuming all masks have the same dimensions
+            const width = confidenceMasks[0].width;
+            const height = confidenceMasks[0].height;
+            canvas.width = width;
+            canvas.height = height;
+
+
+            const imageData = ctx.createImageData(width, height);
+
+            // Combine all masks into a single alpha channel
+            for (let i = 0; i < confidenceMasks.length; i++) {
+                const maskData = confidenceMasks[i];
+                console.log("Mask data:", maskData);
+                for (let j = 0; j < maskData.length; j++) {
+                    const alpha = maskData[j] * 255;
+                    imageData.data[j * 4 + 3] = Math.max(imageData.data[j * 4 + 3], alpha); // Use the highest confidence
+                }
+            }
+
+            ctx.putImageData(imageData, 0, 0);
+        }
+
+        loadSegmenter();
+        startWebcam();
     </script>
 </body>
 </html>
