@@ -4,12 +4,28 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MediaPipe Image Segmenter</title>
+    <style>
+        .d-canv {
+            border: 1px solid red;
+        }
+
+        #canvas {
+            border: 1px solid blue;
+            background-color: green;
+        }
+    </style>
 </head>
 <body>
     <h2>Webcam Feed for Segmentation</h2>
     <video id="webcam" autoplay playsinline></video>
     <br><br>
     <canvas id="canvas"></canvas>
+    <canvas class="d-canv" id="dump-canvas-0" width="640" height="480"></canvas>
+    <canvas class="d-canv" id="dump-canvas-1" width="640" height="480"></canvas>
+    <canvas class="d-canv" id="dump-canvas-2" width="640" height="480"></canvas>
+    <canvas class="d-canv" id="dump-canvas-3" width="640" height="480"></canvas>
+    <canvas class="d-canv" id="dump-canvas-4" width="640" height="480"></canvas>
+    <canvas class="d-canv" id="dump-canvas-5" width="640" height="480"></canvas>
 
     <script type="module">
         import { ImageSegmenter, FilesetResolver } from "./node_modules/@mediapipe/tasks-vision";
@@ -59,8 +75,11 @@
             const result = await segmenter.segmentForVideo(imageData, performance.now());
 
             if (result && result.confidenceMasks) {
-                console.log("Segmentation result received:", result);
-                drawMask(result.confidenceMasks);
+                result.confidenceMasks.forEach((mask, index) => {
+                    
+                    drawToDumpCanvas(mask, index); // Dump each mask to its canvas
+                });
+                drawMask(result.confidenceMasks[0]); // Visualize only the first mask for debugging
             } else {
                 console.warn("No segmentation result available.");
             }
@@ -68,27 +87,51 @@
             requestAnimationFrame(processVideoFrame);
         }
 
-        function drawMask(confidenceMasks) {
+        function drawMask(maskData) {
             const canvas = document.getElementById("canvas");
             const ctx = canvas.getContext("2d");
 
-            // Assuming all masks have the same dimensions
-            const width = confidenceMasks[0].width;
-            const height = confidenceMasks[0].height;
+            const width = maskData.width;
+            const height = maskData.height;
             canvas.width = width;
             canvas.height = height;
 
+            console.log("Drawing mask with dimensions:", width, height);
 
             const imageData = ctx.createImageData(width, height);
 
-            // Combine all masks into a single alpha channel
-            for (let i = 0; i < confidenceMasks.length; i++) {
-                const maskData = confidenceMasks[i];
-                console.log("Mask data:", maskData);
-                for (let j = 0; j < maskData.length; j++) {
-                    const alpha = maskData[j] * 255;
-                    imageData.data[j * 4 + 3] = Math.max(imageData.data[j * 4 + 3], alpha); // Use the highest confidence
-                }
+            const maskArray = Array.from(maskData); // Ensure maskData is an array
+            for (let i = 0; i < maskArray.length; i++) {
+                const alpha = maskArray[i] * 255;
+                imageData.data[i * 4] = 0;       // Red
+                imageData.data[i * 4 + 1] = 0;   // Green
+                imageData.data[i * 4 + 2] = 255; // Blue
+                imageData.data[i * 4 + 3] = alpha; // Alpha
+            }
+
+            ctx.putImageData(imageData, 0, 0);
+        }
+
+        function drawToDumpCanvas(maskData, index) {
+            const dumpCanvas = document.getElementById(`dump-canvas-${index}`);
+            if (!dumpCanvas) return;
+
+            const ctx = dumpCanvas.getContext("2d");
+            const width = maskData.width;
+            const height = maskData.height;
+            dumpCanvas.width = width;
+            dumpCanvas.height = height;
+
+            const imageData = ctx.createImageData(width, height);
+            const maskArray = maskData.g[0];
+
+            for (let i = 0; i < maskArray.length; i++) {
+                
+                const alpha = maskArray[i] * 255;
+                imageData.data[i * 4] = alpha;   // Red channel for visualization
+                imageData.data[i * 4 + 1] = 0; // Green channel for visualization
+                imageData.data[i * 4 + 2] = 0; // Blue channel for visualization
+                imageData.data[i * 4 + 3] = 255;   // Full opacity
             }
 
             ctx.putImageData(imageData, 0, 0);
