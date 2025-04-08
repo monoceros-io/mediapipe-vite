@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MediaPipe Image Segmenter</title>
+    <title>MediaPipe Image Segmenter with Pose Landmarker</title>
     <style>
         body {
             padding: 0;
@@ -20,36 +20,48 @@
         canvas {
             position: absolute;
             top: 0;
-            mix-blend-mode: color;
+            /* mix-blend-mode: color; */
         }
     </style>
 </head>
 
 <body>
     <video id="webcam" autoplay playsinline></video>
-    
     <canvas class="d-canv" id="dump-canvas-0" width="640" height="480"></canvas>
 
     <script type="module">
         import { ImageSegmenter, FilesetResolver } from "./node_modules/@mediapipe/tasks-vision";
+        import { PoseLandmarker, DrawingUtils } from "https://cdn.skypack.dev/@mediapipe/tasks-vision@0.10.0";
 
-        let segmenter;
+        let segmenter, poseLandmarker;
         const video = document.getElementById("webcam");
         const dumpCanvas = document.getElementById("dump-canvas-0");
         const dumpCtx = dumpCanvas.getContext("2d");
+        const runningMode = "VIDEO";
 
-        async function loadSegmenter() {
+        async function loadModels() {
             const vision = await FilesetResolver.forVisionTasks("./node_modules/@mediapipe/tasks-vision/wasm");
 
+            // Load ImageSegmenter
             segmenter = await ImageSegmenter.createFromOptions(vision, {
                 baseOptions: {
                     modelAssetPath: "./selfie_multiclass_256x256.tflite",
                     delegate: 'GPU'
                 },
-                runningMode: "VIDEO",
+                runningMode: runningMode,
             });
 
-            console.log("Segmenter loaded successfully.");
+            // Load PoseLandmarker
+            poseLandmarker = await PoseLandmarker.createFromOptions(vision, {
+                baseOptions: {
+                    modelAssetPath: `https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task`,
+                    delegate: "GPU"
+                },
+                runningMode: runningMode,
+                numPoses: 2
+            });
+
+            console.log("Models loaded successfully.");
         }
 
         async function startWebcam() {
@@ -66,8 +78,8 @@
         }
 
         async function processVideoFrame() {
-            if (!segmenter) {
-                console.error("Segmenter not loaded.");
+            if (!segmenter || !poseLandmarker) {
+                console.error("Models not loaded.");
                 return;
             }
 
@@ -79,14 +91,19 @@
 
             const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
-            const result = await segmenter.segmentForVideo(imageData, performance.now());
-
-            if (result && result.confidenceMasks) {
-                drawAllMasksToDumpCanvas(result.confidenceMasks);
-                result.confidenceMasks.forEach(mask => mask.close()); // Free resources
+            // Perform segmentation
+            const segmentationResult = await segmenter.segmentForVideo(imageData, performance.now());
+            if (segmentationResult && segmentationResult.confidenceMasks) {
+                drawAllMasksToDumpCanvas(segmentationResult.confidenceMasks);
+                segmentationResult.confidenceMasks.forEach(mask => mask.close()); // Free resources
             } else {
                 console.warn("No segmentation result available.");
             }
+
+            // Perform pose landmark detection after segmentation
+            poseLandmarker.detectForVideo(video, performance.now(), poseResult => {
+                drawPoseLandmarks(poseResult);
+            });
 
             requestAnimationFrame(processVideoFrame);
         }
@@ -130,7 +147,19 @@
             dumpCtx.putImageData(imageData, 0, 0);
         }
 
-        loadSegmenter();
+        function drawPoseLandmarks(poseResult) {
+            const drawingUtils = new DrawingUtils(dumpCtx);
+
+            // Draw pose landmarks on top of the segmentation data
+            for (const landmark of poseResult.landmarks) {
+                drawingUtils.drawLandmarks(landmark, {
+                    radius: data => DrawingUtils.lerp(data.from.z, -0.15, 0.1, 5, 1)
+                });
+                drawingUtils.drawConnectors(landmark, PoseLandmarker.POSE_CONNECTIONS);
+            }
+        }
+
+        loadModels();
         startWebcam();
     </script>
 </body>
