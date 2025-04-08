@@ -38,6 +38,7 @@
         const dumpCanvas = document.getElementById("dump-canvas-0");
         const dumpCtx = dumpCanvas.getContext("2d");
         const runningMode = "VIDEO";
+        let frameCounter = 0; // Counter to track frames
 
         async function loadModels() {
             const vision = await FilesetResolver.forVisionTasks("./node_modules/@mediapipe/tasks-vision/wasm");
@@ -58,7 +59,7 @@
                     delegate: "GPU"
                 },
                 runningMode: runningMode,
-                numPoses: 2
+                numPoses: 1
             });
 
             console.log("Models loaded successfully.");
@@ -100,11 +101,14 @@
                 console.warn("No segmentation result available.");
             }
 
-            // Perform pose landmark detection after segmentation
-            poseLandmarker.detectForVideo(video, performance.now(), poseResult => {
-                drawPoseLandmarks(poseResult);
-            });
+            // Perform pose landmark detection every 5 frames
+            if (frameCounter % 1 === 0) {
+                poseLandmarker.detectForVideo(video, performance.now(), poseResult => {
+                    drawPoseLandmarks(poseResult);
+                });
+            }
 
+            frameCounter++; // Increment the frame counter
             requestAnimationFrame(processVideoFrame);
         }
 
