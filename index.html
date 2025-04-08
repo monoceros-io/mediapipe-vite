@@ -23,26 +23,14 @@
     <br><br>
     <canvas id="canvas"></canvas>
     <canvas class="d-canv" id="dump-canvas-0" width="640" height="480"></canvas>
-    <canvas class="d-canv" id="dump-canvas-1" width="640" height="480"></canvas>
-    <canvas class="d-canv" id="dump-canvas-2" width="640" height="480"></canvas>
-    <canvas class="d-canv" id="dump-canvas-3" width="640" height="480"></canvas>
-    <canvas class="d-canv" id="dump-canvas-4" width="640" height="480"></canvas>
-    <canvas class="d-canv" id="dump-canvas-5" width="640" height="480"></canvas>
 
     <script type="module">
         import { ImageSegmenter, FilesetResolver } from "./node_modules/@mediapipe/tasks-vision";
 
         let segmenter;
         const video = document.getElementById("webcam");
-
-        const dumpCanvases = [
-            document.getElementById("dump-canvas-0"),
-            document.getElementById("dump-canvas-1"),
-            document.getElementById("dump-canvas-2"),
-            document.getElementById("dump-canvas-3"),
-            document.getElementById("dump-canvas-4"),
-            document.getElementById("dump-canvas-5")
-        ];
+        const dumpCanvas = document.getElementById("dump-canvas-0");
+        const dumpCtx = dumpCanvas.getContext("2d");
 
         async function loadSegmenter() {
             const vision = await FilesetResolver.forVisionTasks("./node_modules/@mediapipe/tasks-vision/wasm");
@@ -88,12 +76,8 @@
             const result = await segmenter.segmentForVideo(imageData, performance.now());
 
             if (result && result.confidenceMasks) {
-                result.confidenceMasks.forEach((mask, index) => {
-                    drawToDumpCanvas(mask, index); // Dump each mask to its canvas
-                });
-
-                // Free resources
-                result.confidenceMasks.forEach(mask => mask.close());
+                drawAllMasksToDumpCanvas(result.confidenceMasks);
+                result.confidenceMasks.forEach(mask => mask.close()); // Free resources
             } else {
                 console.warn("No segmentation result available.");
             }
@@ -101,32 +85,43 @@
             requestAnimationFrame(processVideoFrame);
         }
 
-        function drawToDumpCanvas(maskData, index) {
-            const dumpCanvas = dumpCanvases[index];
-            if (!dumpCanvas) return;
-
-            const ctx = dumpCanvas.getContext("2d");
-            const { width, height } = maskData;
-
+        function drawAllMasksToDumpCanvas(confidenceMasks) {
+            const { width, height } = confidenceMasks[0];
             if (dumpCanvas.width !== width || dumpCanvas.height !== height) {
                 dumpCanvas.width = width;
                 dumpCanvas.height = height;
             }
 
-            const maskArray = maskData.getAsFloat32Array(); // Get the mask data as a Float32Array
-            const imageData = ctx.createImageData(width, height);
+            const imageData = dumpCtx.createImageData(width, height);
             const data = imageData.data;
 
-            for (let i = 0; i < maskArray.length; i++) {
-                const alpha = maskArray[i] * 255; // Scale the float value to 0-255
-                const offset = i * 4;
-                data[offset] = alpha;    // Red channel for visualization
-                data[offset + 1] = 0;    // Green channel
-                data[offset + 2] = 0;    // Blue channel
-                data[offset + 3] = 255;  // Full opacity
-            }
+            // Define unique colors for each mask
+            const colors = [
+                [255, 0, 0],   // Red
+                [0, 255, 0],   // Green
+                [0, 0, 255],   // Blue
+                [255, 255, 0], // Yellow
+                [0, 255, 255], // Cyan
+                [255, 0, 255]  // Magenta
+            ];
 
-            ctx.putImageData(imageData, 0, 0);
+            confidenceMasks.forEach((maskData, maskIndex) => {
+                const maskArray = maskData.getAsFloat32Array();
+                const [r, g, b] = colors[maskIndex % colors.length]; // Cycle through colors
+
+                for (let i = 0; i < maskArray.length; i++) {
+                    const alpha = maskArray[i] * 255; // Scale the float value to 0-255
+                    const offset = i * 4;
+
+                    // Blend the mask color with existing pixels
+                    data[offset] = Math.max(data[offset], r * (alpha / 255)); // Red channel
+                    data[offset + 1] = Math.max(data[offset + 1], g * (alpha / 255)); // Green channel
+                    data[offset + 2] = Math.max(data[offset + 2], b * (alpha / 255)); // Blue channel
+                    data[offset + 3] = 255; // Full opacity
+                }
+            });
+
+            dumpCtx.putImageData(imageData, 0, 0);
         }
 
         loadSegmenter();
