@@ -6,22 +6,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MediaPipe Image Segmenter</title>
     <style>
+        body {
+            padding: 0;
+            margin: 0;
+        }
         .d-canv {
             border: 1px solid red;
         }
-
-        #canvas {
-            border: 1px solid blue;
-            background-color: green;
+        video {
+            position: absolute;
+            top: 0;
+        }
+        canvas {
+            position: absolute;
+            top: 0;
+            mix-blend-mode: color;
         }
     </style>
 </head>
 
 <body>
-    <h2>Webcam Feed for Segmentation</h2>
     <video id="webcam" autoplay playsinline></video>
-    <br><br>
-    <canvas id="canvas"></canvas>
+    
     <canvas class="d-canv" id="dump-canvas-0" width="640" height="480"></canvas>
 
     <script type="module">
@@ -97,12 +103,12 @@
 
             // Define unique colors for each mask
             const colors = [
-                [255, 0, 0],   // Red
-                [0, 255, 0],   // Green
-                [0, 0, 255],   // Blue
-                [255, 255, 0], // Yellow
-                [0, 255, 255], // Cyan
-                [255, 0, 255]  // Magenta
+                [255, 0, 0],   // Red BACKGROUND
+                [0, 255, 0],   // Green HAIR
+                [0, 0, 255],   // Blue SKIN
+                [255, 255, 0], // Yellow FACE
+                [0, 255, 255], // Cyan CLOTHES
+                [255, 0, 255]  // Magenta OBJECTS
             ];
 
             confidenceMasks.forEach((maskData, maskIndex) => {
