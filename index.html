@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -15,6 +16,7 @@
         }
     </style>
 </head>
+
 <body>
     <h2>Webcam Feed for Segmentation</h2>
     <video id="webcam" autoplay playsinline></video>
@@ -33,12 +35,22 @@
         let segmenter;
         const video = document.getElementById("webcam");
 
+        const dumpCanvases = [
+            document.getElementById("dump-canvas-0"),
+            document.getElementById("dump-canvas-1"),
+            document.getElementById("dump-canvas-2"),
+            document.getElementById("dump-canvas-3"),
+            document.getElementById("dump-canvas-4"),
+            document.getElementById("dump-canvas-5")
+        ];
+
         async function loadSegmenter() {
             const vision = await FilesetResolver.forVisionTasks("./node_modules/@mediapipe/tasks-vision/wasm");
 
             segmenter = await ImageSegmenter.createFromOptions(vision, {
                 baseOptions: {
-                    modelAssetPath: "./selfie_multiclass_256x256.tflite"  // Ensure the correct path to your model
+                    modelAssetPath: "./selfie_multiclass_256x256.tflite",
+                    delegate: 'GPU'
                 },
                 runningMode: "VIDEO",
             });
@@ -72,14 +84,16 @@
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
             const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
             const result = await segmenter.segmentForVideo(imageData, performance.now());
 
             if (result && result.confidenceMasks) {
                 result.confidenceMasks.forEach((mask, index) => {
-                    
                     drawToDumpCanvas(mask, index); // Dump each mask to its canvas
                 });
-                drawMask(result.confidenceMasks[0]); // Visualize only the first mask for debugging
+
+                // Free resources
+                result.confidenceMasks.forEach(mask => mask.close());
             } else {
                 console.warn("No segmentation result available.");
             }
@@ -87,51 +101,29 @@
             requestAnimationFrame(processVideoFrame);
         }
 
-        function drawMask(maskData) {
-            const canvas = document.getElementById("canvas");
-            const ctx = canvas.getContext("2d");
-
-            const width = maskData.width;
-            const height = maskData.height;
-            canvas.width = width;
-            canvas.height = height;
-
-            console.log("Drawing mask with dimensions:", width, height);
-
-            const imageData = ctx.createImageData(width, height);
-
-            const maskArray = Array.from(maskData); // Ensure maskData is an array
-            for (let i = 0; i < maskArray.length; i++) {
-                const alpha = maskArray[i] * 255;
-                imageData.data[i * 4] = 0;       // Red
-                imageData.data[i * 4 + 1] = 0;   // Green
-                imageData.data[i * 4 + 2] = 255; // Blue
-                imageData.data[i * 4 + 3] = alpha; // Alpha
-            }
-
-            ctx.putImageData(imageData, 0, 0);
-        }
-
         function drawToDumpCanvas(maskData, index) {
-            const dumpCanvas = document.getElementById(`dump-canvas-${index}`);
+            const dumpCanvas = dumpCanvases[index];
             if (!dumpCanvas) return;
 
             const ctx = dumpCanvas.getContext("2d");
-            const width = maskData.width;
-            const height = maskData.height;
-            dumpCanvas.width = width;
-            dumpCanvas.height = height;
+            const { width, height } = maskData;
 
+            if (dumpCanvas.width !== width || dumpCanvas.height !== height) {
+                dumpCanvas.width = width;
+                dumpCanvas.height = height;
+            }
+
+            const maskArray = maskData.getAsFloat32Array(); // Get the mask data as a Float32Array
             const imageData = ctx.createImageData(width, height);
-            const maskArray = maskData.g[0];
+            const data = imageData.data;
 
             for (let i = 0; i < maskArray.length; i++) {
-                
-                const alpha = maskArray[i] * 255;
-                imageData.data[i * 4] = alpha;   // Red channel for visualization
-                imageData.data[i * 4 + 1] = 0; // Green channel for visualization
-                imageData.data[i * 4 + 2] = 0; // Blue channel for visualization
-                imageData.data[i * 4 + 3] = 255;   // Full opacity
+                const alpha = maskArray[i] * 255; // Scale the float value to 0-255
+                const offset = i * 4;
+                data[offset] = alpha;    // Red channel for visualization
+                data[offset + 1] = 0;    // Green channel
+                data[offset + 2] = 0;    // Blue channel
+                data[offset + 3] = 255;  // Full opacity
             }
 
             ctx.putImageData(imageData, 0, 0);
@@ -141,4 +133,5 @@
         startWebcam();
     </script>
 </body>
+
 </html>
