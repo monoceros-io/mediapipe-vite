@@ -114,10 +114,10 @@
 
         function drawAllMasksToDumpCanvas(confidenceMasks) {
             const { width, height } = confidenceMasks[0];
-            if (dumpCanvas.width !== width || dumpCanvas.height !== height) {
-                dumpCanvas.width = width;
-                dumpCanvas.height = height;
-            }
+            // if (dumpCanvas.width !== width || dumpCanvas.height !== height) {
+            //     dumpCanvas.width = width;
+            //     dumpCanvas.height = height;
+            // }
 
             const imageData = dumpCtx.createImageData(width, height);
             const data = imageData.data;
