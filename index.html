@@ -20,7 +20,6 @@
         canvas {
             position: absolute;
             top: 0;
-            /* mix-blend-mode: color; */
         }
     </style>
 </head>
@@ -43,7 +42,6 @@
         async function loadModels() {
             const vision = await FilesetResolver.forVisionTasks("./node_modules/@mediapipe/tasks-vision/wasm");
 
-            // Load ImageSegmenter
             segmenter = await ImageSegmenter.createFromOptions(vision, {
                 baseOptions: {
                     modelAssetPath: "./selfie_multiclass_256x256.tflite",
@@ -52,7 +50,6 @@
                 runningMode: runningMode,
             });
 
-            // Load PoseLandmarker
             poseLandmarker = await PoseLandmarker.createFromOptions(vision, {
                 baseOptions: {
                     modelAssetPath: `https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task`,
@@ -69,10 +66,7 @@
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ video: true });
                 video.srcObject = stream;
-                video.addEventListener("loadeddata", () => {
-                    console.log("Webcam feed started.");
-                    processVideoFrame();
-                });
+                video.addEventListener("loadeddata", processVideoFrame);
             } catch (error) {
                 console.error("Error accessing webcam:", error);
             }
@@ -84,45 +78,40 @@
                 return;
             }
 
-            const canvas = document.createElement("canvas");
-            const ctx = canvas.getContext("2d");
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const offscreenCanvas = document.createElement("canvas");
+            const offscreenCtx = offscreenCanvas.getContext("2d");
+            offscreenCanvas.width = video.videoWidth;
+            offscreenCanvas.height = video.videoHeight;
+            offscreenCtx.drawImage(video, 0, 0, offscreenCanvas.width, offscreenCanvas.height);
 
-            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const imageData = offscreenCtx.getImageData(0, 0, offscreenCanvas.width, offscreenCanvas.height);
 
             // Perform segmentation
             const segmentationResult = await segmenter.segmentForVideo(imageData, performance.now());
-            if (segmentationResult && segmentationResult.confidenceMasks) {
+            if (segmentationResult?.confidenceMasks) {
                 drawAllMasksToDumpCanvas(segmentationResult.confidenceMasks);
-                segmentationResult.confidenceMasks.forEach(mask => mask.close()); // Free resources
-            } else {
-                console.warn("No segmentation result available.");
+                segmentationResult.confidenceMasks.forEach(mask => mask.close());
             }
 
             // Perform pose landmark detection every 5 frames
-            if (frameCounter % 1 === 0) {
-                poseLandmarker.detectForVideo(video, performance.now(), poseResult => {
-                    drawPoseLandmarks(poseResult);
-                });
-            }
+            // if (frameCounter % 5 === 0) {
+                poseLandmarker.detectForVideo(video, performance.now(), drawPoseLandmarks);
+            // }
 
-            frameCounter++; // Increment the frame counter
+            frameCounter++;
             requestAnimationFrame(processVideoFrame);
         }
 
         function drawAllMasksToDumpCanvas(confidenceMasks) {
             const { width, height } = confidenceMasks[0];
-            // if (dumpCanvas.width !== width || dumpCanvas.height !== height) {
-            //     dumpCanvas.width = width;
-            //     dumpCanvas.height = height;
-            // }
+            if (dumpCanvas.width !== width || dumpCanvas.height !== height) {
+                dumpCanvas.width = width;
+                dumpCanvas.height = height;
+            }
 
             const imageData = dumpCtx.createImageData(width, height);
             const data = imageData.data;
 
-            // Define unique colors for each mask
             const colors = [
                 [255, 0, 0],   // Red BACKGROUND
                 [0, 255, 0],   // Green HAIR
@@ -132,19 +121,20 @@
                 [255, 0, 255]  // Magenta OBJECTS
             ];
 
-            confidenceMasks.forEach((maskData, maskIndex) => {
+            // Only draw masks 0 and 4
+            [0, 4].forEach(maskIndex => {
+                const maskData = confidenceMasks[maskIndex];
                 const maskArray = maskData.getAsFloat32Array();
-                const [r, g, b] = colors[maskIndex % colors.length]; // Cycle through colors
+                const [r, g, b] = colors[maskIndex % colors.length];
 
                 for (let i = 0; i < maskArray.length; i++) {
-                    const alpha = maskArray[i] * 255; // Scale the float value to 0-255
+                    const alpha = maskArray[i] * 255;
                     const offset = i * 4;
 
-                    // Blend the mask color with existing pixels
-                    data[offset] = Math.max(data[offset], r * (alpha / 255)); // Red channel
-                    data[offset + 1] = Math.max(data[offset + 1], g * (alpha / 255)); // Green channel
-                    data[offset + 2] = Math.max(data[offset + 2], b * (alpha / 255)); // Blue channel
-                    data[offset + 3] = 255; // Full opacity
+                    data[offset] = Math.max(data[offset], r * (alpha / 255));
+                    data[offset + 1] = Math.max(data[offset + 1], g * (alpha / 255));
+                    data[offset + 2] = Math.max(data[offset + 2], b * (alpha / 255));
+                    data[offset + 3] = 255;
                 }
             });
 
@@ -154,7 +144,6 @@
         function drawPoseLandmarks(poseResult) {
             const drawingUtils = new DrawingUtils(dumpCtx);
 
-            // Draw pose landmarks on top of the segmentation data
             for (const landmark of poseResult.landmarks) {
                 drawingUtils.drawLandmarks(landmark, {
                     radius: data => DrawingUtils.lerp(data.from.z, -0.15, 0.1, 5, 1)
