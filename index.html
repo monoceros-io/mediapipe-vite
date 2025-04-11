@@ -10,16 +10,20 @@
             padding: 0;
             margin: 0;
         }
+
         .d-canv {
             border: 1px solid red;
         }
+
         video {
             position: absolute;
             top: 0;
         }
+
         canvas {
             position: absolute;
             top: 0;
+            /* opacity: 0.5; */
         }
     </style>
 </head>
@@ -95,7 +99,7 @@
 
             // Perform pose landmark detection every 5 frames
             // if (frameCounter % 5 === 0) {
-                poseLandmarker.detectForVideo(video, performance.now(), drawPoseLandmarks);
+            poseLandmarker.detectForVideo(video, performance.now(), drawPoseLandmarks);
             // }
 
             frameCounter++;
@@ -152,8 +156,46 @@
             }
         }
 
+        async function processMasksInWASM(confidenceMasks, colors, data) {
+            // Ensure the arrays are of correct size before processing
+            const maskIndices = new Int32Array([0, 1, 4]);
+            const masks = confidenceMasks.map(m => new Float32Array(m.getAsFloat32Array()));
+            const wasmColors = new Uint8Array(colors.flat());
+            const wasmData = new Uint8Array(data);
+
+            console.log("Masks size:", masks.length);
+            console.log("Colors size:", wasmColors.length);
+            console.log("Data size:", wasmData.length);
+
+            // Ensure that the arrays fit into the allocated WASM memory
+            if (wasmData.byteLength > wasmInstance.memory.buffer.byteLength) {
+                console.warn("WASM memory size is not large enough to handle the data.");
+                return;
+            }
+
+            // Call the WASM function
+            wasmInstance.processMasks(maskIndices, masks, wasmColors, wasmData);
+
+            return wasmData;
+        }
+
         loadModels();
         startWebcam();
+
+        let wasmInstance = null;
+
+        WebAssembly.instantiateStreaming(fetch("index.wasm"), {
+            env: {
+                memory: new WebAssembly.Memory({ initial: 512, maximum: 1024 }), // Increased memory
+                abort: () => console.error("WASM aborted"),
+            }
+        }).then(result => {
+            wasmInstance = result.instance;
+            
+        }).catch(err => {
+            console.error("WASM failed to initialize", err);
+        });
+
     </script>
 </body>
 
