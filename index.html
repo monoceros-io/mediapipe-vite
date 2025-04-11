@@ -23,7 +23,6 @@
         canvas {
             position: absolute;
             top: 0;
-            opacity: 1.0;
             mix-blend-mode: multiply;
         }
 
@@ -48,8 +47,36 @@
     <button id="start-button">Begin</button>
 
     <script type="module">
+
         import { ImageSegmenter, FilesetResolver, PoseLandmarker, DrawingUtils } from "./node_modules/@mediapipe/tasks-vision";
-        // import { PoseLandmarker, DrawingUtils } from "https://cdn.skypack.dev/@mediapipe/tasks-vision@0.10.0";
+
+        const body = {
+            head: [],
+            shoulder0: [], shoulder1: [],
+            hand0: [], hand1: [],
+            foot0: [], foot1: []
+        }
+
+        let xThreshold = 0.1;
+        let yThreshold = 0.1;
+
+        function createThrottledLogger() {
+            let lastLogTime = 0;
+
+            return function log(...messages) {
+                const currentTime = Date.now();
+                if (currentTime - lastLogTime >= 1000) { // Log only if 1 second has passed
+                    console.log(...messages);
+                    lastLogTime = currentTime;
+                }
+            };
+        }
+
+        const log = createThrottledLogger();
+
+
+
+        const throttledLog = createThrottledLogger();
 
         let segmenter, poseLandmarker;
         const video = document.getElementById("webcam");
@@ -59,11 +86,9 @@
         let frameCounter = 0; // Counter to track frames
         const cameraSelect = document.getElementById("camera-select");
 
-        async function loadModels() 
-        {
+        async function loadModels() {
 
             const vision = await FilesetResolver.forVisionTasks("./node_modules/@mediapipe/tasks-vision/wasm");
-            console.log("FILESET RESOLVER", vision);
 
             segmenter = await ImageSegmenter.createFromOptions(vision, {
                 baseOptions: {
@@ -79,10 +104,9 @@
                     delegate: "GPU"
                 },
                 runningMode: runningMode,
-                numPoses: 2
+                numPoses: 1
             });
 
-            console.log("Models loaded successfully.");
         }
 
         async function startWebcam(deviceId) {
@@ -100,6 +124,7 @@
         async function processVideoFrame() {
             if (!segmenter || !poseLandmarker) {
                 console.error("Models not loaded.");
+                location.reload();
                 return;
             }
 
@@ -118,11 +143,7 @@
                 segmentationResult.confidenceMasks.forEach(mask => mask.close());
             }
 
-            // Perform pose landmark detection every 5 frames
-            // if (frameCounter % 5 === 0) {
             poseLandmarker.detectForVideo(video, performance.now(), drawPoseLandmarks);
-            // }
-
             frameCounter++;
             requestAnimationFrame(processVideoFrame);
         }
@@ -166,10 +187,51 @@
             dumpCtx.putImageData(imageData, 0, 0);
         }
 
+        function checkThreshold(p) {
+            return p.x > xThreshold && p.x < 1 - xThreshold &&
+                p.y > yThreshold && p.y < 1 - yThreshold;
+        }
+
+
+
         function drawPoseLandmarks(poseResult) {
+
             const drawingUtils = new DrawingUtils(dumpCtx);
 
             for (const landmark of poseResult.landmarks) {
+
+                log("HEAD", landmark[0], "SHOULDER 1", landmark[11], "SHOULDER 2", landmark[12]);
+
+                if (checkThreshold(landmark[0])) {
+                    body.head[0] = landmark[0].x;
+                    body.head[1] = landmark[0].y;
+                }
+
+                if (checkThreshold(landmark[11])) {
+                    body.shoulder0[0] = landmark[11].x;
+                    body.shoulder0[1] = landmark[11].y;
+                }
+                if (checkThreshold(landmark[12])) {
+                    body.shoulder1[0] = landmark[12].x;
+                    body.shoulder1[1] = landmark[12].y;
+                }
+                if (checkThreshold(landmark[15])) {
+                    body.hand0[0] = landmark[15].x;
+                    body.hand0[1] = landmark[15].y;
+                }
+                if (checkThreshold(landmark[16])) {
+                    body.hand1[0] = landmark[16].x;
+                    body.hand1[1] = landmark[16].y;
+                }
+                if (checkThreshold(landmark[27])) {
+                    body.foot0[0] = landmark[27].x;
+                    body.foot0[1] = landmark[27].y;
+                }
+                if (checkThreshold(landmark[28])) {
+                    body.foot1[0] = landmark[28].x;
+                    body.foot1[1] = landmark[28].y;
+                }
+
                 drawingUtils.drawLandmarks(landmark, {
                     radius: data => DrawingUtils.lerp(data.from.z, -0.15, 0.1, 5, 1)
                 });
