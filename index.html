@@ -23,7 +23,18 @@
         canvas {
             position: absolute;
             top: 0;
-            /* opacity: 0.5; */
+            opacity: 1.0;
+            mix-blend-mode: multiply;
+        }
+
+        #camera-select {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 1000;
+            background-color: white;
+            padding: 5px;
+            border-radius: 5px;
         }
     </style>
 </head>
@@ -31,6 +42,10 @@
 <body>
     <video id="webcam" autoplay playsinline></video>
     <canvas class="d-canv" id="dump-canvas-0" width="640" height="480"></canvas>
+
+    <select name="cameras" id="camera-select"></select>
+
+    <button id="start-button">Begin</button>
 
     <script type="module">
         import { ImageSegmenter, FilesetResolver } from "./node_modules/@mediapipe/tasks-vision";
@@ -42,6 +57,7 @@
         const dumpCtx = dumpCanvas.getContext("2d");
         const runningMode = "VIDEO";
         let frameCounter = 0; // Counter to track frames
+        const cameraSelect = document.getElementById("camera-select");
 
         async function loadModels() {
             const vision = await FilesetResolver.forVisionTasks("./node_modules/@mediapipe/tasks-vision/wasm");
@@ -60,15 +76,17 @@
                     delegate: "GPU"
                 },
                 runningMode: runningMode,
-                numPoses: 1
+                numPoses: 2
             });
 
             console.log("Models loaded successfully.");
         }
 
-        async function startWebcam() {
+        async function startWebcam(deviceId) {
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { deviceId: deviceId ? { exact: deviceId } : undefined }
+                });
                 video.srcObject = stream;
                 video.addEventListener("loadeddata", processVideoFrame);
             } catch (error) {
@@ -156,31 +174,40 @@
             }
         }
 
-        async function processMasksInWASM(confidenceMasks, colors, data) {
-            // Ensure the arrays are of correct size before processing
-            const maskIndices = new Int32Array([0, 1, 4]);
-            const masks = confidenceMasks.map(m => new Float32Array(m.getAsFloat32Array()));
-            const wasmColors = new Uint8Array(colors.flat());
-            const wasmData = new Uint8Array(data);
+        // Function to populate the camera select dropdown
+        async function populateCameraSelect() {
+            try {
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const videoDevices = devices.filter(device => device.kind === "videoinput");
 
-            console.log("Masks size:", masks.length);
-            console.log("Colors size:", wasmColors.length);
-            console.log("Data size:", wasmData.length);
+                videoDevices.forEach(device => {
+                    const option = document.createElement("option");
+                    option.value = device.deviceId;
+                    option.text = device.label || `Camera ${cameraSelect.options.length + 1}`;
+                    cameraSelect.appendChild(option);
+                });
 
-            // Ensure that the arrays fit into the allocated WASM memory
-            if (wasmData.byteLength > wasmInstance.memory.buffer.byteLength) {
-                console.warn("WASM memory size is not large enough to handle the data.");
-                return;
+                // Select the first camera by default
+                if (videoDevices.length > 0) {
+                    cameraSelect.selectedIndex = 0;
+                    startWebcam(videoDevices[0].deviceId);
+                }
+
+            } catch (error) {
+                console.error("Error enumerating devices:", error);
             }
-
-            // Call the WASM function
-            wasmInstance.processMasks(maskIndices, masks, wasmColors, wasmData);
-
-            return wasmData;
         }
 
+        // Listen for camera change
+        cameraSelect.addEventListener("change", (event) => {
+            const selectedDeviceId = event.target.value;
+            startWebcam(selectedDeviceId);
+        });
+
+
+
         loadModels();
-        startWebcam();
+        populateCameraSelect(); // Populate the select with camera options
 
         let wasmInstance = null;
 
@@ -191,7 +218,6 @@
             }
         }).then(result => {
             wasmInstance = result.instance;
-            
         }).catch(err => {
             console.error("WASM failed to initialize", err);
         });
