@@ -48,8 +48,8 @@
     <button id="start-button">Begin</button>
 
     <script type="module">
-        import { ImageSegmenter, FilesetResolver } from "./node_modules/@mediapipe/tasks-vision";
-        import { PoseLandmarker, DrawingUtils } from "https://cdn.skypack.dev/@mediapipe/tasks-vision@0.10.0";
+        import { ImageSegmenter, FilesetResolver, PoseLandmarker, DrawingUtils } from "./node_modules/@mediapipe/tasks-vision";
+        // import { PoseLandmarker, DrawingUtils } from "https://cdn.skypack.dev/@mediapipe/tasks-vision@0.10.0";
 
         let segmenter, poseLandmarker;
         const video = document.getElementById("webcam");
@@ -59,8 +59,11 @@
         let frameCounter = 0; // Counter to track frames
         const cameraSelect = document.getElementById("camera-select");
 
-        async function loadModels() {
+        async function loadModels() 
+        {
+
             const vision = await FilesetResolver.forVisionTasks("./node_modules/@mediapipe/tasks-vision/wasm");
+            console.log("FILESET RESOLVER", vision);
 
             segmenter = await ImageSegmenter.createFromOptions(vision, {
                 baseOptions: {
