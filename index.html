@@ -26,7 +26,25 @@
             mix-blend-mode: multiply;
         }
 
+        #canvas-2 {
+            top: unset;
+            bottom: 0;
+            right: 0;
+            position: absolute;
+            background-color: blue;
+        }
+
         #camera-select {
+            /* position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 1000;
+            background-color: white;
+            padding: 5px;
+            border-radius: 5px; */
+        }
+
+        .settings-panel {
             position: absolute;
             top: 10px;
             left: 10px;
@@ -34,17 +52,31 @@
             background-color: white;
             padding: 5px;
             border-radius: 5px;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5em;
+            font-family: monospace;
         }
     </style>
 </head>
 
 <body>
+
     <video id="webcam" autoplay playsinline></video>
+
+    <canvas id="canvas-2" width="640" height="480"></canvas>
     <canvas class="d-canv" id="dump-canvas-0" width="640" height="480"></canvas>
 
-    <select name="cameras" id="camera-select"></select>
+    <div class="settings-panel">
+        <select name="cameras" id="camera-select"></select>
+        <label for="x-threshold">X Threshold:</label>
+        <input type="number" id="x-threshold" value="0.1" step="0.01" min="0" max="1">
+        <label for="y-threshold">Y Threshold:</label>
+        <input type="number" id="y-threshold" value="0.1" step="0.01" min="0" max="1">
+        <label for="pose-update-interval">Pose Update Interval (ms):</label>
+        <input type="number" id="pose-update-interval" value="300" step="100" min="100">
 
-    <button id="start-button">Begin</button>
+    </div>
 
     <script type="module">
 
@@ -60,6 +92,47 @@
         let xThreshold = 0.1;
         let yThreshold = 0.1;
 
+        let poseUpdateInterval = 300; // 1 second
+
+        let lastPoseTime = Date.now();
+
+        function updatePose(landmark) {
+            if (Date.now() - lastPoseTime > poseUpdateInterval) {
+
+                lastPoseTime = Date.now();
+
+                if (checkThreshold(landmark[0])) {
+                    body.head[0] = landmark[0].x;
+                    body.head[1] = landmark[0].y;
+                }
+                if (checkThreshold(landmark[11])) {
+                    body.shoulder0[0] = landmark[11].x;
+                    body.shoulder0[1] = landmark[11].y;
+                }
+                if (checkThreshold(landmark[12])) {
+                    body.shoulder1[0] = landmark[12].x;
+                    body.shoulder1[1] = landmark[12].y;
+                }
+                if (checkThreshold(landmark[15])) {
+                    body.hand0[0] = landmark[15].x;
+                    body.hand0[1] = landmark[15].y;
+                }
+                if (checkThreshold(landmark[16])) {
+                    body.hand1[0] = landmark[16].x;
+                    body.hand1[1] = landmark[16].y;
+                }
+                if (checkThreshold(landmark[27])) {
+                    body.foot0[0] = landmark[27].x;
+                    body.foot0[1] = landmark[27].y;
+                }
+                if (checkThreshold(landmark[28])) {
+                    body.foot1[0] = landmark[28].x;
+                    body.foot1[1] = landmark[28].y;
+                }
+
+            }
+        }
+
         function createThrottledLogger() {
             let lastLogTime = 0;
 
@@ -73,10 +146,6 @@
         }
 
         const log = createThrottledLogger();
-
-
-
-        const throttledLog = createThrottledLogger();
 
         let segmenter, poseLandmarker;
         const video = document.getElementById("webcam");
@@ -194,44 +263,15 @@
 
 
 
+
+
         function drawPoseLandmarks(poseResult) {
 
             const drawingUtils = new DrawingUtils(dumpCtx);
 
             for (const landmark of poseResult.landmarks) {
 
-                log("HEAD", landmark[0], "SHOULDER 1", landmark[11], "SHOULDER 2", landmark[12]);
-
-                if (checkThreshold(landmark[0])) {
-                    body.head[0] = landmark[0].x;
-                    body.head[1] = landmark[0].y;
-                }
-
-                if (checkThreshold(landmark[11])) {
-                    body.shoulder0[0] = landmark[11].x;
-                    body.shoulder0[1] = landmark[11].y;
-                }
-                if (checkThreshold(landmark[12])) {
-                    body.shoulder1[0] = landmark[12].x;
-                    body.shoulder1[1] = landmark[12].y;
-                }
-                if (checkThreshold(landmark[15])) {
-                    body.hand0[0] = landmark[15].x;
-                    body.hand0[1] = landmark[15].y;
-                }
-                if (checkThreshold(landmark[16])) {
-                    body.hand1[0] = landmark[16].x;
-                    body.hand1[1] = landmark[16].y;
-                }
-                if (checkThreshold(landmark[27])) {
-                    body.foot0[0] = landmark[27].x;
-                    body.foot0[1] = landmark[27].y;
-                }
-                if (checkThreshold(landmark[28])) {
-                    body.foot1[0] = landmark[28].x;
-                    body.foot1[1] = landmark[28].y;
-                }
-
+                updatePose(landmark);
                 drawingUtils.drawLandmarks(landmark, {
                     radius: data => DrawingUtils.lerp(data.from.z, -0.15, 0.1, 5, 1)
                 });
