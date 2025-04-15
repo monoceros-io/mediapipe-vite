@@ -52,5 +52,6 @@ export function matchCropToVideo() {
 }
 
 function trimFourFromVideo(){
+    
 
 }
