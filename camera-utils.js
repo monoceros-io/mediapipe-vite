@@ -1,12 +1,12 @@
-let _videos, _cropDivOuters, _cdoLinePercs;
+let _videos, _cropDivOuters, _cdoMasks;
 
-export function setupVideoUtils(videos, cropDivOuters, cdoLinePercs){
+export function setupVideoUtils(videos, cropDivOuters, cdoMasks){
     _videos = videos;
     _cropDivOuters = cropDivOuters;
-    _cdoLinePercs = cdoLinePercs;
-    // _cdoLines0 = _cropDivOuters[0].querySelectorAll(".video-crop-line");
-    // _cdoLines1 = _cropDivOuters[1].querySelectorAll(".video-crop-line");
+    _cdoMasks = cdoMasks;
 }
+
+
 
 export function matchCropToVideo() {
     for (let i = 0; i < _videos.length; i++) {
@@ -39,19 +39,30 @@ export function matchCropToVideo() {
         cropDivOuter.style.left = ((elementWidth - visibleWidth) / 2) + 'px';
         cropDivOuter.style.top = ((elementHeight - visibleHeight) / 2) + 'px';
 
-        const cdoLinePerc = _cdoLinePercs[i];
-        let cdoLines = _cropDivOuters[1].querySelectorAll(".video-crop-line");
-        for(let j = 0; j < 4; ++j){
-            const perc = cdoLinePerc[j];
-            const line = cdoLines[j];
-            const readout = line.querySelector(".video-crop-readout");
-            line.style.left = perc + "%";
-            readout.innerHTML = Math.round(perc) + "%";
+        const boundElements = cropDivOuter.querySelectorAll(".video-crop-box");
+        
+
+        for(let j = 0; j < 2; ++j){
+            const element = boundElements[j];
+            const bound = _cdoMasks[i][j];
+            const style = element.style;
+            style.left = bound[0] + "%";
+            style.top = bound[1] + "%";
+            style.width = bound[2] + "%";
+            style.height = bound[3] + "%";
+            console.log("BOUND LAND", bound);
+
         }
+
+
+        
     }
 }
 
+
+window.addEventListener('resize', matchCropToVideo);
+
 function trimFourFromVideo(){
-    
+
 
 }
