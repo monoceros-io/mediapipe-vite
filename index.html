@@ -99,6 +99,8 @@
 
         const runningMode = "VIDEO";
 
+        
+
         const body = {
             head: [],
             shoulder0: [], shoulder1: [],
@@ -166,7 +168,11 @@
                 const video = document.getElementById(`vid-${index}`);
                 const stream = await navigator.mediaDevices.getUserMedia({
                     video: {
-                        deviceId: { exact: event.target.value }
+                        frameRate: { min: 30, ideal: 60 },
+                        aspectRatio: { exact: 16 / 9 },
+                        deviceId: { exact: event.target.value },
+                        width: { ideal: 4096 }, // Try for 4K width
+                        height: { ideal: 2160 }, // Try for 4K height
                     }
                 });
 
@@ -294,56 +300,56 @@
         ];
 
         let tempFloatBuffer = null;
-let lastBufferSize = 0;
+        let lastBufferSize = 0;
 
-function drawAllMasksToDumpCanvas(confidenceMasks) {
-    const canvas = canvases[cameraDumpIndex];
-    const dumpCtx = dumpContexts[cameraDumpIndex];
-    const { width, height } = confidenceMasks[0];
-    const pixelCount = width * height;
+        function drawAllMasksToDumpCanvas(confidenceMasks) {
+            const canvas = canvases[cameraDumpIndex];
+            const dumpCtx = dumpContexts[cameraDumpIndex];
+            const { width, height } = confidenceMasks[0];
+            const pixelCount = width * height;
 
-    if (canvas.width !== width || canvas.height !== height) {
-        canvas.width = width;
-        canvas.height = height;
-    }
+            if (canvas.width !== width || canvas.height !== height) {
+                canvas.width = width;
+                canvas.height = height;
+            }
 
-    // (Re)allocate buffer if needed
-    if (!tempFloatBuffer || lastBufferSize !== pixelCount) {
-        tempFloatBuffer = new Float32Array(pixelCount * 3); // R, G, B
-        lastBufferSize = pixelCount;
-    } else {
-        tempFloatBuffer.fill(0);
-    }
+            // (Re)allocate buffer if needed
+            if (!tempFloatBuffer || lastBufferSize !== pixelCount) {
+                tempFloatBuffer = new Float32Array(pixelCount * 3); // R, G, B
+                lastBufferSize = pixelCount;
+            } else {
+                tempFloatBuffer.fill(0);
+            }
 
-    [0, 4].forEach(maskIndex => {
-        const maskData = confidenceMasks[maskIndex];
-        const maskArray = maskData.getAsFloat32Array();
-        const [r, g, b] = colors[maskIndex % colors.length];
+            [0, 4].forEach(maskIndex => {
+                const maskData = confidenceMasks[maskIndex];
+                const maskArray = maskData.getAsFloat32Array();
+                const [r, g, b] = colors[maskIndex % colors.length];
 
-        for (let i = 0; i < pixelCount; i++) {
-            const alpha = maskArray[i];
-            if (alpha === 0) continue;
+                for (let i = 0; i < pixelCount; i++) {
+                    const alpha = maskArray[i];
+                    if (alpha === 0) continue;
 
-            const base = i * 3;
-            tempFloatBuffer[base]     = Math.max(tempFloatBuffer[base],     r * alpha);
-            tempFloatBuffer[base + 1] = Math.max(tempFloatBuffer[base + 1], g * alpha);
-            tempFloatBuffer[base + 2] = Math.max(tempFloatBuffer[base + 2], b * alpha);
+                    const base = i * 3;
+                    tempFloatBuffer[base] = Math.max(tempFloatBuffer[base], r * alpha);
+                    tempFloatBuffer[base + 1] = Math.max(tempFloatBuffer[base + 1], g * alpha);
+                    tempFloatBuffer[base + 2] = Math.max(tempFloatBuffer[base + 2], b * alpha);
+                }
+            });
+
+            const imageData = dumpCtx.createImageData(width, height);
+            const data = imageData.data;
+
+            for (let i = 0, j = 0; i < pixelCount; i++, j += 4) {
+                const base = i * 3;
+                data[j] = tempFloatBuffer[base];     // R
+                data[j + 1] = tempFloatBuffer[base + 1]; // G
+                data[j + 2] = tempFloatBuffer[base + 2]; // B
+                data[j + 3] = 255; // Opaque
+            }
+
+            dumpCtx.putImageData(imageData, 0, 0);
         }
-    });
-
-    const imageData = dumpCtx.createImageData(width, height);
-    const data = imageData.data;
-
-    for (let i = 0, j = 0; i < pixelCount; i++, j += 4) {
-        const base = i * 3;
-        data[j]     = tempFloatBuffer[base];     // R
-        data[j + 1] = tempFloatBuffer[base + 1]; // G
-        data[j + 2] = tempFloatBuffer[base + 2]; // B
-        data[j + 3] = 255; // Opaque
-    }
-
-    dumpCtx.putImageData(imageData, 0, 0);
-}
 
 
 
@@ -371,6 +377,21 @@ function drawAllMasksToDumpCanvas(confidenceMasks) {
                 drawingUtils.drawConnectors(landmark, PoseLandmarker.POSE_CONNECTIONS);
             }
         }
+
+
+        let wasmInstance = null;
+
+        WebAssembly.instantiateStreaming(fetch("index.wasm"), {
+            env: {
+                memory: new WebAssembly.Memory({ initial: 512, maximum: 1024 }), // Increased memory
+                abort: () => console.error("WASM aborted"),
+            }
+        }).then(result => {
+            wasmInstance = result.instance;
+            console.log("WANNO", wasmInstance);
+        }).catch(err => {
+            console.error("WASM failed to initialize", err);
+        });
 
         await loadModels();
         processVideoFrame();
