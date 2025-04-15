@@ -92,7 +92,7 @@
     </div>
 
     <div class="control-panel">
-        <input type="range" min="8" max="2048" id="segmentation-dimension" value="128">
+        
     </div>
 
     <script type="module">
@@ -114,7 +114,7 @@
             [0, 255, 255], // Cyan CLOTHES
             [255, 0, 255]  // Magenta OBJECTS
         ];
-        
+
         const body = {
             head: [],
             shoulder0: [], shoulder1: [],
@@ -130,13 +130,7 @@
 
         let frameCounter = 0; // Counter to track frames
         let cameraDumpIndex = 0;
-        let segmentationDimension = 128;
-
-        const segmentationDimensionInput = document.getElementById("segmentation-dimension");
-        segmentationDimensionInput.addEventListener("input", (event) => {
-            segmentationDimension = parseInt(event.target.value);
-            console.log("Segmentation Dimension:", segmentationDimension);
-        });
+        const SEG_DIMENSION = 256;
 
 
         async function loadModels() {
@@ -260,15 +254,7 @@
 
         async function processVideoFrame() {
 
-            if (!segmenter || !poseLandmarker) {
-                console.error("Segmenter not loaded.");
-                // location.reload();
-                return;
-            }
-            if (!poseLandmarker) {
-                console.error("Pose not loaded.");
-                return;
-            }
+
             cameraDumpIndex = +!cameraDumpIndex;
 
             if (!cameraSourceActive[cameraDumpIndex]) {
@@ -283,9 +269,9 @@
                 return;
             }
 
-            offscreenCanvas.width = segmentationDimension;
-            offscreenCanvas.height = segmentationDimension / 1.5;
-            offscreenCtx.drawImage(video, 0, 0, segmentationDimension, segmentationDimension / 1.5);
+            offscreenCanvas.width = SEG_DIMENSION;
+            offscreenCanvas.height = SEG_DIMENSION;
+            offscreenCtx.drawImage(video, 0, 0, SEG_DIMENSION, SEG_DIMENSION);
 
             const imageData = offscreenCtx.getImageData(0, 0, offscreenCanvas.width, offscreenCanvas.height);
 
@@ -351,10 +337,6 @@
             const imageData = dumpCtx.createImageData(width, height);
             const data = imageData.data;
 
-
-            processMasksInWASM(confidenceMasks, colors, data);
-
-
             for (let i = 0, j = 0; i < pixelCount; i++, j += 4) {
                 const base = i * 3;
                 data[j] = tempFloatBuffer[base];     // R
@@ -365,38 +347,6 @@
 
             dumpCtx.putImageData(imageData, 0, 0);
         }
-
-
-
-        async function processMasksInWASM(confidenceMasks, colors, data) {
-
-            // Ensure the arrays are of correct size before processing
-            const maskIndices = new Int32Array([0, 1, 4]);
-            const masks = confidenceMasks.map(m => new Float32Array(m.getAsFloat32Array()));
-            const wasmColors = new Uint8Array(colors.flat());
-            const wasmData = new Uint8Array(data);
-
-            console.log("Masks size:", masks.length);
-            console.log("Colors size:", wasmColors.length);
-            console.log("Data size:", wasmData.length);
-            console.log("WANTO", wasmInstance);
-
-            // Ensure that the arrays fit into the allocated WASM memory
-            if (wasmData.byteLength > wasmInstance.memory.buffer.byteLength) {
-                console.warn("WASM memory size is not large enough to handle the data.");
-                return;
-            }
-
-            // Call the WASM function
-            wasmInstance.processMasks(maskIndices, masks, wasmColors, wasmData);
-
-            return wasmData;
-        }
-
-
-
-
-        
 
 
 
@@ -434,6 +384,16 @@
         });
 
         await loadModels();
+
+        if (!segmenter) {
+            console.error("Segmenter not loaded.");
+            // location.reload();
+        }
+        if (!poseLandmarker) {
+            console.error("Pose not loaded.");
+        }
+
+
         processVideoFrame();
 
 
