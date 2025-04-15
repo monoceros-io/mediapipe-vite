@@ -182,7 +182,7 @@
             });
         });
 
-        
+
 
         let poseUpdateInterval = 300; // 1 second
         let lastPoseTime = Date.now();
@@ -235,7 +235,6 @@
             canvases[1].getContext("2d")
         ];
 
-        
         const offscreenCanvas = document.createElement("canvas");
         const offscreenCtx = offscreenCanvas.getContext("2d");
 
@@ -248,29 +247,25 @@
             }
             if (!poseLandmarker) {
                 console.error("Pose not loaded.");
-                // location.reload();
                 return;
             }
-
-
             cameraDumpIndex = +!cameraDumpIndex;
 
-            if(!cameraSourceActive[cameraDumpIndex]) {
+            if (!cameraSourceActive[cameraDumpIndex]) {
                 requestAnimationFrame(processVideoFrame);
                 return;
             }
 
             const video = videos[cameraDumpIndex];
 
-
-            if(video.videoWidth === 0 || video.videoHeight === 0) {
+            if (video.videoWidth === 0 || video.videoHeight === 0) {
                 requestAnimationFrame(processVideoFrame);
                 return;
             }
 
             offscreenCanvas.width = segmentationDimension;
-            offscreenCanvas.height = segmentationDimension;
-            offscreenCtx.drawImage(video, 0, 0, segmentationDimension, segmentationDimension);
+            offscreenCanvas.height = segmentationDimension / 1.5;
+            offscreenCtx.drawImage(video, 0, 0, segmentationDimension, segmentationDimension / 1.5);
 
             const imageData = offscreenCtx.getImageData(0, 0, offscreenCanvas.width, offscreenCanvas.height);
 
@@ -281,57 +276,76 @@
                 segmentationResult.confidenceMasks.forEach(mask => mask.close());
             }
 
-            // if(Math.floor((cameraDumpIndex + frameCounter) / 2) % 10 === 0) {
-            //     poseLandmarker.detectForVideo(video, performance.now(), drawPoseLandmarks);
-            // }
+            if (Math.floor((cameraDumpIndex + frameCounter) / 2) % 10 === 0) {
+                poseLandmarker.detectForVideo(video, performance.now(), drawPoseLandmarks);
+            }
 
             frameCounter++;
             requestAnimationFrame(processVideoFrame);
         }
 
-        function drawAllMasksToDumpCanvas(confidenceMasks) {
+        const colors = [
+            [255, 0, 0],   // Red BACKGROUND
+            [0, 255, 0],   // Green HAIR
+            [0, 0, 255],   // Blue SKIN
+            [255, 255, 0], // Yellow FACE
+            [0, 255, 255], // Cyan CLOTHES
+            [255, 0, 255]  // Magenta OBJECTS
+        ];
 
-            const canvas = canvases[cameraDumpIndex];
-            const dumpCtx = dumpContexts[cameraDumpIndex];
+        let tempFloatBuffer = null;
+let lastBufferSize = 0;
 
-            const { width, height } = confidenceMasks[0];
-            if (canvas.width !== width || canvas.height !== height) {
-                canvas.width = width;
-                canvas.height = height;
-                console.log("WITTO", width, height);
-            }
+function drawAllMasksToDumpCanvas(confidenceMasks) {
+    const canvas = canvases[cameraDumpIndex];
+    const dumpCtx = dumpContexts[cameraDumpIndex];
+    const { width, height } = confidenceMasks[0];
+    const pixelCount = width * height;
 
-            const imageData = dumpCtx.createImageData(width, height);
-            const data = imageData.data;
+    if (canvas.width !== width || canvas.height !== height) {
+        canvas.width = width;
+        canvas.height = height;
+    }
 
-            const colors = [
-                [255, 0, 0],   // Red BACKGROUND
-                [0, 255, 0],   // Green HAIR
-                [0, 0, 255],   // Blue SKIN
-                [255, 255, 0], // Yellow FACE
-                [0, 255, 255], // Cyan CLOTHES
-                [255, 0, 255]  // Magenta OBJECTS
-            ];
+    // (Re)allocate buffer if needed
+    if (!tempFloatBuffer || lastBufferSize !== pixelCount) {
+        tempFloatBuffer = new Float32Array(pixelCount * 3); // R, G, B
+        lastBufferSize = pixelCount;
+    } else {
+        tempFloatBuffer.fill(0);
+    }
 
-            // Only draw masks 0 and 4
-            [0, 4].forEach(maskIndex => {
-                const maskData = confidenceMasks[maskIndex];
-                const maskArray = maskData.getAsFloat32Array();
-                const [r, g, b] = colors[maskIndex % colors.length];
+    [0, 4].forEach(maskIndex => {
+        const maskData = confidenceMasks[maskIndex];
+        const maskArray = maskData.getAsFloat32Array();
+        const [r, g, b] = colors[maskIndex % colors.length];
 
-                for (let i = 0; i < maskArray.length; i++) {
-                    const alpha = maskArray[i] * 255;
-                    const offset = i * 4;
+        for (let i = 0; i < pixelCount; i++) {
+            const alpha = maskArray[i];
+            if (alpha === 0) continue;
 
-                    data[offset] = Math.max(data[offset], r * (alpha / 255));
-                    data[offset + 1] = Math.max(data[offset + 1], g * (alpha / 255));
-                    data[offset + 2] = Math.max(data[offset + 2], b * (alpha / 255));
-                    data[offset + 3] = 255;
-                }
-            });
-
-            dumpCtx.putImageData(imageData, 0, 0);
+            const base = i * 3;
+            tempFloatBuffer[base]     = Math.max(tempFloatBuffer[base],     r * alpha);
+            tempFloatBuffer[base + 1] = Math.max(tempFloatBuffer[base + 1], g * alpha);
+            tempFloatBuffer[base + 2] = Math.max(tempFloatBuffer[base + 2], b * alpha);
         }
+    });
+
+    const imageData = dumpCtx.createImageData(width, height);
+    const data = imageData.data;
+
+    for (let i = 0, j = 0; i < pixelCount; i++, j += 4) {
+        const base = i * 3;
+        data[j]     = tempFloatBuffer[base];     // R
+        data[j + 1] = tempFloatBuffer[base + 1]; // G
+        data[j + 2] = tempFloatBuffer[base + 2]; // B
+        data[j + 3] = 255; // Opaque
+    }
+
+    dumpCtx.putImageData(imageData, 0, 0);
+}
+
+
 
         function checkThreshold(p) {
             return p.x > xThreshold && p.x < 1 - xThreshold &&
@@ -343,7 +357,7 @@
 
 
         function drawPoseLandmarks(poseResult) {
-            
+
             const dumpCtx = dumpContexts[cameraDumpIndex];
 
             const drawingUtils = new DrawingUtils(dumpCtx);
