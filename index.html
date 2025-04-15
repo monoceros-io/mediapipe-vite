@@ -15,7 +15,21 @@
         <select name="cameras-0" id="cameras-0" class="camera-select"></select>
 
         </select>
-        <div class="video-crop-div-outer"></div>
+        <div class="video-crop-div-outer">
+            <div class="video-crop-line">
+                <div class="video-crop-readout">5%</div>
+            </div>
+            <div class="video-crop-line">
+                <div class="video-crop-readout">45%</div>
+            </div>
+            <div class="video-crop-line">
+                <div class="video-crop-readout">55%</div>
+            </div>
+            <div class="video-crop-line">
+                <div class="video-crop-readout">95%</div>
+            </div>
+
+        </div>
     </div>
     <div class="qc qc-1">
         <canvas class="output-canvas" id="output-canvas-0"></canvas>
@@ -23,7 +37,26 @@
     <div class="qc qc-2">
         <video id="vid-1" class="video"></video>
         <select name="cameras-1" id="cameras-1" class="camera-select"></select>
-        <div class="video-crop-div-outer"></div>
+
+        <div class="video-crop-div-outer">
+            
+            <div class="video-crop-line">
+                <div class="video-crop-readout">5%</div>
+            </div>
+            <div class="video-crop-line">
+                <div class="video-crop-readout">45%</div>
+            </div>
+            
+            <div class="video-crop-line">
+                <div class="video-crop-readout">55%</div>
+            </div>
+            <div class="video-crop-line">
+                <div class="video-crop-readout">95%</div>
+            </div>
+            
+
+        </div>
+
     </div>
     <div class="qc qc-3">
         <canvas class="output-canvas" id="output-canvas-1"></canvas>
@@ -35,20 +68,29 @@
 
     <script type="module">
 
+        import { setupVideoUtils, matchCropToVideo } from "./camera-utils";
+        
+
+        // PAGE ELEMENTS
+
+        const videos = document.querySelectorAll(".video");
+        const cameraSelectors = document.querySelectorAll('.camera-select');
+        const cropDivOuters = document.querySelectorAll(".video-crop-div-outer");
+
+
+        const cdoLinePercs = [ [5, 45, 55, 95], [10, 40, 60, 90] ];
+
+        setupVideoUtils(videos, cropDivOuters, cdoLinePercs);
+
 
 
         let cameraSourceActive = [false, false];
-
-        const cameraSelectors = document.querySelectorAll('.camera-select');
-
-        let frameCounter = 0; // Counter to track frames
-
+        let frameCounter = 0;
 
         const devices = await navigator.mediaDevices.enumerateDevices();
+
         devices.filter(device => device.kind === 'videoinput').forEach((device, index) => {
 
-            console.log("FUCKO", device.getCapabilities());
-            
             for (let sel of cameraSelectors) {
                 const option = document.createElement('option');
                 option.value = device.deviceId;
@@ -73,8 +115,8 @@
 
                 const streamStart = () => {
                     video.removeEventListener('loadeddata', streamStart);
-                    console.log("CHIFFO", video.videoWidth, video.videoHeight);
                     cameraSourceActive[index] = true;
+                    matchCropToVideo();
                 }
 
                 video.addEventListener('loadeddata', streamStart);
@@ -83,6 +125,10 @@
 
             });
         });
+
+
+        window.addEventListener('resize', matchCropToVideo);
+
 
 
     </script>

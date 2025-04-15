@@ -47,6 +47,7 @@ body {
     position: absolute;
     top: 1em;
     left: 1em;
+    z-index: 9999;
 }
 
 .output-canvas {
@@ -64,5 +65,41 @@ body {
 }
 
 .video-crop-div-outer {
-    
+    z-index: 999;
+    width: 100%;
+    height: 100%;
+    border: 1px solid red;
+    pointer-events: none;
+    position: absolute;
+}
+
+.video-crop-line {
+    position: absolute;
+    height: 100%;
+    width: 1px;
+    background-color: blue;
+}
+.video-crop-readout {
+    position: absolute;
+    bottom: 0;
+    font-family: sans-serif;
+    width: 2em;
+    background-color: white;
+    color: black;
+    cursor: pointer;
+    pointer-events: all;
+}
+
+.video-crop-line:nth-of-type(1) {
+    left: 5%;
+}
+.video-crop-line:nth-of-type(2) {
+    left: 45%;
+}
+
+.video-crop-line:nth-of-type(3) {
+    left: 55%;
+}
+.video-crop-line:nth-of-type(4) {
+    left: 95%;
 }
