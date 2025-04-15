@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MediaPipe Image Segmenter with Pose Landmarker</title>
+    <style>
+        body {
+            padding: 0;
+            margin: 0;
+        }
+
+        .d-canv {
+            border: 1px solid red;
+        }
+
+        video {
+            position: absolute;
+            top: 0;
+        }
+
+        canvas {
+            position: absolute; 
+            top: 0;
+            mix-blend-mode: multiply;
+        }
+
+        #canvas-2 {
+            top: unset;
+            bottom: 0;
+            right: 0;
+            position: absolute;
+            background-color: blue;
+        }
+
+        #camera-select {
+            /* position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 1000;
+            background-color: white;
+            padding: 5px;
+            border-radius: 5px; */
+        }
+
+        .settings-panel {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 1000;
+            background-color: white;
+            padding: 5px;
+            border-radius: 5px;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5em;
+            font-family: monospace;
+        }
+    </style>
+</head>
+
+<body>
+
+    <video id="webcam" autoplay playsinline></video>
+
+    <canvas id="canvas-2" width="640" height="480"></canvas>
+    <canvas class="d-canv" id="dump-canvas-0" width="640" height="480"></canvas>
+
+    <div class="settings-panel">
+        <select name="cameras" id="camera-select"></select>
+        <label for="x-threshold">X Threshold:</label>
+        <input type="number" id="x-threshold" value="0.1" step="0.01" min="0" max="1">
+        <label for="y-threshold">Y Threshold:</label>
+        <input type="number" id="y-threshold" value="0.1" step="0.01" min="0" max="1">
+        <label for="pose-update-interval">Pose Update Interval (ms):</label>
+        <input type="number" id="pose-update-interval" value="300" step="100" min="100">
+
+    </div>
+
+    <script type="module">
+
+        import { ImageSegmenter, FilesetResolver, PoseLandmarker, DrawingUtils } from "./node_modules/@mediapipe/tasks-vision";
+
+
+        const body = {
+            head: [],
+            shoulder0: [], shoulder1: [],
+            hand0: [], hand1: [],
+            foot0: [], foot1: []
+        }
+
+        let xThreshold = 0.1;
+        let yThreshold = 0.1;
+
+        let canvas2 = document.getElementById("canvas-2");
+
+        let poseUpdateInterval = 300; // 1 second
+
+        let lastPoseTime = Date.now();
+
+        function updatePose(landmark) {
+            if (Date.now() - lastPoseTime > poseUpdateInterval) {
+
+                lastPoseTime = Date.now();
+
+                if (checkThreshold(landmark[0])) {
+                    body.head[0] = landmark[0].x;
+                    body.head[1] = landmark[0].y;
+                }
+                if (checkThreshold(landmark[11])) {
+                    body.shoulder0[0] = landmark[11].x;
+                    body.shoulder0[1] = landmark[11].y;
+                }
+                if (checkThreshold(landmark[12])) {
+                    body.shoulder1[0] = landmark[12].x;
+                    body.shoulder1[1] = landmark[12].y;
+                }
+                if (checkThreshold(landmark[15])) {
+                    body.hand0[0] = landmark[15].x;
+                    body.hand0[1] = landmark[15].y;
+                }
+                if (checkThreshold(landmark[16])) {
+                    body.hand1[0] = landmark[16].x;
+                    body.hand1[1] = landmark[16].y;
+                }
+                if (checkThreshold(landmark[27])) {
+                    body.foot0[0] = landmark[27].x;
+                    body.foot0[1] = landmark[27].y;
+                }
+                if (checkThreshold(landmark[28])) {
+                    body.foot1[0] = landmark[28].x;
+                    body.foot1[1] = landmark[28].y;
+                }
+
+            }
+        }
+
+        function createThrottledLogger() {
+            let lastLogTime = 0;
+
+            return function log(...messages) {
+                const currentTime = Date.now();
+                if (currentTime - lastLogTime >= 1000) { // Log only if 1 second has passed
+                    console.log(...messages);
+                    lastLogTime = currentTime;
+                }
+            };
+        }
+
+        const log = createThrottledLogger();
+
+        let segmenter, poseLandmarker;
+        const video = document.getElementById("webcam");
+        const dumpCanvas = document.getElementById("dump-canvas-0");
+        const dumpCtx = dumpCanvas.getContext("2d");
+        const runningMode = "VIDEO";
+        let frameCounter = 0; // Counter to track frames
+        const cameraSelect = document.getElementById("camera-select");
+
+        async function loadModels() {
+
+            const vision = await FilesetResolver.forVisionTasks("./node_modules/@mediapipe/tasks-vision/wasm");
+
+            segmenter = await ImageSegmenter.createFromOptions(vision, {
+                baseOptions: {
+                    modelAssetPath: "./selfie_multiclass_256x256.tflite",
+                    delegate: 'GPU'
+                },
+                runningMode: runningMode,
+            });
+
+            poseLandmarker = await PoseLandmarker.createFromOptions(vision, {
+                baseOptions: {
+                    modelAssetPath: `https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task`,
+                    delegate: "GPU"
+                },
+                runningMode: runningMode,
+                numPoses: 1
+            });
+
+        }
+
+        async function startWebcam(deviceId) {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { deviceId: deviceId ? { exact: deviceId } : undefined }
+                });
+                video.srcObject = stream;
+                video.addEventListener("loadeddata", processVideoFrame);
+            } catch (error) {
+                console.error("Error accessing webcam:", error);
+            }
+        }
+
+        async function processVideoFrame() {
+            if (!segmenter || !poseLandmarker) {
+                console.error("Models not loaded.");
+                location.reload();
+                return;
+            }
+
+            const offscreenCanvas = document.createElement("canvas");
+            const offscreenCtx = offscreenCanvas.getContext("2d");
+            offscreenCanvas.width = video.videoWidth;
+            offscreenCanvas.height = video.videoHeight;
+            offscreenCtx.drawImage(video, 0, 0, offscreenCanvas.width, offscreenCanvas.height);
+
+            const imageData = offscreenCtx.getImageData(0, 0, offscreenCanvas.width, offscreenCanvas.height);
+
+            // Perform segmentation
+            const segmentationResult = await segmenter.segmentForVideo(imageData, performance.now());
+            if (segmentationResult?.confidenceMasks) {
+                drawAllMasksToDumpCanvas(segmentationResult.confidenceMasks);
+                segmentationResult.confidenceMasks.forEach(mask => mask.close());
+            }
+
+            poseLandmarker.detectForVideo(video, performance.now(), drawPoseLandmarks);
+            frameCounter++;
+            requestAnimationFrame(processVideoFrame);
+        }
+
+        function drawAllMasksToDumpCanvas(confidenceMasks) {
+            const { width, height } = confidenceMasks[0];
+            if (dumpCanvas.width !== width || dumpCanvas.height !== height) {
+                dumpCanvas.width = width;
+                dumpCanvas.height = height;
+            }
+
+            const imageData = dumpCtx.createImageData(width, height);
+            const data = imageData.data;
+
+            const colors = [
+                [255, 0, 0],   // Red BACKGROUND
+                [0, 255, 0],   // Green HAIR
+                [0, 0, 255],   // Blue SKIN
+                [255, 255, 0], // Yellow FACE
+                [0, 255, 255], // Cyan CLOTHES
+                [255, 0, 255]  // Magenta OBJECTS
+            ];
+
+            // Only draw masks 0 and 4
+            [0, 4].forEach(maskIndex => {
+                const maskData = confidenceMasks[maskIndex];
+                const maskArray = maskData.getAsFloat32Array();
+                const [r, g, b] = colors[maskIndex % colors.length];
+
+                for (let i = 0; i < maskArray.length; i++) {
+                    const alpha = maskArray[i] * 255;
+                    const offset = i * 4;
+
+                    data[offset] = Math.max(data[offset], r * (alpha / 255));
+                    data[offset + 1] = Math.max(data[offset + 1], g * (alpha / 255));
+                    data[offset + 2] = Math.max(data[offset + 2], b * (alpha / 255));
+                    data[offset + 3] = 255;
+                }
+            });
+
+            dumpCtx.putImageData(imageData, 0, 0);
+        }
+
+        function checkThreshold(p) {
+            return p.x > xThreshold && p.x < 1 - xThreshold &&
+                p.y > yThreshold && p.y < 1 - yThreshold;
+        }
+
+
+
+
+
+        function drawPoseLandmarks(poseResult) {
+
+            const drawingUtils = new DrawingUtils(dumpCtx);
+
+            for (const landmark of poseResult.landmarks) {
+
+                updatePose(landmark);
+                drawingUtils.drawLandmarks(landmark, {
+                    radius: data => DrawingUtils.lerp(data.from.z, -0.15, 0.1, 5, 1)
+                });
+                drawingUtils.drawConnectors(landmark, PoseLandmarker.POSE_CONNECTIONS);
+            }
+        }
+
+        // Function to populate the camera select dropdown
+        async function populateCameraSelect() {
+            try {
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const videoDevices = devices.filter(device => device.kind === "videoinput");
+
+                videoDevices.forEach(device => {
+                    const option = document.createElement("option");
+                    option.value = device.deviceId;
+                    option.text = device.label || `Camera ${cameraSelect.options.length + 1}`;
+                    cameraSelect.appendChild(option);
+                });
+
+                // Select the first camera by default
+                if (videoDevices.length > 0) {
+                    cameraSelect.selectedIndex = 0;
+                    startWebcam(videoDevices[0].deviceId);
+                }
+
+            } catch (error) {
+                console.error("Error enumerating devices:", error);
+            }
+        }
+
+        // Listen for camera change
+        cameraSelect.addEventListener("change", (event) => {
+            const selectedDeviceId = event.target.value;
+            startWebcam(selectedDeviceId);
+        });
+
+
+
+        loadModels();
+        populateCameraSelect(); // Populate the select with camera options
+
+        let wasmInstance = null;
+
+        WebAssembly.instantiateStreaming(fetch("index.wasm"), {
+            env: {
+                memory: new WebAssembly.Memory({ initial: 512, maximum: 1024 }), // Increased memory
+                abort: () => console.error("WASM aborted"),
+            }
+        }).then(result => {
+            wasmInstance = result.instance;
+        }).catch(err => {
+            console.error("WASM failed to initialize", err);
+        });
+
+    </script>
+</body>
+
+</html>
