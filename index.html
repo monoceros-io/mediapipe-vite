@@ -106,9 +106,15 @@
         let wasmInstance = null;
         let wasmdrawInstance = null;
 
-
+        const colors = [
+            [255, 0, 0],   // Red BACKGROUND
+            [0, 255, 0],   // Green HAIR
+            [0, 0, 255],   // Blue SKIN
+            [255, 255, 0], // Yellow FACE
+            [0, 255, 255], // Cyan CLOTHES
+            [255, 0, 255]  // Magenta OBJECTS
+        ];
         
-
         const body = {
             head: [],
             shoulder0: [], shoulder1: [],
@@ -298,19 +304,12 @@
             requestAnimationFrame(processVideoFrame);
         }
 
-        const colors = [
-            [255, 0, 0],   // Red BACKGROUND
-            [0, 255, 0],   // Green HAIR
-            [0, 0, 255],   // Blue SKIN
-            [255, 255, 0], // Yellow FACE
-            [0, 255, 255], // Cyan CLOTHES
-            [255, 0, 255]  // Magenta OBJECTS
-        ];
 
         let tempFloatBuffer = null;
         let lastBufferSize = 0;
 
         function drawAllMasksToDumpCanvas(confidenceMasks) {
+
 
 
             const canvas = canvases[cameraDumpIndex];
@@ -352,6 +351,10 @@
             const imageData = dumpCtx.createImageData(width, height);
             const data = imageData.data;
 
+
+            processMasksInWASM(confidenceMasks, colors, data);
+
+
             for (let i = 0, j = 0; i < pixelCount; i++, j += 4) {
                 const base = i * 3;
                 data[j] = tempFloatBuffer[base];     // R
@@ -361,9 +364,39 @@
             }
 
             dumpCtx.putImageData(imageData, 0, 0);
-            
-
         }
+
+
+
+        async function processMasksInWASM(confidenceMasks, colors, data) {
+
+            // Ensure the arrays are of correct size before processing
+            const maskIndices = new Int32Array([0, 1, 4]);
+            const masks = confidenceMasks.map(m => new Float32Array(m.getAsFloat32Array()));
+            const wasmColors = new Uint8Array(colors.flat());
+            const wasmData = new Uint8Array(data);
+
+            console.log("Masks size:", masks.length);
+            console.log("Colors size:", wasmColors.length);
+            console.log("Data size:", wasmData.length);
+            console.log("WANTO", wasmInstance);
+
+            // Ensure that the arrays fit into the allocated WASM memory
+            if (wasmData.byteLength > wasmInstance.memory.buffer.byteLength) {
+                console.warn("WASM memory size is not large enough to handle the data.");
+                return;
+            }
+
+            // Call the WASM function
+            wasmInstance.processMasks(maskIndices, masks, wasmColors, wasmData);
+
+            return wasmData;
+        }
+
+
+
+
+        
 
 
 
@@ -371,10 +404,6 @@
             return p.x > xThreshold && p.x < 1 - xThreshold &&
                 p.y > yThreshold && p.y < 1 - yThreshold;
         }
-
-
-
-
 
         function drawPoseLandmarks(poseResult) {
 
