@@ -75,7 +75,7 @@ body {
 .video-crop-box {
     position: absolute;
     border: 1px solid red;
-    background-color: rgba(255, 255, 0, 0.02);
+    background-color: rgba(255, 255, 0, 0.1);
     top: 5%;
     left: 5%;
     width: 40%;
@@ -87,5 +87,11 @@ body {
     left: 55%;
     width: 40%;
     height: 90%;
+}
 
+.crop-canvas {
+    background-color: blue;
+    width: 20%;
+    height: 20%;
+    margin: 0.5em;
 }
