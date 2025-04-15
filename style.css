@@ -90,8 +90,5 @@ body {
 }
 
 .crop-canvas {
-    background-color: blue;
-    width: 20%;
-    height: 20%;
-    margin: 0.5em;
+    width: 25%;
 }

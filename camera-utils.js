@@ -16,7 +16,8 @@ let rawCaptureAreas = [];
 const offscreenCanvas = document.createElement("canvas");
 const offscreenCtx = offscreenCanvas.getContext("2d", { willReadFrequently: true });
 
-export function matchCropToVideo() {
+export function matchCropToVideo() 
+{
     for (let i = 0; i < _videos.length; i++) {
         const video = _videos[i];
         const cropDivOuter = _cropDivOuters[i];
@@ -68,9 +69,15 @@ export function matchCropToVideo() {
             rawCaptureAreas[boundStart + 1] = videoHeight * (_cdoMasks[boundStart + 1]) / 100;
             rawCaptureAreas[boundStart + 2] = videoWidth * (_cdoMasks[boundStart + 2]) / 100;
             rawCaptureAreas[boundStart + 3] = videoHeight * (_cdoMasks[boundStart + 3]) / 100;
+
+            const dumpCanvas = _dumpCanvases[i * 2 + j];
+            dumpCanvas.width = rawCaptureAreas[boundStart + 2];
+            dumpCanvas.height = rawCaptureAreas[boundStart + 3];
+            dumpCanvas.style.aspectRatio = rawCaptureAreas[boundStart + 2] / rawCaptureAreas[boundStart + 3];
             
         }        
     }
+    
 
     if(!processing)
         processStreams();
@@ -89,9 +96,11 @@ function processStreams(){
         let index = i * 4;
         
         const cx = rawCaptureAreas[index];
-        const cy = rawCaptureAreas[index]+ 1;
-        const cw = rawCaptureAreas[index]+ 2;
-        const ch = rawCaptureAreas[index]+ 3;
+        const cy = rawCaptureAreas[index + 1];
+        const cw = rawCaptureAreas[index + 2];
+        const ch = rawCaptureAreas[index + 3];
+
+        
 
         if (video.readyState === video.HAVE_ENOUGH_DATA) {
             dumpCTX.drawImage(video, cx, cy, cw, ch, 0, 0, cw, ch);
