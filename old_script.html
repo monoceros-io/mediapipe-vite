@@ -200,10 +200,9 @@
                 return;
             }
 
-            const offscreenCanvas = document.createElement("canvas");
+            const offscreenCanvas = new OffscreenCanvas(video.videoWidth, video.videoHeight);
             const offscreenCtx = offscreenCanvas.getContext("2d");
-            offscreenCanvas.width = video.videoWidth;
-            offscreenCanvas.height = video.videoHeight;
+            
             offscreenCtx.drawImage(video, 0, 0, offscreenCanvas.width, offscreenCanvas.height);
 
             const imageData = offscreenCtx.getImageData(0, 0, offscreenCanvas.width, offscreenCanvas.height);

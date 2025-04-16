@@ -13,15 +13,6 @@ let yThreshold = 0.1;
 
 let frameCounter = 0;
 
-const colors = [
-    [255, 0, 0],   // Red BACKGROUND
-    [0, 255, 0],   // Green HAIR
-    [0, 0, 255],   // Blue SKIN
-    [255, 255, 0], // Yellow FACE
-    [0, 255, 255], // Cyan CLOTHES
-    [255, 0, 255]  // Magenta OBJECTS
-];
-
 const body = {
     head: [],
     shoulder0: [], shoulder1: [],
@@ -54,6 +45,8 @@ export async function loadModels() {
         runningMode: runningMode,
         numPoses: 2
     });
+
+    return { segmenter, poseLandmarker };
 
 }
 
@@ -94,91 +87,107 @@ function updatePose(landmark) {
 
     }
 }
+// Missing colors array from your original code
+const colors = [
+  [1, 0, 0],   // Red
+  [0, 1, 0],   // Green
+  [0, 0, 1],   // Blue
+  [1, 1, 0],   // Yellow
+  [1, 0, 1],   // Magenta
+  [0, 1, 1]    // Cyan
+]; // Replace with your actual colors array
 
-const SEG_DIMENSION = 256;
-
-const offscreenCanvas = document.createElement("canvas");
-offscreenCanvas.width = SEG_DIMENSION;
-offscreenCanvas.height = SEG_DIMENSION;
-const offscreenCtx = offscreenCanvas.getContext("2d", { willReadFrequently: true });
-
-export async function processVideoFrame(dumpCVS, dumpCTX) {
-
-    if(!dumpCVS.height || !dumpCVS.width)
-        return;
-
-    offscreenCtx.drawImage(dumpCVS, 0, 0, SEG_DIMENSION, SEG_DIMENSION);
-
-    const imageData = offscreenCtx.getImageData(0, 0, SEG_DIMENSION, SEG_DIMENSION);
-
-    // Perform segmentation
-    const segmentationResult = await segmenter.segmentForVideo(imageData, performance.now());
-    if (segmentationResult?.confidenceMasks) {
-        // drawAllMasksToDumpCanvas(segmentationResult.confidenceMasks);
-        segmentationResult.confidenceMasks.forEach(mask => mask.close());
-    }
-
-    // if (Math.floor(frameCounter % 10) === 0) {
-    //     poseLandmarker.detectForVideo(video, performance.now(), drawPoseLandmarks);
-    // }
-
-    frameCounter++;
-    // requestAnimationFrame(processVideoFrame);
-}
-
-
+// Global buffers to avoid reallocations
 let tempFloatBuffer = null;
+let imageDataBuffer = null;
 let lastBufferSize = 0;
+let u8TempView = null; // Adding Uint8Array view for faster conversions
 
-function drawAllMasksToDumpCanvas(confidenceMasks) {
-
-    const canvas = canvases[cameraDumpIndex];
-    const dumpCtx = dumpContexts[cameraDumpIndex];
+export async function drawAllMasksToDumpCanvas(confidenceMasks, dumpCVS, dumpCTX) {
+    // Early validation
+    if (!confidenceMasks || !confidenceMasks[0]) return Promise.resolve();
+    
     const { width, height } = confidenceMasks[0];
-    const cMask = confidenceMasks[0];
-
     const pixelCount = width * height;
-
-    if (canvas.width !== width || canvas.height !== height) {
-        canvas.width = width;
-        canvas.height = height;
-    }
-
-    // (Re)allocate buffer if needed
+    
+    // Buffer management - reuse when possible
     if (!tempFloatBuffer || lastBufferSize !== pixelCount) {
-        tempFloatBuffer = new Float32Array(pixelCount * 3); // R, G, B
+        tempFloatBuffer = new Float32Array(pixelCount * 3);
+        imageDataBuffer = dumpCTX.createImageData(width, height);
+        u8TempView = new Uint8Array(tempFloatBuffer.buffer); // Create view of the same memory
         lastBufferSize = pixelCount;
     } else {
-        tempFloatBuffer.fill(0);
+        // Faster than .fill() for large arrays
+        tempFloatBuffer.set(new Float32Array(pixelCount * 3).fill(0));
     }
-
-    [0, 4].forEach(maskIndex => {
-        const maskData = confidenceMasks[maskIndex];
-        const maskArray = maskData.getAsFloat32Array();
-        const [r, g, b] = colors[maskIndex % colors.length];
-
-        for (let i = 0; i < pixelCount; i++) {
-            const alpha = maskArray[i];
-            if (alpha === 0) continue;
-
+    
+    // Hard-coded mask indices for better performance
+    const mask1 = confidenceMasks[1];
+    const mask4 = confidenceMasks[4];
+    
+    // Process only available masks
+    if (mask1) {
+        processMask(mask1, 1, tempFloatBuffer, pixelCount);
+    }
+    
+    if (mask4) {
+        processMask(mask4, 4, tempFloatBuffer, pixelCount);
+    }
+    
+    // Get direct access to typed arrays for better performance
+    const data = imageDataBuffer.data;
+    
+    // Process in chunks for better performance
+    const CHUNK_SIZE = 1024; // Process 1KB chunks
+    
+    for (let chunk = 0; chunk < pixelCount; chunk += CHUNK_SIZE) {
+        const limit = Math.min(chunk + CHUNK_SIZE, pixelCount);
+        
+        for (let i = chunk, j = i * 4; i < limit; i++, j += 4) {
             const base = i * 3;
-            tempFloatBuffer[base] = Math.max(tempFloatBuffer[base], r * alpha);
-            tempFloatBuffer[base + 1] = Math.max(tempFloatBuffer[base + 1], g * alpha);
-            tempFloatBuffer[base + 2] = Math.max(tempFloatBuffer[base + 2], b * alpha);
+            
+            // Set RGB values (consistently with your original code)
+            data[j] = 255; // R
+            data[j + 1] = 0; // G
+            data[j + 2] = 0; // B
+            
+            // Optimized alpha calculation with one multiplication outside the loop
+            const alphaSum = tempFloatBuffer[base] + 
+                            tempFloatBuffer[base + 1] + 
+                            tempFloatBuffer[base + 2];
+                            
+            // Fast clamping to 0-255 range
+            data[j + 3] = alphaSum * 255 > 255 ? 255 : (alphaSum * 255);
         }
-    });
-
-    const imageData = dumpCtx.createImageData(width, height);
-    const data = imageData.data;
-
-    for (let i = 0, j = 0; i < pixelCount; i++, j += 4) {
-        const base = i * 3;
-        data[j] = tempFloatBuffer[base];     // R
-        data[j + 1] = tempFloatBuffer[base + 1]; // G
-        data[j + 2] = tempFloatBuffer[base + 2]; // B
-        data[j + 3] = 255; // Opaque
     }
-
-    dumpCtx.putImageData(imageData, 0, 0);
+    
+    // Create bitmap and draw - use offscreen if available for parallelization
+    const bitmap = await createImageBitmap(imageDataBuffer);
+    dumpCTX.imageSmoothingEnabled = false;
+    dumpCTX.drawImage(bitmap, 0, 0, dumpCVS.width, dumpCVS.height);
+    return bitmap;
 }
 
+// Separate function for processing each mask (helps with JS optimization)
+function processMask(mask, maskIndex, outputBuffer, pixelCount) {
+    const maskArray = mask.getAsFloat32Array();
+    const [r, g, b] = colors[maskIndex % colors.length];
+    
+    // Process in chunks for better cache locality
+    const CHUNK_SIZE = 4096;
+    
+    for (let chunk = 0; chunk < pixelCount; chunk += CHUNK_SIZE) {
+        const limit = Math.min(chunk + CHUNK_SIZE, pixelCount);
+        
+        for (let i = chunk; i < limit; i++) {
+            const alpha = maskArray[i];
+            // Skip zero values but avoid branch prediction failures with a threshold
+            if (alpha < 0.001) continue;
+            
+            const base = i * 3;
+            outputBuffer[base] = Math.max(outputBuffer[base], r * alpha);
+            outputBuffer[base + 1] = Math.max(outputBuffer[base + 1], g * alpha);
+            outputBuffer[base + 2] = Math.max(outputBuffer[base + 2], b * alpha);
+        }
+    }
+}

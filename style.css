@@ -5,12 +5,13 @@ body {
 }
 
 .qc {
-    width: 50%;
-    height: 50%;
+    width: 25%;
+    height: 25%;
     position: absolute;
     display: flex;
     justify-content: center;
     align-items: center;
+    
 }
 
 .qc-0 {
@@ -22,7 +23,7 @@ body {
 .qc-1 {
     top: 0;
     right: 0;
-    background-color: #aaa;
+    background-color: #000;
 }
 
 .qc-2 {
@@ -34,6 +35,8 @@ body {
 .qc-3 {
     bottom: 0;
     right: 0;
+    width: 75%;
+    height: 75%;
     background-color: #ccc;
 }
 
@@ -91,6 +94,7 @@ body {
 
 .crop-canvas {
     width: 25%;
+    
 }
 
 .video-scaler-box {

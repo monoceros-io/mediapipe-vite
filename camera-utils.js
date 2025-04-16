@@ -1,6 +1,10 @@
-import { processVideoFrame } from "./processing";
+import { drawAllMasksToDumpCanvas, loadModels } from "./processing";
+
 
 let _videos, _cropDivOuters, _cdoMasks, _dumpCanvases, _dumpContexts = [], _finalCanvas, _finalContext;
+
+const { segmenter, poseLandmarker } = await loadModels();
+
 
 export function setupVideoUtils({
     videos, cropDivOuters, cdoMasks, dumpCanvases, finalCanvas
@@ -99,9 +103,18 @@ const BASE_WIDTH_EIGHTH = 400;
 
 let frameCounter = 0;
 
+// const sharedDumpCVS = document.createElement("canvas");
+
+const SEG_DIMENSION = 200;
+const offscreenCanvas = new OffscreenCanvas(SEG_DIMENSION, SEG_DIMENSION);
+const offscreenCtx = offscreenCanvas.getContext("2d", { willReadFrequently: true });
+
 async function processStreams() {
 
+
     for (let i = 0; i < 4; ++i) {
+
+        ++frameCounter;
         const video = _videos[Math.floor(i / 2)];
         const dumpCVS = _dumpCanvases[i];
         const dumpCTX = _dumpContexts[i];
@@ -123,22 +136,33 @@ async function processStreams() {
 
             _finalContext.drawImage(video, cx, cy, cw, ch, cX, TOP_OFFSET, cWidth, BASE_CUTOUT_HEIGHT);
 
+
+        offscreenCtx.drawImage(dumpCVS, 0, 0, SEG_DIMENSION, SEG_DIMENSION);
+        const imageData = offscreenCtx.getImageData(0, 0, SEG_DIMENSION, SEG_DIMENSION);
+        const segmentationResult = await segmenter.segmentForVideo(imageData, performance.now());
+
+        if (segmentationResult?.confidenceMasks) {
+            drawAllMasksToDumpCanvas(segmentationResult.confidenceMasks, dumpCVS, dumpCTX);
+            segmentationResult.confidenceMasks.forEach(mask => mask.close());
+        }
+        
+
+
         }
 
-        if(frameCounter % 4 == i)
-            await processVideoFrame(dumpCVS, dumpCTX);
+
+
+
+
+
+        // processVideoFrame(dumpCVS, dumpCTX);
 
 
     }
 
-    ++frameCounter;
-
-
-
-
-
-
     requestAnimationFrame(processStreams);
 }
 
+function shobbo() {
 
+}

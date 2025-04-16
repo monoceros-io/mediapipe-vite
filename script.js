@@ -11,6 +11,7 @@
         const finalCanvas  = document.querySelector("#final-canvas");
 
 
+
         const cdoMasks = [ 
             20, 5, 27, 90, 
             55, 5, 23, 88, 
@@ -62,6 +63,6 @@
             });
         });
 
-        await loadModels();
+        
 
 
