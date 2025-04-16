@@ -122,18 +122,20 @@ export async function drawAllMasksToDumpCanvas(confidenceMasks, dumpCVS, dumpCTX
     }
     
     // Hard-coded mask indices for better performance
-    const mask1 = confidenceMasks[1];
-    const mask4 = confidenceMasks[4];
-    
-    // Process only available masks
-    if (mask1) {
-        processMask(mask1, 1, tempFloatBuffer, pixelCount);
-    }
-    
-    if (mask4) {
-        processMask(mask4, 4, tempFloatBuffer, pixelCount);
-    }
-    
+    // const mask1 = ;
+
+    // if (mask1) {
+        processMask(confidenceMasks[0], 0, tempFloatBuffer, pixelCount);
+        // processMask(confidenceMasks[4], 4, tempFloatBuffer, pixelCount);
+    // }
+
+    // [255, 0, 0],   // Red BACKGROUND
+    //             [0, 255, 0],   // Green HAIR
+    //             [0, 0, 255],   // Blue SKIN
+    //             [255, 255, 0], // Yellow FACE
+    //             [0, 255, 255], // Cyan CLOTHES
+    //             [255, 0, 255]  // Magenta OBJECTS
+   
     // Get direct access to typed arrays for better performance
     const data = imageDataBuffer.data;
     
@@ -144,11 +146,12 @@ export async function drawAllMasksToDumpCanvas(confidenceMasks, dumpCVS, dumpCTX
         const limit = Math.min(chunk + CHUNK_SIZE, pixelCount);
         
         for (let i = chunk, j = i * 4; i < limit; i++, j += 4) {
+
             const base = i * 3;
-            
+
             // Set RGB values (consistently with your original code)
-            data[j] = 255; // R
-            data[j + 1] = 0; // G
+            data[j] = 0; // R
+            data[j + 1] = 255; // G
             data[j + 2] = 0; // B
             
             // Optimized alpha calculation with one multiplication outside the loop
@@ -169,6 +172,7 @@ export async function drawAllMasksToDumpCanvas(confidenceMasks, dumpCVS, dumpCTX
 }
 
 // Separate function for processing each mask (helps with JS optimization)
+
 function processMask(mask, maskIndex, outputBuffer, pixelCount) {
     const maskArray = mask.getAsFloat32Array();
     const [r, g, b] = colors[maskIndex % colors.length];

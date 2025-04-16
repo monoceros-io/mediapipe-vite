@@ -5,8 +5,8 @@ body {
 }
 
 .qc {
-    width: 25%;
-    height: 25%;
+    width: 50%;
+    height: 50%;
     position: absolute;
     display: flex;
     justify-content: center;
@@ -35,8 +35,8 @@ body {
 .qc-3 {
     bottom: 0;
     right: 0;
-    width: 75%;
-    height: 75%;
+    width: 50%;
+    height: 50%;
     background-color: #ccc;
 }
 
@@ -94,7 +94,7 @@ body {
 
 .crop-canvas {
     width: 25%;
-    
+    /* display: none; */
 }
 
 .video-scaler-box {
