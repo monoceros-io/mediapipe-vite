@@ -29,7 +29,9 @@ body {
 .qc-2 {
     bottom: 0;
     left: 0;
+    width: 100%;
     background-color: #bbb;
+    z-index: 99999;
 }
 
 .qc-3 {
@@ -94,7 +96,7 @@ body {
 
 .crop-canvas {
     width: 25%;
-    /* display: none; */
+    display: none;
 }
 
 .video-scaler-box {

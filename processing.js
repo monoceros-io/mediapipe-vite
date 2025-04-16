@@ -87,14 +87,17 @@ function updatePose(landmark) {
 
     }
 }
-// Missing colors array from your original code
+
+
+
+
 const colors = [
-  [1, 0, 0],   // Red
-  [0, 1, 0],   // Green
-  [0, 0, 1],   // Blue
-  [1, 1, 0],   // Yellow
-  [1, 0, 1],   // Magenta
-  [0, 1, 1]    // Cyan
+    [0, 1, 0],   // GREEN - BG
+    [1, 1, 0],   // Green
+    [0, 0, 1],   // Blue
+    [1, 1, 0],   // Yellow
+    [0, 0, 1],   // Magenta
+    [0, 1, 1]    // Cyan
 ]; // Replace with your actual colors array
 
 // Global buffers to avoid reallocations
@@ -106,10 +109,10 @@ let u8TempView = null; // Adding Uint8Array view for faster conversions
 export async function drawAllMasksToDumpCanvas(confidenceMasks, dumpCVS, dumpCTX) {
     // Early validation
     if (!confidenceMasks || !confidenceMasks[0]) return Promise.resolve();
-    
+
     const { width, height } = confidenceMasks[0];
     const pixelCount = width * height;
-    
+
     // Buffer management - reuse when possible
     if (!tempFloatBuffer || lastBufferSize !== pixelCount) {
         tempFloatBuffer = new Float32Array(pixelCount * 3);
@@ -120,50 +123,35 @@ export async function drawAllMasksToDumpCanvas(confidenceMasks, dumpCVS, dumpCTX
         // Faster than .fill() for large arrays
         tempFloatBuffer.set(new Float32Array(pixelCount * 3).fill(0));
     }
-    
-    // Hard-coded mask indices for better performance
-    // const mask1 = ;
 
-    // if (mask1) {
-        processMask(confidenceMasks[0], 0, tempFloatBuffer, pixelCount);
-        // processMask(confidenceMasks[4], 4, tempFloatBuffer, pixelCount);
-    // }
+    processMask(confidenceMasks[1], 0, tempFloatBuffer, pixelCount);
+    processMask(confidenceMasks[2], 0, tempFloatBuffer, pixelCount);
+    processMask(confidenceMasks[3], 3, tempFloatBuffer, pixelCount);
+    processMask(confidenceMasks[4], 4, tempFloatBuffer, pixelCount);
 
-    // [255, 0, 0],   // Red BACKGROUND
-    //             [0, 255, 0],   // Green HAIR
-    //             [0, 0, 255],   // Blue SKIN
-    //             [255, 255, 0], // Yellow FACE
-    //             [0, 255, 255], // Cyan CLOTHES
-    //             [255, 0, 255]  // Magenta OBJECTS
-   
-    // Get direct access to typed arrays for better performance
     const data = imageDataBuffer.data;
-    
-    // Process in chunks for better performance
+
     const CHUNK_SIZE = 1024; // Process 1KB chunks
-    
+
     for (let chunk = 0; chunk < pixelCount; chunk += CHUNK_SIZE) {
         const limit = Math.min(chunk + CHUNK_SIZE, pixelCount);
-        
+
         for (let i = chunk, j = i * 4; i < limit; i++, j += 4) {
-
             const base = i * 3;
-
-            // Set RGB values (consistently with your original code)
-            data[j] = 0; // R
-            data[j + 1] = 255; // G
-            data[j + 2] = 0; // B
-            
-            // Optimized alpha calculation with one multiplication outside the loop
-            const alphaSum = tempFloatBuffer[base] + 
-                            tempFloatBuffer[base + 1] + 
-                            tempFloatBuffer[base + 2];
-                            
-            // Fast clamping to 0-255 range
-            data[j + 3] = alphaSum * 255 > 255 ? 255 : (alphaSum * 255);
+        
+            // Convert RGB float values (0-1) to 0-255
+            data[j] = Math.min(255, Math.round(tempFloatBuffer[base] * 255));       // R
+            data[j + 1] = Math.min(255, Math.round(tempFloatBuffer[base + 1] * 255)); // G
+            data[j + 2] = Math.min(255, Math.round(tempFloatBuffer[base + 2] * 255)); // B
+        
+            // Alpha = average of RGB or their sum capped
+            const alphaSum = tempFloatBuffer[base] +
+                             tempFloatBuffer[base + 1] +
+                             tempFloatBuffer[base + 2];
+            data[j + 3] = 255;
         }
     }
-    
+
     // Create bitmap and draw - use offscreen if available for parallelization
     const bitmap = await createImageBitmap(imageDataBuffer);
     dumpCTX.imageSmoothingEnabled = false;
@@ -176,18 +164,18 @@ export async function drawAllMasksToDumpCanvas(confidenceMasks, dumpCVS, dumpCTX
 function processMask(mask, maskIndex, outputBuffer, pixelCount) {
     const maskArray = mask.getAsFloat32Array();
     const [r, g, b] = colors[maskIndex % colors.length];
-    
+
     // Process in chunks for better cache locality
     const CHUNK_SIZE = 4096;
-    
+
     for (let chunk = 0; chunk < pixelCount; chunk += CHUNK_SIZE) {
         const limit = Math.min(chunk + CHUNK_SIZE, pixelCount);
-        
+
         for (let i = chunk; i < limit; i++) {
             const alpha = maskArray[i];
             // Skip zero values but avoid branch prediction failures with a threshold
             if (alpha < 0.001) continue;
-            
+
             const base = i * 3;
             outputBuffer[base] = Math.max(outputBuffer[base], r * alpha);
             outputBuffer[base + 1] = Math.max(outputBuffer[base + 1], g * alpha);
