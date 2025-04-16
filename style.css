@@ -50,10 +50,10 @@ body {
     z-index: 9999;
 }
 
-.output-canvas {
-    /* width: 100%; */
-    width: 100%;
-    aspect-ratio: 1.7777;
+.final-canvas {
+    background-color: black;
+    height: 100%;
+    aspect-ratio: 1.6842;
 }
 
 .control-panel {
@@ -91,4 +91,18 @@ body {
 
 .crop-canvas {
     width: 25%;
+}
+
+.video-scaler-box {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 1.2em;
+    height: 1.2em;
+    display: flex;
+    background-color: red;
+    color: white;
+    justify-content: center;
+    align-items: center;
+
 }

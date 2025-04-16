@@ -8,16 +8,17 @@
         const cameraSelectors = document.querySelectorAll('.camera-select');
         const cropDivOuters = document.querySelectorAll(".video-crop-div-outer");
         const dumpCanvases = document.querySelectorAll(".crop-canvas");
+        const finalCanvas  = document.querySelector("#final-canvas");
 
 
         const cdoMasks = [ 
-            5, 5, 20, 20, 
-            55, 5, 20, 40,
-            10, 10, 10, 10, 
-            30, 10, 20, 40
+            20, 5, 25, 90, 
+            55, 5, 30, 80, 
+            20, 25, 25, 70, 
+            55, 5, 30, 90
         ];
 
-        setupVideoUtils(videos, cropDivOuters, cdoMasks, dumpCanvases);
+        setupVideoUtils({ videos, cropDivOuters, cdoMasks, dumpCanvases, finalCanvas });
 
         let cameraSourceActive = [false, false];
         let frameCounter = 0;
