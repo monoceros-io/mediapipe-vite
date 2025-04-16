@@ -1,3 +1,5 @@
+import { processVideoFrame } from "./processing";
+
 let _videos, _cropDivOuters, _cdoMasks, _dumpCanvases, _dumpContexts = [], _finalCanvas, _finalContext;
 
 export function setupVideoUtils({
@@ -19,9 +21,6 @@ export function setupVideoUtils({
 
 let processing = false;
 let rawCaptureAreas = [];
-
-const offscreenCanvas = document.createElement("canvas");
-const offscreenCtx = offscreenCanvas.getContext("2d", { willReadFrequently: true });
 
 export function matchCropToVideo() {
     for (let i = 0; i < _videos.length; i++) {
@@ -95,15 +94,17 @@ window.addEventListener('resize', matchCropToVideo);
 
 const BASE_CUTOUT_HEIGHT = 1200;
 const TOP_OFFSET = (1900 - BASE_CUTOUT_HEIGHT) / 2;
-const BASE_WIDTH_FIFTH = 640;
-const BASE_WIDTH_TENTH = 320;
+const BASE_WIDTH_FOURTH = 800;
+const BASE_WIDTH_EIGHTH = 400;
 
+let frameCounter = 0;
 
-function processStreams() {
+async function processStreams() {
 
     for (let i = 0; i < 4; ++i) {
         const video = _videos[Math.floor(i / 2)];
-        const dumpCTX = _dumpContexts[i]; 
+        const dumpCVS = _dumpCanvases[i];
+        const dumpCTX = _dumpContexts[i];
         let index = i * 4;
 
         const cx = rawCaptureAreas[index];
@@ -114,19 +115,23 @@ function processStreams() {
         if (video.readyState === video.HAVE_ENOUGH_DATA) {
 
             dumpCTX.drawImage(video, cx, cy, cw, ch, 0, 0, cw, ch);
-            
+
             const cRatio = cw / ch;
             const cWidth = BASE_CUTOUT_HEIGHT * cRatio;
 
-            const cX = BASE_WIDTH_FIFTH * i + BASE_WIDTH_FIFTH - (cWidth / 2);
+            const cX = BASE_WIDTH_FOURTH * i + BASE_WIDTH_EIGHTH - (cWidth / 2);
 
             _finalContext.drawImage(video, cx, cy, cw, ch, cX, TOP_OFFSET, cWidth, BASE_CUTOUT_HEIGHT);
 
         }
 
-        
+        if(frameCounter % 4 == i)
+            await processVideoFrame(dumpCVS, dumpCTX);
+
 
     }
+
+    ++frameCounter;
 
 
 
@@ -135,3 +140,5 @@ function processStreams() {
 
     requestAnimationFrame(processStreams);
 }
+
+

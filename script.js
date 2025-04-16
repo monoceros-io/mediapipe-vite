@@ -1,6 +1,6 @@
 
         import { setupVideoUtils, matchCropToVideo } from "./camera-utils";
-        
+        import { loadModels } from "./processing";
 
         // PAGE ELEMENTS
 
@@ -12,10 +12,10 @@
 
 
         const cdoMasks = [ 
-            20, 5, 25, 90, 
-            55, 5, 30, 80, 
-            20, 25, 25, 70, 
-            55, 5, 30, 90
+            20, 5, 27, 90, 
+            55, 5, 23, 88, 
+            20, 25, 25, 91, 
+            55, 5, 28, 87
         ];
 
         setupVideoUtils({ videos, cropDivOuters, cdoMasks, dumpCanvases, finalCanvas });
@@ -62,5 +62,6 @@
             });
         });
 
+        await loadModels();
 
 
