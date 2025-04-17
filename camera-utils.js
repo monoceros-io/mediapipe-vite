@@ -1,8 +1,50 @@
 import { loadModels } from "./processing";
+import { compileShader, ProcessFrag, ProcessVert } from "./shaders";
 
 let _videos, _cropDivOuters, _cdoMasks, _dumpCanvases, _dumpContexts = [], _finalCanvas, _finalContext;
 
 const { segmenter, poseLandmarker } = await loadModels();
+
+
+const BASE_CUTOUT_HEIGHT = 1200;
+const TOP_OFFSET = (1900 - BASE_CUTOUT_HEIGHT) / 2;
+const BASE_WIDTH_FOURTH = 800;
+const BASE_WIDTH_EIGHTH = 400;
+
+
+const SEG_DIMENSION = 228;
+
+const glCanvas = document.createElement("canvas");
+glCanvas.width = SEG_DIMENSION;
+glCanvas.height = SEG_DIMENSION;
+const gl = glCanvas.getContext("webgl2");
+console.log("CHOFFO", gl);
+
+const vertices = new Float32Array([
+    -1.0, -1.0,  // Bottom left corner
+     1.0, -1.0,  // Bottom right corner
+    -1.0,  1.0,  // Top left corner
+     1.0,  1.0   // Top right corner
+]);
+
+const positionBuffer = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+
+const vertexShader = compileShader(ProcessVert, gl.VERTEX_SHADER, gl);
+const fragmentShader = compileShader(ProcessFrag, gl.FRAGMENT_SHADER, gl);
+
+// Create a program
+const program = gl.createProgram();
+gl.attachShader(program, vertexShader);
+gl.attachShader(program, fragmentShader);
+gl.linkProgram(program);
+
+if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+    console.error("Program linking error: " + gl.getProgramInfoLog(program));
+}
+gl.useProgram(program);
+
 
 const fps = document.getElementById("fps");
 
@@ -21,6 +63,9 @@ let tempFloatBuffer = null;
 let imageDataBuffer = null;
 let lastBufferSize = 0;
 let u8TempView = null;
+
+let frameCounter = 0;
+let fpsTime = performance.now();
 
 export function setupVideoUtils({ videos, cropDivOuters, cdoMasks, dumpCanvases, finalCanvas }) {
     _videos = videos;
@@ -86,20 +131,15 @@ export function matchCropToVideo() {
 
 window.addEventListener('resize', matchCropToVideo);
 
-const BASE_CUTOUT_HEIGHT = 1200;
-const TOP_OFFSET = (1900 - BASE_CUTOUT_HEIGHT) / 2;
-const BASE_WIDTH_FOURTH = 800;
-const BASE_WIDTH_EIGHTH = 400;
-
-let frameCounter = 0;
-const SEG_DIMENSION = 256;
 const offscreenCanvas = new OffscreenCanvas(SEG_DIMENSION, SEG_DIMENSION);
 const offscreenCtx = offscreenCanvas.getContext("2d", { willReadFrequently: true });
 
 const offscreenRenderCanvas = new OffscreenCanvas(SEG_DIMENSION, SEG_DIMENSION);
 const offscreenRenderCtx = offscreenRenderCanvas.getContext("2d");
 
-let fpsTime = performance.now();
+
+
+
 
 async function processStreams() {
 
