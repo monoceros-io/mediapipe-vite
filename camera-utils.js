@@ -4,6 +4,8 @@ let _videos, _cropDivOuters, _cdoMasks, _dumpCanvases, _dumpContexts = [], _fina
 
 const { segmenter, poseLandmarker } = await loadModels();
 
+const fps = document.getElementById("fps");
+
 let video, cropDivOuter;
 
 const colors = new Float32Array([
@@ -90,11 +92,22 @@ const BASE_WIDTH_FOURTH = 800;
 const BASE_WIDTH_EIGHTH = 400;
 
 let frameCounter = 0;
-const SEG_DIMENSION = 200;
+const SEG_DIMENSION = 256;
 const offscreenCanvas = new OffscreenCanvas(SEG_DIMENSION, SEG_DIMENSION);
 const offscreenCtx = offscreenCanvas.getContext("2d", { willReadFrequently: true });
 
+const offscreenRenderCanvas = new OffscreenCanvas(SEG_DIMENSION, SEG_DIMENSION);
+const offscreenRenderCtx = offscreenRenderCanvas.getContext("2d");
+
+let fpsTime = performance.now();
+
 async function processStreams() {
+
+    fps.innerHTML = (1000 / (performance.now() - fpsTime)).toFixed(2);
+    fpsTime = performance.now();
+    // return requestAnimationFrame(processStreams);
+    
+
     ++frameCounter;
 
     for (let i = 0; i < 2; ++i) {
@@ -160,7 +173,7 @@ async function processStreams() {
 
 
 function processMask(mask, maskIndex, outputBuffer, pixelCount) {
-    console.time();
+    // console.time();
     const maskArray = mask.getAsFloat32Array();
     const r = colors[(maskIndex * 3) % colors.length];
     const g = colors[(maskIndex * 3 + 1) % colors.length];
@@ -173,5 +186,5 @@ function processMask(mask, maskIndex, outputBuffer, pixelCount) {
         outputBuffer[base + 1] += alpha * g;
         outputBuffer[base + 2] += alpha * b;
     }
-    console.timeEnd();
+    // console.timeEnd();
 }

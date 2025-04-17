@@ -112,3 +112,20 @@ body {
     align-items: center;
 
 }
+
+.frame-readout {
+    position: absolute;
+    top: 1em;
+    left: 1em;
+    background-color: #222;
+    color: white;
+    font-family: monospace;
+}
+
+.frame-readout > div {
+    padding: 0.5em;
+    display: flex;
+}
+.frame-readout > div > div {
+    margin-right: 0.5;
+}
