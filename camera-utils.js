@@ -157,11 +157,9 @@ async function processStreams() {
                     data[j + 3] = 255;
                 }
 
-                const bitmap = await createImageBitmap(imageDataBuffer);
-                _finalContext.imageSmoothingEnabled = false;
-
-                _finalContext.drawImage(bitmap, 0, 0, width, height, cX2, TOP_OFFSET, cWidth, BASE_CUTOUT_HEIGHT);
-
+                offscreenRenderCtx.putImageData(imageDataBuffer, 0, 0);
+                _finalContext.drawImage(offscreenRenderCanvas, 0, 0, width, height, cX2, TOP_OFFSET, cWidth, BASE_CUTOUT_HEIGHT);
+                
                 segmentationResult.confidenceMasks.forEach(mask => mask.close());
             }
         }
