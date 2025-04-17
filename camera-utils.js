@@ -30,15 +30,10 @@ export function setupVideoUtils({
     _videos = videos;
     _cropDivOuters = cropDivOuters;
     _cdoMasks = cdoMasks;
-    _dumpCanvases = dumpCanvases;
     _finalCanvas = finalCanvas;
     console.log("SONNO", finalCanvas);
     _finalContext = finalCanvas.getContext("2d");
 
-
-    for (let i = 0; i < 4; ++i) {
-        _dumpContexts[i] = dumpCanvases[i].getContext("2d", { willReadFrequently: true });
-    }
 
     video = _videos[0];
     cropDivOuter = _cropDivOuters[0];
@@ -98,11 +93,6 @@ export function matchCropToVideo() {
         rawCaptureAreas[boundStart + 2] = videoWidth * (_cdoMasks[boundStart + 2]) / 100;
         rawCaptureAreas[boundStart + 3] = videoHeight * (_cdoMasks[boundStart + 3]) / 100;
 
-        const dumpCanvas = _dumpCanvases[j];
-        dumpCanvas.width = rawCaptureAreas[boundStart + 2];
-        dumpCanvas.height = rawCaptureAreas[boundStart + 3];
-        dumpCanvas.style.aspectRatio = rawCaptureAreas[boundStart + 2] / rawCaptureAreas[boundStart + 3];
-
     }
 
 
@@ -129,13 +119,9 @@ const offscreenCanvas = new OffscreenCanvas(SEG_DIMENSION, SEG_DIMENSION);
 const offscreenCtx = offscreenCanvas.getContext("2d", { willReadFrequently: true });
 
 async function processStreams() {
-
     ++frameCounter;
 
     for (let i = 0; i < 2; ++i) {
-
-        const dumpCVS = _dumpCanvases[i];
-        const dumpCTX = _dumpContexts[i];
         let index = i * 4;
 
         const cx = rawCaptureAreas[index];
@@ -144,26 +130,57 @@ async function processStreams() {
         const ch = rawCaptureAreas[index + 3];
 
         if (video.readyState === video.HAVE_ENOUGH_DATA) {
-
-            dumpCTX.drawImage(video, cx, cy, cw, ch, 0, 0, cw, ch);
-
             const cRatio = cw / ch;
             const cWidth = BASE_CUTOUT_HEIGHT * cRatio;
 
             const cX = BASE_WIDTH_FOURTH * i + BASE_WIDTH_EIGHTH - (cWidth / 2);
-            const cX2 =  BASE_WIDTH_FOURTH * (i + 2) + BASE_WIDTH_EIGHTH - (cWidth / 2);
+            const cX2 = BASE_WIDTH_FOURTH * (i + 2) + BASE_WIDTH_EIGHTH - (cWidth / 2);
 
             _finalContext.drawImage(video, cx, cy, cw, ch, cX, TOP_OFFSET, cWidth, BASE_CUTOUT_HEIGHT);
 
-
-            offscreenCtx.drawImage(dumpCVS, 0, 0, SEG_DIMENSION, SEG_DIMENSION);
+            offscreenCtx.drawImage(video, cx, cy, cw, ch, 0, 0, SEG_DIMENSION, SEG_DIMENSION);
             const imageData = offscreenCtx.getImageData(0, 0, SEG_DIMENSION, SEG_DIMENSION);
 
-            if((i + frameCounter) % 1 == 0){
+            if ((i + frameCounter) % 1 == 0) {
                 const segmentationResult = await segmenter.segmentForVideo(imageData, performance.now());
-                await drawAllMasksToDumpCanvas(segmentationResult.confidenceMasks, dumpCVS, dumpCTX);
-                _finalContext.drawImage(dumpCVS, 0, 0, cw, ch, cX2, TOP_OFFSET, cWidth, BASE_CUTOUT_HEIGHT);
-                segmentationResult.confidenceMasks.forEach(mask => mask.close());
+                const confidenceMasks = segmentationResult.confidenceMasks;
+
+                if (confidenceMasks && confidenceMasks[0]) {
+                    const { width, height } = confidenceMasks[0];
+                    const pixelCount = width * height;
+
+                    if (!tempFloatBuffer || lastBufferSize !== pixelCount) {
+                        tempFloatBuffer = new Float32Array(pixelCount * 3);
+                        imageDataBuffer = _finalContext.createImageData(width, height);
+                        u8TempView = new Uint8Array(tempFloatBuffer.buffer);
+                        lastBufferSize = pixelCount;
+                    } else {
+                        tempFloatBuffer.set(new Float32Array(pixelCount * 3).fill(0));
+                    }
+
+                    processMask(confidenceMasks[1], 0, tempFloatBuffer, pixelCount);
+                    processMask(confidenceMasks[2], 0, tempFloatBuffer, pixelCount);
+                    processMask(confidenceMasks[3], 3, tempFloatBuffer, pixelCount);
+                    processMask(confidenceMasks[4], 4, tempFloatBuffer, pixelCount);
+
+                    const data = imageDataBuffer.data;
+
+                    for (let i = 0, j = 0; i < pixelCount; i++, j += 4) {
+                        const base = i * 3;
+                        data[j] = Math.min(255, Math.round(tempFloatBuffer[base] * 255));
+                        data[j + 1] = Math.min(255, Math.round(tempFloatBuffer[base + 1] * 255));
+                        data[j + 2] = Math.min(255, Math.round(tempFloatBuffer[base + 2] * 255));
+                        data[j + 3] = 255;
+                    }
+
+                    const bitmap = await createImageBitmap(imageDataBuffer);
+                    _finalContext.imageSmoothingEnabled = false;
+
+                    // Draw the mask at the same size as the video feed
+                    _finalContext.drawImage(bitmap, 0, 0, width, height, cX2, TOP_OFFSET, cWidth, BASE_CUTOUT_HEIGHT);
+
+                    segmentationResult.confidenceMasks.forEach(mask => mask.close());
+                }
             }
         }
     }
