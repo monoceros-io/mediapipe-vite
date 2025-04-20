@@ -66,9 +66,9 @@ cameraSelectors.forEach((sel, index) => {
 
 
 
-const fullElement = document.getElementById("qc-full");
-let isFullElement = false;
-window.addEventListener("keydown", ()=>{
-    isFullElement = !isFullElement;
-    fullElement.style.height = isFullElement ? "100%" : "50%";
-});
+// const fullElement = document.getElementById("qc-full");
+// let isFullElement = false;
+// window.addEventListener("keydown", ()=>{
+//     isFullElement = !isFullElement;
+//     fullElement.style.height = isFullElement ? "100%" : "50%";
+// });

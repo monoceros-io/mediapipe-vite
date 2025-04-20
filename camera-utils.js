@@ -8,6 +8,8 @@ const fps = document.getElementById("fps");
 
 let video, cropDivOuter;
 
+import "./shader-program.js";
+
 const colors = new Float32Array([
     0, 1, 0,   // GREEN - BG
     0, 1, 1,   // Green
@@ -103,6 +105,8 @@ let fpsTime = performance.now();
 
 async function processStreams() {
 
+    processing = true;
+
     fps.innerHTML = (1000 / (performance.now() - fpsTime)).toFixed(2);
     fpsTime = performance.now();
     // return requestAnimationFrame(processStreams);
@@ -142,7 +146,7 @@ async function processStreams() {
                 }
 
                 processMask(confidenceMasks[0], 0, tempFloatBuffer, pixelCount);
-                processMask(confidenceMasks[4], 4, tempFloatBuffer, pixelCount);//CLOTHES
+                processMask(confidenceMasks[4], 4, tempFloatBuffer, pixelCount);
 
                 const data = imageDataBuffer.data;
                 for (let i = 0, j = 0; i < pixelCount; i++, j += 4) {
@@ -186,3 +190,4 @@ function processMask(mask, maskIndex, outputBuffer, pixelCount) {
     }
     // console.timeEnd();
 }
+
