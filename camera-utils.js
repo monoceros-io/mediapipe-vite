@@ -24,6 +24,10 @@ const combinedCtx = combinedVideoCanvas.getContext("2d");
 let processing = false;
 let rawCaptureAreas = new Array(8).fill(0);
 
+let gl;
+let lastVideoFrameTime = -1;
+let frameCount = 0;
+
 export function setupVideoUtils({ videos, cropDivOuters, cdoMasks, finalCanvas }) {
     _videos = videos;
     _cropDivOuters = cropDivOuters;
@@ -31,6 +35,7 @@ export function setupVideoUtils({ videos, cropDivOuters, cdoMasks, finalCanvas }
     _finalCanvas = finalCanvas;
     video = _videos[0];
     cropDivOuter = _cropDivOuters[0];
+    gl = _finalCanvas.getContext("webgl");
 }
 
 export function matchCropToVideo() {
@@ -62,7 +67,7 @@ export function matchCropToVideo() {
         el.width = `${_cdoMasks[base + 2]}%`;
         el.height = `${_cdoMasks[base + 3]}%`;
 
-        rawCaptureAreas[base]     = vw * _cdoMasks[base] / 100;
+        rawCaptureAreas[base] = vw * _cdoMasks[base] / 100;
         rawCaptureAreas[base + 1] = vh * _cdoMasks[base + 1] / 100;
         rawCaptureAreas[base + 2] = vw * _cdoMasks[base + 2] / 100;
         rawCaptureAreas[base + 3] = vh * _cdoMasks[base + 3] / 100;
@@ -78,10 +83,10 @@ async function processStreams() {
     processing = true;
 
     async function processFrame() {
-        if (video.readyState < video.HAVE_ENOUGH_DATA) return;
+        const readyState = video.readyState;
+        if (readyState < video.HAVE_ENOUGH_DATA) return;
 
         // Calculate normalized capture areas for shader
-        // [x, y, w, h] for each crop, normalized to video dimensions
         const captureAreas = [];
         for (let i = 0; i < 2; i++) {
             const base = i * 4;
@@ -91,59 +96,55 @@ async function processStreams() {
             const h = rawCaptureAreas[base + 3] / video.videoHeight;
             captureAreas.push([x, y, w, h]);
         }
-        // Send to shader
         if (window.setCaptureAreas) {
             window.setCaptureAreas(captureAreas);
         }
 
-        const quarterW = VIDEO_INPUT_WIDTH / 4;
-        const quarterH = BASE_CUTOUT_HEIGHT;
-
-        for (let i = 0; i < 2; i++) {
-            const base = i * 4;
-            const [cx, cy, cw, ch] = rawCaptureAreas.slice(base, base + 4);
-
-            const bitmap = await createImageBitmap(video, cx, cy, cw, ch, {
-                resizeWidth: SEG_DIMENSION,
-                resizeHeight: SEG_DIMENSION,
-                resizeQuality: "high"
-            });
-
-            const segmentation = await segmenter.segmentForVideo(bitmap, performance.now());
-            bitmap.close();
-
-            const masks = segmentation.confidenceMasks;
-            if (masks?.[0]) {
-                const w = masks[0].width, h = masks[0].height;
-                const mask0 = masks[0].getAsFloat32Array();
-                const mask4 = masks[4]?.getAsFloat32Array() || null;
-
-                window.uploadMaskToTexture(mask0, i * 2, w, h);
-                if (mask4) {
-                    window.uploadMaskToTexture(mask4, i * 2 + 1, w, h);
-                } else {
-                    window.clearMaskTexture(i * 2 + 1, w, h);
-                }
-
-                masks.forEach(mask => mask.close());
+        // Only run segmenter for one video per frame, alternating
+        const segIndex = frameCount % 2;
+        const base = segIndex * 4;
+        const [cx, cy, cw, ch] = rawCaptureAreas.slice(base, base + 4);
+        const bitmap = await createImageBitmap(video, cx, cy, cw, ch, {
+            resizeWidth: SEG_DIMENSION,
+            resizeHeight: SEG_DIMENSION,
+            resizeQuality: "high"
+        });
+        const segmentation = await segmenter.segmentForVideo(bitmap, performance.now());
+        bitmap.close();
+        const masks = segmentation.confidenceMasks;
+        if (masks?.[0]) {
+            const w = masks[0].width, h = masks[0].height;
+            const mask0 = masks[0].getAsFloat32Array();
+            const mask4 = masks[4]?.getAsFloat32Array() || null;
+            window.uploadMaskToTexture(mask0, segIndex * 2, w, h);
+            if (mask4) {
+                window.uploadMaskToTexture(mask4, segIndex * 2 + 1, w, h);
+            } else {
+                window.clearMaskTexture(segIndex * 2 + 1, w, h);
             }
-
-            segmentation.close();
+            masks.forEach(mask => mask.close());
         }
+        segmentation.close();
 
-        // Upload the video frame directly as a texture for the shader
-        const gl = _finalCanvas.getContext("webgl");
-        gl.activeTexture(gl.TEXTURE0 + 4);
-        gl.bindTexture(gl.TEXTURE_2D, window.videoTexture);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, video);
+        // Only upload video frame if it changed (using video.currentTime)
+        if (video.currentTime !== lastVideoFrameTime) {
+            gl.activeTexture(gl.TEXTURE0 + 4);
+            gl.bindTexture(gl.TEXTURE_2D, window.videoTexture);
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, video);
+            lastVideoFrameTime = video.currentTime;
+        }
 
         blendCanvasesToOutCanvas(_finalCanvas);
     }
 
     function loop() {
-        let d = performance.now() - t;
-        fps.innerHTML = (1000 / d).toFixed(2);
-        t = performance.now();
+        let now = performance.now();
+        let d = now - t;
+        frameCount++;
+        if (frameCount % 10 === 0) {
+            fps.innerHTML = (1000 / d).toFixed(2);
+            t = now;
+        }
         processFrame().then(() => requestAnimationFrame(loop));
     }
 
