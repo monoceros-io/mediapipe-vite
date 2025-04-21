@@ -25,7 +25,6 @@ uniform sampler2D u_mask3;
 uniform sampler2D u_video;
 uniform vec4 u_captureAreas[2];
 
-// Helper to map normalized quarter to crop area
 vec2 cropSample(vec2 t, vec4 area) {
     return vec2(
         area.x + t.x * area.z,
@@ -38,25 +37,33 @@ void main() {
     vec3 outputColor = vec3(0.0);
 
     if (tex.x < 0.25) {
-        // First video feed with both masks blended
+        // First mask pair (first quarter)
         vec2 t = vec2(tex.x * 4.0, tex.y);
-        vec2 videoTex = cropSample(t, u_captureAreas[0]);
-        vec4 videoColor = texture2D(u_video, videoTex);
         float m0 = texture2D(u_mask0, t).r;
         float m1 = texture2D(u_mask1, t).r;
-        vec3 blendA = mix(videoColor.rgb, vec3(1.0, 0.0, 0.0), m0); // red mask
+        vec3 blendA = mix(vec3(0.0), vec3(1.0, 0.0, 0.0), m0); // red mask
         blendA = mix(blendA, vec3(0.0, 1.0, 0.0), m1); // green mask
         outputColor = blendA;
-    } else if (tex.x >= 0.5 && tex.x < 0.75) {
-        // Second video feed with both masks blended
-        vec2 t = vec2((tex.x - 0.5) * 4.0, tex.y);
-        vec2 videoTex = cropSample(t, u_captureAreas[1]);
+    } else if (tex.x >= 0.25 && tex.x < 0.5) {
+        // First video feed (second quarter)
+        vec2 t = vec2((tex.x - 0.25) * 4.0, tex.y);
+        vec2 videoTex = cropSample(t, u_captureAreas[0]);
         vec4 videoColor = texture2D(u_video, videoTex);
+        outputColor = videoColor.rgb;
+    } else if (tex.x >= 0.5 && tex.x < 0.75) {
+        // Second mask pair (third quarter)
+        vec2 t = vec2((tex.x - 0.5) * 4.0, tex.y);
         float m2 = texture2D(u_mask2, t).r;
         float m3 = texture2D(u_mask3, t).r;
-        vec3 blendB = mix(videoColor.rgb, vec3(0.0, 0.0, 1.0), m2); // blue mask
+        vec3 blendB = mix(vec3(0.0), vec3(0.0, 0.0, 1.0), m2); // blue mask
         blendB = mix(blendB, vec3(1.0, 1.0, 0.0), m3); // yellow mask
         outputColor = blendB;
+    } else if (tex.x >= 0.75 && tex.x < 1.0) {
+        // Second video feed (fourth quarter)
+        vec2 t = vec2((tex.x - 0.75) * 4.0, tex.y);
+        vec2 videoTex = cropSample(t, u_captureAreas[1]);
+        vec4 videoColor = texture2D(u_video, videoTex);
+        outputColor = videoColor.rgb;
     }
     // else: outputColor remains black
 
