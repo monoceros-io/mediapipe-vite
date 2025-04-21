@@ -1,4 +1,3 @@
-
 import { setupVideoUtils, matchCropToVideo } from "./camera-utils";
 import { loadModels } from "./processing";
 
@@ -61,12 +60,23 @@ cameraSelectors.forEach((sel, index) => {
     });
 });
 
+// Wire up brightness and contrast controls
+const brightnessInput = document.getElementById('brightness');
+const contrastInput = document.getElementById('contrast');
 
+function updateShaderBC() {
+    // Map slider values to shader-friendly ranges
+    const brightness = Number(brightnessInput.value) / 10; // -1 to 1
+    const contrast = Number(contrastInput.value); // -10 to 10
+    // Clamp contrast to positive values for shader
+    const shaderContrast = Math.max(0, contrast);
+    if (window.setBrightnessContrast) {
+        window.setBrightnessContrast(brightness, shaderContrast);
+    }
+}
 
+brightnessInput.addEventListener('input', updateShaderBC);
+contrastInput.addEventListener('input', updateShaderBC);
 
-// const fullElement = document.getElementById("qc-full");
-// let isFullElement = false;
-// window.addEventListener("keydown", ()=>{
-//     isFullElement = !isFullElement;
-//     fullElement.style.height = isFullElement ? "100%" : "50%";
-// });
+// Set initial values
+updateShaderBC();
