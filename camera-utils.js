@@ -7,6 +7,9 @@ let _videos, _cropDivOuters, _cdoMasks, _finalCanvas;
 
 const { segmenter, poseLandmarker } = await loadModels();
 
+const fps = document.getElementById("fps");
+let t = performance.now();
+
 const SEG_DIMENSION = 256;
 const BASE_CUTOUT_HEIGHT = 1200;
 const TOP_OFFSET = (1900 - BASE_CUTOUT_HEIGHT) / 2;
@@ -138,6 +141,9 @@ async function processStreams() {
     }
 
     function loop() {
+        let d = performance.now() - t;
+        fps.innerHTML = (1000 / d).toFixed(2);
+        t = performance.now();
         processFrame().then(() => requestAnimationFrame(loop));
     }
 
