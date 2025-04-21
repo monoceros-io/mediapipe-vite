@@ -26,22 +26,32 @@ uniform sampler2D u_video;
 
 void main() {
     vec2 tex = vec2(v_texCoord.x, 1.0 - v_texCoord.y);
-    vec4 videoColor = texture2D(u_video, tex);
+    vec3 outputColor = vec3(0.0);
 
-    float m0 = texture2D(u_mask0, tex).r;
-    float m1 = texture2D(u_mask1, tex).r;
-    float m2 = texture2D(u_mask2, tex).r;
-    float m3 = texture2D(u_mask3, tex).r;
-
-    vec3 blendA = mix(vec3(0.0), vec3(1.0, 0.0, 0.0), m0); // red
-    vec3 blendB = mix(vec3(0.0), vec3(0.0, 0.0, 1.0), m2); // blue
-
-    vec3 outputColor = videoColor.rgb;
-
-    if (v_texCoord.x < 0.5) {
-        outputColor = mix(outputColor, blendA, m0);
+    if (tex.x < 0.25) {
+        // First video feed
+        vec2 videoTex = vec2(tex.x * 4.0, tex.y);
+        vec4 videoColor = texture2D(u_video, videoTex);
+        float m0 = texture2D(u_mask0, videoTex).r;
+        vec3 blendA = mix(videoColor.rgb, vec3(1.0, 0.0, 0.0), m0); // red mask
+        outputColor = blendA;
+    } else if (tex.x < 0.5) {
+        // First mask
+        vec2 maskTex = vec2((tex.x - 0.25) * 4.0, tex.y);
+        float m1 = texture2D(u_mask1, maskTex).r;
+        outputColor = mix(vec3(0.0), vec3(0.0, 1.0, 0.0), m1); // green mask
+    } else if (tex.x < 0.75) {
+        // Second video feed
+        vec2 videoTex = vec2((tex.x - 0.5) * 4.0, tex.y);
+        vec4 videoColor = texture2D(u_video, videoTex);
+        float m2 = texture2D(u_mask2, videoTex).r;
+        vec3 blendB = mix(videoColor.rgb, vec3(0.0, 0.0, 1.0), m2); // blue mask
+        outputColor = blendB;
     } else {
-        outputColor = mix(outputColor, blendB, m2);
+        // Second mask
+        vec2 maskTex = vec2((tex.x - 0.75) * 4.0, tex.y);
+        float m3 = texture2D(u_mask3, maskTex).r;
+        outputColor = mix(vec3(0.0), vec3(1.0, 1.0, 0.0), m3); // yellow mask
     }
 
     gl_FragColor = vec4(outputColor, 1.0);
