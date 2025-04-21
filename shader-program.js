@@ -41,42 +41,34 @@ void main() {
     float a = 1.0;
 
     if (u_overlayMask) {
-        // Videos in first and third quarters, masks overlaid with alpha
-        if (tex.x < 0.25) {
-            // First video feed (first quarter)
-            vec2 t = vec2(tex.x * 4.0, tex.y);
+        // Split screen: left half = video 0 + mask overlay, right half = video 1 + mask overlay
+        if (tex.x < 0.5) {
+            // First video+mask (left half)
+            vec2 t = vec2(tex.x * 2.0, tex.y);
             vec2 videoTex = cropSample(t, u_captureAreas[0]);
             vec4 videoColor = texture2D(u_video, videoTex);
             vec3 color = (videoColor.rgb - 0.5) * u_contrast + 0.5 + u_brightness;
-            // Overlay mask
             float m0 = texture2D(u_mask0, t).r;
             float m1 = texture2D(u_mask1, t).r;
             vec3 maskColor = mix(vec3(0.0), vec3(1.0, 0.0, 0.0), m0);
             maskColor = mix(maskColor, vec3(0.0, 1.0, 0.0), m1);
             float maskAlpha = max(m0, m1);
             outputColor = mix(color, maskColor, maskAlpha * 0.7);
-        } else if (tex.x >= 0.25 && tex.x < 0.5) {
-            // Empty (second quarter)
-            outputColor = vec3(0.0);
-        } else if (tex.x >= 0.5 && tex.x < 0.75) {
-            // Second video feed (third quarter)
-            vec2 t = vec2((tex.x - 0.5) * 4.0, tex.y);
+        } else {
+            // Second video+mask (right half)
+            vec2 t = vec2((tex.x - 0.5) * 2.0, tex.y);
             vec2 videoTex = cropSample(t, u_captureAreas[1]);
             vec4 videoColor = texture2D(u_video, videoTex);
             vec3 color = (videoColor.rgb - 0.5) * u_contrast + 0.5 + u_brightness;
-            // Overlay mask
             float m2 = texture2D(u_mask2, t).r;
             float m3 = texture2D(u_mask3, t).r;
             vec3 maskColor = mix(vec3(0.0), vec3(0.0, 0.0, 1.0), m2);
             maskColor = mix(maskColor, vec3(1.0, 1.0, 0.0), m3);
             float maskAlpha = max(m2, m3);
             outputColor = mix(color, maskColor, maskAlpha * 0.7);
-        } else if (tex.x >= 0.75 && tex.x < 1.0) {
-            // Empty (fourth quarter)
-            outputColor = vec3(0.0);
         }
     } else {
-        // Default: masks in first/third, videos in second/fourth
+        // Default: masks in first/third, videos in second/fourth (quarters)
         if (tex.x < 0.25) {
             // First mask pair (first quarter)
             vec2 t = vec2(tex.x * 4.0, tex.y);
