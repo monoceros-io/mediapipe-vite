@@ -47,6 +47,7 @@ let lastMask0 = null, lastMask4 = null, lastMaskDims0 = { width: 0, height: 0 },
 
 // Adjust crop overlay to match video aspect ratio and update capture areas
 export function matchCropToVideo() {
+
     const videoWidth = video.videoWidth;
     const videoHeight = video.videoHeight;
     const elementWidth = video.clientWidth;
@@ -122,23 +123,13 @@ async function processStreams() {
     if (processing) return;
     processing = true;
 
-    const finalCtx = _finalCanvas.getContext("2d");
-    const outCanvas = document.getElementById('out-canvas');
-    const outW = outCanvas.width, outH = outCanvas.height;
-    const SEGMENTATION_SKIP = 3;
+    const outW = _finalCanvas.width, outH = _finalCanvas.height;
+
     let lastMasks = [null, null];
     let lastMaskDims = [{ width: 0, height: 0 }, { width: 0, height: 0 }];
 
     async function loop() {
-        console.timeEnd("FPFP");
-        console.time("FPFP");
-        // if (frameCounter % 10 === 0) {
-        //     fps.innerHTML = (1000 / (performance.now() - fpsTime)).toFixed(2);
-        //     fpsTime = performance.now();
-        // }
-        // ++frameCounter;
 
-        // No need to clear, drawImage fully overwrites the region
 
         for (let i = 0; i < 2; ++i) {
             const base = i * 4;
@@ -153,28 +144,25 @@ async function processStreams() {
             const cWidth = BASE_CUTOUT_HEIGHT * cRatio;
             const cX = BASE_WIDTH_FOURTH * i + BASE_WIDTH_EIGHTH - (cWidth / 2);
 
-            // Draw video crop to final canvas
-            finalCtx.drawImage(video, cx, cy, cw, ch, cX, TOP_OFFSET, cWidth, BASE_CUTOUT_HEIGHT);
+            // --- Instead of drawing to 2D context, upload video crop as a WebGL texture here ---
+            window.uploadVideoToTexture(video, cx, cy, cw, ch, cX, TOP_OFFSET, cWidth, BASE_CUTOUT_HEIGHT);
 
-            let shouldSegment = (frameCounter % SEGMENTATION_SKIP === 0);
+            offscreenCtx.drawImage(video, cx, cy, cw, ch, 0, 0, SEG_DIMENSION, SEG_DIMENSION);
+            const imageData = offscreenCtx.getImageData(0, 0, SEG_DIMENSION, SEG_DIMENSION);
+            const segmentationResult = await segmenter.segmentForVideo(imageData, performance.now());
+            const confidenceMasks = segmentationResult.confidenceMasks;
 
-            if (shouldSegment) {
-                offscreenCtx.drawImage(video, cx, cy, cw, ch, 0, 0, SEG_DIMENSION, SEG_DIMENSION);
-                const imageData = offscreenCtx.getImageData(0, 0, SEG_DIMENSION, SEG_DIMENSION);
-                const segmentationResult = await segmenter.segmentForVideo(imageData, performance.now());
-                const confidenceMasks = segmentationResult.confidenceMasks;
-
-                if (confidenceMasks && confidenceMasks[0]) {
-                    const { width, height } = confidenceMasks[0];
-                    lastMasks[i] = [
-                        confidenceMasks[0].getAsFloat32Array(),
-                        confidenceMasks[4] ? confidenceMasks[4].getAsFloat32Array() : null,
-                        width, height
-                    ];
-                    lastMaskDims[i] = { width, height };
-                    confidenceMasks.forEach(mask => mask.close());
-                }
+            if (confidenceMasks && confidenceMasks[0]) {
+                const { width, height } = confidenceMasks[0];
+                lastMasks[i] = [
+                    confidenceMasks[0].getAsFloat32Array(),
+                    confidenceMasks[4] ? confidenceMasks[4].getAsFloat32Array() : null,
+                    width, height
+                ];
+                lastMaskDims[i] = { width, height };
+                confidenceMasks.forEach(mask => mask.close());
             }
+            segmentationResult.close();
 
             // Only upload mask if we have one
             if (lastMasks[i]) {
@@ -185,8 +173,8 @@ async function processStreams() {
                 } else {
                     window.clearMaskTexture(1, width, height);
                 }
-                blendCanvasesToOutCanvas();
-                finalCtx.drawImage(outCanvas, 0, 0, outW, outH, cX, TOP_OFFSET, cWidth, BASE_CUTOUT_HEIGHT);
+                // Now blend and draw everything in WebGL
+                blendCanvasesToOutCanvas(_finalCanvas);
             }
         }
 

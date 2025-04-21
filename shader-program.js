@@ -13,19 +13,35 @@ const vertSrc = `
 const fragSrc = `
     precision mediump float;
     varying vec2 v_texCoord;
+    uniform sampler2D u_video;
     uniform sampler2D u_mask0;
     uniform sampler2D u_mask1;
     void main() {
         vec2 v_tex = v_texCoord;
         v_tex.y = 1.0 - v_tex.y;
 
+        // Adjust texture coordinates to cover only half the canvas, starting a quarter in
+        v_tex.x = v_tex.x * 2.0 - 0.5;
+        v_tex.y = v_tex.y * 2.0;
+
+        // Clamp: if out of bounds, output transparent
+        if (v_tex.x < 0.0 || v_tex.x > 1.0 || v_tex.y < 0.0 || v_tex.y > 1.0) {
+            discard;
+        }
+
+        vec4 videoColor = texture2D(u_video, v_tex);
         float mask0 = texture2D(u_mask0, v_tex).r;
         float mask1 = texture2D(u_mask1, v_tex).r;
 
-        vec3 color0 = vec3(1.0, 0.0, 0.0) * mask0;
-        vec3 color1 =  vec3(1.0, 1.0, 0.0) * mask1;
+        // Example: show video where mask0+mask1==0, otherwise blend with mask color
+        vec3 maskColor0 = vec3(1.0, 0.0, 0.0); // red
+        vec3 maskColor1 = vec3(1.0, 1.0, 0.0); // yellow
 
-        gl_FragColor = vec4(color0 + color1, 1.0);
+        vec3 blended = videoColor.rgb;
+        blended = mix(blended, maskColor0, mask0);
+        blended = mix(blended, maskColor1, mask1);
+
+        gl_FragColor = vec4(blended, 1.0);
     }
 `;
 
@@ -55,11 +71,11 @@ function createProgram(gl, vertSrc, fragSrc) {
     return program;
 }
 
-const outCanvas = document.getElementById('out-canvas');
-const width = outCanvas.width;
-const height = outCanvas.height;
+const finalCanvas = document.getElementById('final-canvas');
+const width = finalCanvas.width;
+const height = finalCanvas.height;
 
-const gl = outCanvas.getContext('webgl');
+const gl = finalCanvas.getContext('webgl');
 if (!gl) {
     console.error('WebGL not supported');
 }
@@ -85,6 +101,7 @@ gl.bufferData(
 // Lookup shader attributes/uniforms
 const a_position = gl.getAttribLocation(program, 'a_position');
 const a_texCoord = gl.getAttribLocation(program, 'a_texCoord');
+const u_video = gl.getUniformLocation(program, 'u_video');
 const u_mask0 = gl.getUniformLocation(program, 'u_mask0');
 const u_mask1 = gl.getUniformLocation(program, 'u_mask1');
 const u_color0 = gl.getUniformLocation(program, 'u_color0');
@@ -95,6 +112,7 @@ gl.vertexAttribPointer(a_position, 2, gl.FLOAT, false, 16, 0);
 gl.enableVertexAttribArray(a_texCoord);
 gl.vertexAttribPointer(a_texCoord, 2, gl.FLOAT, false, 16, 8);
 
+gl.uniform1i(u_video, 2); // video texture at unit 2
 gl.uniform1i(u_mask0, 0);
 gl.uniform1i(u_mask1, 1);
 
@@ -105,6 +123,7 @@ gl.uniform3f(u_color1, 0.0, 0.0, 1.0); // BLUE
 // Create and init textures
 const texture0 = gl.createTexture();
 const texture1 = gl.createTexture();
+const videoTexture = gl.createTexture();
 
 function initTexture(tex, unit) {
     gl.activeTexture(gl.TEXTURE0 + unit);
@@ -128,6 +147,7 @@ function initTexture(tex, unit) {
 
 initTexture(texture0, 0);
 initTexture(texture1, 1);
+initTexture(videoTexture, 2);
 
 function uploadMaskToTexture(maskArray, unit, width, height) {
     const glTex = unit === 0 ? texture0 : texture1;
@@ -214,16 +234,43 @@ function updateTextureFromCanvas(tex, canvas, unit) {
     );
 }
 
+function uploadVideoToTexture(video, sx, sy, sw, sh, dx, dy, dw, dh) {
+    gl.activeTexture(gl.TEXTURE0 + 2);
+    gl.bindTexture(gl.TEXTURE_2D, videoTexture);
+    // Draw the video crop to a temporary canvas if cropping is needed
+    // For simplicity, assume video is already the right size and just use:
+    // gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, video);
+    // If cropping/scaling is needed, use an offscreen canvas:
+    if (
+        sx !== 0 || sy !== 0 ||
+        sw !== video.videoWidth || sh !== video.videoHeight ||
+        dw !== width || dh !== height
+    ) {
+        // Use an offscreen canvas to crop/scale
+        let temp = uploadVideoToTexture._tempCanvas;
+        if (!temp) {
+            temp = document.createElement('canvas');
+            uploadVideoToTexture._tempCanvas = temp;
+        }
+        temp.width = width;
+        temp.height = height;
+        const ctx = temp.getContext('2d');
+        ctx.clearRect(0, 0, width, height);
+        ctx.drawImage(video, sx, sy, sw, sh, 0, 0, width, height);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, temp);
+    } else {
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, video);
+    }
+}
+
 function blendCanvasesToOutCanvas(destCanvas) {
+    // Always use finalCanvas as the WebGL target
     let glCtx = gl;
     let w = width, h = height;
-    if (destCanvas && destCanvas !== outCanvas) {
+    if (destCanvas && destCanvas !== finalCanvas) {
         glCtx = destCanvas.getContext('webgl') || destCanvas.getContext('experimental-webgl');
         w = destCanvas.width;
         h = destCanvas.height;
-        // You may need to re-create buffers/programs for a new context if not already done.
-        // For best performance, ensure destCanvas is the same as outCanvas or share context setup.
-        // For a production system, refactor to manage multiple contexts robustly.
     }
     glCtx.viewport(0, 0, w, h);
     glCtx.clear(glCtx.COLOR_BUFFER_BIT);
@@ -233,5 +280,6 @@ function blendCanvasesToOutCanvas(destCanvas) {
 window.blendCanvasesToOutCanvas = blendCanvasesToOutCanvas;
 window.uploadMaskToTexture = uploadMaskToTexture;
 window.clearMaskTexture = clearMaskTexture;
+window.uploadVideoToTexture = uploadVideoToTexture;
 
 export { blendCanvasesToOutCanvas };
