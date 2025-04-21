@@ -5,7 +5,7 @@ const vertSrc = `
       attribute vec2 a_texCoord;
       varying vec2 v_texCoord;
       void main() {
-        gl_Position = vec4(a_position, 0, 1);
+        gl_Position = vec4(a_position, 1.0, 1);
         v_texCoord = a_texCoord;
       }
     `;
@@ -15,8 +15,6 @@ const fragSrc = `
     varying vec2 v_texCoord;
     uniform sampler2D u_mask0;
     uniform sampler2D u_mask1;
-    uniform vec3 u_color0;
-    uniform vec3 u_color1;
     void main() {
         vec2 v_tex = v_texCoord;
         v_tex.y = 1.0 - v_tex.y;
@@ -24,8 +22,8 @@ const fragSrc = `
         float mask0 = texture2D(u_mask0, v_tex).r;
         float mask1 = texture2D(u_mask1, v_tex).r;
 
-        vec3 color0 = u_color0 * mask0;
-        vec3 color1 = u_color1 * mask1;
+        vec3 color0 = vec3(1.0, 0.0, 0.0) * mask0;
+        vec3 color1 =  vec3(1.0, 1.0, 0.0) * mask1;
 
         gl_FragColor = vec4(color0 + color1, 1.0);
     }
@@ -55,29 +53,6 @@ function createProgram(gl, vertSrc, fragSrc) {
         return null;
     }
     return program;
-}
-
-function drawRandomPixelsToCanvases() {
-    const cols = [
-        [255, 0, 0, 255],
-        [0, 255, 0, 255],
-    ];
-    for (let i = 0; i < 2; i++) {
-        const canvas = canvases[i];
-        const ctx = canvas.getContext('2d');
-        const width = canvas.width;
-        const height = canvas.height;
-        const imageData = ctx.createImageData(width, height);
-        const data = imageData.data;
-        const col = cols[i];
-        for (let j = 0; j < data.length; j += 4) {
-            data[j] = Math.random() * col[0] | 0;
-            data[j + 1] = Math.random() * col[1] | 0;
-            data[j + 2] = col[2];
-            data[j + 3] = Math.random() * 256 | 0;
-        }
-        ctx.putImageData(imageData, 0, 0);
-    }
 }
 
 const outCanvas = document.getElementById('out-canvas');
@@ -255,7 +230,6 @@ function blendCanvasesToOutCanvas(destCanvas) {
     glCtx.drawArrays(glCtx.TRIANGLE_STRIP, 0, 4);
 }
 
-window.drawRandomPixelsToCanvases = drawRandomPixelsToCanvases;
 window.blendCanvasesToOutCanvas = blendCanvasesToOutCanvas;
 window.uploadMaskToTexture = uploadMaskToTexture;
 window.clearMaskTexture = clearMaskTexture;
