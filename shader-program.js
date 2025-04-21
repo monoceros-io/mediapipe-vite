@@ -100,6 +100,7 @@ function createProgram(gl, vertSrc, fragSrc) {
 const program = createProgram(gl, vertSrc, fragSrc);
 gl.useProgram(program);
 
+// Setup buffer and attributes
 const positionBuffer = gl.createBuffer();
 gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
 gl.bufferData(
@@ -113,38 +114,38 @@ gl.bufferData(
     gl.STATIC_DRAW
 );
 
-const a_position = gl.getAttribLocation(program, 'a_position');
-const a_texCoord = gl.getAttribLocation(program, 'a_texCoord');
+const attribs = [
+    { name: 'a_position', size: 2, offset: 0 },
+    { name: 'a_texCoord', size: 2, offset: 8 }
+];
+attribs.forEach(attr => {
+    const loc = gl.getAttribLocation(program, attr.name);
+    gl.enableVertexAttribArray(loc);
+    gl.vertexAttribPointer(loc, attr.size, gl.FLOAT, false, 16, attr.offset);
+});
 
-gl.enableVertexAttribArray(a_position);
-gl.vertexAttribPointer(a_position, 2, gl.FLOAT, false, 16, 0);
-gl.enableVertexAttribArray(a_texCoord);
-gl.vertexAttribPointer(a_texCoord, 2, gl.FLOAT, false, 16, 8);
-
+// Setup textures and uniforms
 const textureUnits = [0, 1, 2, 3, 4]; // 4 masks, 1 video
 const uniforms = ['u_mask0', 'u_mask1', 'u_mask2', 'u_mask3', 'u_video'];
 uniforms.forEach((name, i) => {
     gl.uniform1i(gl.getUniformLocation(program, name), textureUnits[i]);
 });
 
-// Add uniform location for capture areas
 const u_captureAreas = gl.getUniformLocation(program, 'u_captureAreas');
 
 // Helper to set capture areas (expects array of 2 crops: [x, y, w, h] normalized to video texture)
 function setCaptureAreas(captureAreas) {
     // captureAreas: [[x0, y0, w0, h0], [x1, y1, w1, h1]] in normalized (0..1) coordinates
     const flat = new Float32Array(8);
-    for (let i = 0; i < 2; ++i) {
-        flat.set(captureAreas[i], i * 4);
-    }
-    gl.useProgram(program);
+    for (let i = 0; i < 2; ++i) flat.set(captureAreas[i], i * 4);
     gl.uniform4fv(u_captureAreas, flat);
 }
 window.setCaptureAreas = setCaptureAreas;
 
-const textures = textureUnits.map(() => gl.createTexture());
-textures.forEach((tex, i) => {
-    gl.activeTexture(gl.TEXTURE0 + i);
+// Texture creation helper
+function createAndSetupTexture(unit, format, w, h) {
+    const tex = gl.createTexture();
+    gl.activeTexture(gl.TEXTURE0 + unit);
     gl.bindTexture(gl.TEXTURE_2D, tex);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
@@ -153,24 +154,27 @@ textures.forEach((tex, i) => {
     gl.texImage2D(
         gl.TEXTURE_2D,
         0,
-        gl.LUMINANCE,
-        width,
-        height,
+        format,
+        w,
+        h,
         0,
-        gl.LUMINANCE,
+        format,
         gl.UNSIGNED_BYTE,
         null
     );
-});
+    return tex;
+}
+
+const textures = textureUnits.map(i =>
+    createAndSetupTexture(i, gl.LUMINANCE, width, height)
+);
 
 window.videoTexture = textures[4];
 
 function uploadMaskToTexture(maskArray, unit, w, h) {
     const glTex = textures[unit];
     const u8 = new Uint8Array(maskArray.length);
-    for (let i = 0; i < maskArray.length; i++) {
-        u8[i] = Math.round(maskArray[i] * 255);
-    }
+    for (let i = 0; i < maskArray.length; i++) u8[i] = Math.round(maskArray[i] * 255);
     gl.activeTexture(gl.TEXTURE0 + unit);
     gl.bindTexture(gl.TEXTURE_2D, glTex);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, w, h, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, u8);
@@ -185,10 +189,9 @@ function clearMaskTexture(unit, w, h) {
 }
 
 function blendCanvasesToOutCanvas(destCanvas) {
-    const glCtx = gl;
-    glCtx.viewport(0, 0, width, height);
-    glCtx.clear(glCtx.COLOR_BUFFER_BIT);
-    glCtx.drawArrays(glCtx.TRIANGLE_STRIP, 0, 4);
+    gl.viewport(0, 0, width, height);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 }
 
 window.uploadMaskToTexture = uploadMaskToTexture;
