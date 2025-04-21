@@ -239,10 +239,20 @@ function updateTextureFromCanvas(tex, canvas, unit) {
     );
 }
 
-function blendCanvasesToOutCanvas() {
-    gl.viewport(0, 0, width, height);
-    gl.clear(gl.COLOR_BUFFER_BIT);
-    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+function blendCanvasesToOutCanvas(destCanvas) {
+    let glCtx = gl;
+    let w = width, h = height;
+    if (destCanvas && destCanvas !== outCanvas) {
+        glCtx = destCanvas.getContext('webgl') || destCanvas.getContext('experimental-webgl');
+        w = destCanvas.width;
+        h = destCanvas.height;
+        // You may need to re-create buffers/programs for a new context if not already done.
+        // For best performance, ensure destCanvas is the same as outCanvas or share context setup.
+        // For a production system, refactor to manage multiple contexts robustly.
+    }
+    glCtx.viewport(0, 0, w, h);
+    glCtx.clear(glCtx.COLOR_BUFFER_BIT);
+    glCtx.drawArrays(glCtx.TRIANGLE_STRIP, 0, 4);
 }
 
 window.drawRandomPixelsToCanvases = drawRandomPixelsToCanvases;
