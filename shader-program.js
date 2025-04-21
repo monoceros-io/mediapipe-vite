@@ -17,6 +17,7 @@ const fragSrc = `
       uniform sampler2D u_tex1;
       void main() {
         vec2 v_tex = v_texCoord;
+        v_tex.y = 1.0 - v_tex.y;
         
         vec4 color0 = texture2D(u_tex0, v_tex);
         vec4 color1 = texture2D(u_tex1, v_tex);
@@ -194,4 +195,6 @@ window.addEventListener("keydown", (e) => {
     }
 });
 
-loop();
+export { blendCanvasesToOutCanvas };
+
+// loop();
