@@ -79,16 +79,15 @@ async function processStreams() {
 
         combinedCtx.clearRect(0, 0, VIDEO_INPUT_WIDTH, VIDEO_INPUT_HEIGHT);
 
-        // Each feed and mask is quarter width
+        // Each quarter width
         const quarterW = VIDEO_INPUT_WIDTH / 4;
         const quarterH = BASE_CUTOUT_HEIGHT;
 
         for (let i = 0; i < 2; i++) {
             const base = i * 4;
             const [cx, cy, cw, ch] = rawCaptureAreas.slice(base, base + 4);
-            if (cw === 0 || ch === 0) continue;
 
-            // Draw video crop to quarter width
+            // Draw video0 in quarter 1, video1 in quarter 3
             combinedCtx.drawImage(
                 video, cx, cy, cw, ch,
                 i * 2 * quarterW, 0, quarterW, quarterH
