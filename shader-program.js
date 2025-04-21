@@ -24,6 +24,8 @@ uniform sampler2D u_mask2;
 uniform sampler2D u_mask3;
 uniform sampler2D u_video;
 uniform vec4 u_captureAreas[2];
+uniform float u_brightness;
+uniform float u_contrast;
 
 vec2 cropSample(vec2 t, vec4 area) {
     return vec2(
@@ -35,6 +37,8 @@ vec2 cropSample(vec2 t, vec4 area) {
 void main() {
     vec2 tex = vec2(v_texCoord.x, 1.0 - v_texCoord.y);
     vec3 outputColor = vec3(0.0);
+
+    float a = 1.0;
 
     if (tex.x < 0.25) {
         // First mask pair (first quarter)
@@ -49,7 +53,10 @@ void main() {
         vec2 t = vec2((tex.x - 0.25) * 4.0, tex.y);
         vec2 videoTex = cropSample(t, u_captureAreas[0]);
         vec4 videoColor = texture2D(u_video, videoTex);
-        outputColor = videoColor.rgb;
+        // Apply brightness/contrast
+        vec3 color = videoColor.rgb;
+        color = (color - 0.5) * u_contrast + 0.5 + u_brightness;
+        outputColor = color;
     } else if (tex.x >= 0.5 && tex.x < 0.75) {
         // Second mask pair (third quarter)
         vec2 t = vec2((tex.x - 0.5) * 4.0, tex.y);
@@ -63,11 +70,14 @@ void main() {
         vec2 t = vec2((tex.x - 0.75) * 4.0, tex.y);
         vec2 videoTex = cropSample(t, u_captureAreas[1]);
         vec4 videoColor = texture2D(u_video, videoTex);
-        outputColor = videoColor.rgb;
+        // Apply brightness/contrast
+        vec3 color = videoColor.rgb;
+        color = (color - 0.5) * u_contrast + 0.5 + u_brightness;
+        outputColor = color;
     }
     // else: outputColor remains black
-
-    gl_FragColor = vec4(outputColor, 1.0);
+    
+    gl_FragColor = vec4(outputColor, a);
 }
 `;
 
@@ -132,6 +142,11 @@ uniforms.forEach((name, i) => {
 });
 
 const u_captureAreas = gl.getUniformLocation(program, 'u_captureAreas');
+const u_brightness = gl.getUniformLocation(program, 'u_brightness');
+const u_contrast = gl.getUniformLocation(program, 'u_contrast');
+// Set default values
+gl.uniform1f(u_brightness, 0.0);
+gl.uniform1f(u_contrast, 1.5);
 
 // Helper to set capture areas (expects array of 2 crops: [x, y, w, h] normalized to video texture)
 function setCaptureAreas(captureAreas) {
@@ -141,6 +156,14 @@ function setCaptureAreas(captureAreas) {
     gl.uniform4fv(u_captureAreas, flat);
 }
 window.setCaptureAreas = setCaptureAreas;
+
+// Helper to set brightness/contrast
+function setBrightnessContrast(brightness, contrast) {
+    gl.useProgram(program);
+    gl.uniform1f(u_brightness, brightness);
+    gl.uniform1f(u_contrast, contrast);
+}
+window.setBrightnessContrast = setBrightnessContrast;
 
 // Texture creation helper
 function createAndSetupTexture(unit, format, w, h) {
