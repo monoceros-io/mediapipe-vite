@@ -78,5 +78,14 @@ function updateShaderBC() {
 brightnessInput.addEventListener('input', updateShaderBC);
 contrastInput.addEventListener('input', updateShaderBC);
 
+// Wire up overlay-mask checkbox
+const overlayMaskInput = document.getElementById('overlay-mask');
+if (overlayMaskInput && window.setOverlayMask) {
+    window.setOverlayMask(overlayMaskInput.checked);
+    overlayMaskInput.addEventListener('change', () => {
+        window.setOverlayMask(overlayMaskInput.checked);
+    });
+}
+
 // Set initial values
 updateShaderBC();

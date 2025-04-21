@@ -26,6 +26,7 @@ uniform sampler2D u_video;
 uniform vec4 u_captureAreas[2];
 uniform float u_brightness;
 uniform float u_contrast;
+uniform bool u_overlayMask;
 
 vec2 cropSample(vec2 t, vec4 area) {
     return vec2(
@@ -37,46 +38,77 @@ vec2 cropSample(vec2 t, vec4 area) {
 void main() {
     vec2 tex = vec2(v_texCoord.x, 1.0 - v_texCoord.y);
     vec3 outputColor = vec3(0.0);
-
     float a = 1.0;
 
-    if (tex.x < 0.25) {
-        // First mask pair (first quarter)
-        vec2 t = vec2(tex.x * 4.0, tex.y);
-        float m0 = texture2D(u_mask0, t).r;
-        float m1 = texture2D(u_mask1, t).r;
-        vec3 blendA = mix(vec3(0.0), vec3(1.0, 0.0, 0.0), m0); // red mask
-        blendA = mix(blendA, vec3(0.0, 1.0, 0.0), m1); // green mask
-        outputColor = blendA;
-    } else if (tex.x >= 0.25 && tex.x < 0.5) {
-        // First video feed (second quarter)
-        vec2 t = vec2((tex.x - 0.25) * 4.0, tex.y);
-        vec2 videoTex = cropSample(t, u_captureAreas[0]);
-        vec4 videoColor = texture2D(u_video, videoTex);
-        // Apply brightness/contrast
-        vec3 color = videoColor.rgb;
-        color = (color - 0.5) * u_contrast + 0.5 + u_brightness;
-        outputColor = color;
-    } else if (tex.x >= 0.5 && tex.x < 0.75) {
-        // Second mask pair (third quarter)
-        vec2 t = vec2((tex.x - 0.5) * 4.0, tex.y);
-        float m2 = texture2D(u_mask2, t).r;
-        float m3 = texture2D(u_mask3, t).r;
-        vec3 blendB = mix(vec3(0.0), vec3(0.0, 0.0, 1.0), m2); // blue mask
-        blendB = mix(blendB, vec3(1.0, 1.0, 0.0), m3); // yellow mask
-        outputColor = blendB;
-    } else if (tex.x >= 0.75 && tex.x < 1.0) {
-        // Second video feed (fourth quarter)
-        vec2 t = vec2((tex.x - 0.75) * 4.0, tex.y);
-        vec2 videoTex = cropSample(t, u_captureAreas[1]);
-        vec4 videoColor = texture2D(u_video, videoTex);
-        // Apply brightness/contrast
-        vec3 color = videoColor.rgb;
-        color = (color - 0.5) * u_contrast + 0.5 + u_brightness;
-        outputColor = color;
+    if (u_overlayMask) {
+        // Videos in first and third quarters, masks overlaid with alpha
+        if (tex.x < 0.25) {
+            // First video feed (first quarter)
+            vec2 t = vec2(tex.x * 4.0, tex.y);
+            vec2 videoTex = cropSample(t, u_captureAreas[0]);
+            vec4 videoColor = texture2D(u_video, videoTex);
+            vec3 color = (videoColor.rgb - 0.5) * u_contrast + 0.5 + u_brightness;
+            // Overlay mask
+            float m0 = texture2D(u_mask0, t).r;
+            float m1 = texture2D(u_mask1, t).r;
+            vec3 maskColor = mix(vec3(0.0), vec3(1.0, 0.0, 0.0), m0);
+            maskColor = mix(maskColor, vec3(0.0, 1.0, 0.0), m1);
+            float maskAlpha = max(m0, m1);
+            outputColor = mix(color, maskColor, maskAlpha * 0.7);
+        } else if (tex.x >= 0.25 && tex.x < 0.5) {
+            // Empty (second quarter)
+            outputColor = vec3(0.0);
+        } else if (tex.x >= 0.5 && tex.x < 0.75) {
+            // Second video feed (third quarter)
+            vec2 t = vec2((tex.x - 0.5) * 4.0, tex.y);
+            vec2 videoTex = cropSample(t, u_captureAreas[1]);
+            vec4 videoColor = texture2D(u_video, videoTex);
+            vec3 color = (videoColor.rgb - 0.5) * u_contrast + 0.5 + u_brightness;
+            // Overlay mask
+            float m2 = texture2D(u_mask2, t).r;
+            float m3 = texture2D(u_mask3, t).r;
+            vec3 maskColor = mix(vec3(0.0), vec3(0.0, 0.0, 1.0), m2);
+            maskColor = mix(maskColor, vec3(1.0, 1.0, 0.0), m3);
+            float maskAlpha = max(m2, m3);
+            outputColor = mix(color, maskColor, maskAlpha * 0.7);
+        } else if (tex.x >= 0.75 && tex.x < 1.0) {
+            // Empty (fourth quarter)
+            outputColor = vec3(0.0);
+        }
+    } else {
+        // Default: masks in first/third, videos in second/fourth
+        if (tex.x < 0.25) {
+            // First mask pair (first quarter)
+            vec2 t = vec2(tex.x * 4.0, tex.y);
+            float m0 = texture2D(u_mask0, t).r;
+            float m1 = texture2D(u_mask1, t).r;
+            vec3 blendA = mix(vec3(0.0), vec3(1.0, 0.0, 0.0), m0); // red mask
+            blendA = mix(blendA, vec3(0.0, 1.0, 0.0), m1); // green mask
+            outputColor = blendA;
+        } else if (tex.x >= 0.25 && tex.x < 0.5) {
+            // First video feed (second quarter)
+            vec2 t = vec2((tex.x - 0.25) * 4.0, tex.y);
+            vec2 videoTex = cropSample(t, u_captureAreas[0]);
+            vec4 videoColor = texture2D(u_video, videoTex);
+            vec3 color = (videoColor.rgb - 0.5) * u_contrast + 0.5 + u_brightness;
+            outputColor = color;
+        } else if (tex.x >= 0.5 && tex.x < 0.75) {
+            // Second mask pair (third quarter)
+            vec2 t = vec2((tex.x - 0.5) * 4.0, tex.y);
+            float m2 = texture2D(u_mask2, t).r;
+            float m3 = texture2D(u_mask3, t).r;
+            vec3 blendB = mix(vec3(0.0), vec3(0.0, 0.0, 1.0), m2); // blue mask
+            blendB = mix(blendB, vec3(1.0, 1.0, 0.0), m3); // yellow mask
+            outputColor = blendB;
+        } else if (tex.x >= 0.75 && tex.x < 1.0) {
+            // Second video feed (fourth quarter)
+            vec2 t = vec2((tex.x - 0.75) * 4.0, tex.y);
+            vec2 videoTex = cropSample(t, u_captureAreas[1]);
+            vec4 videoColor = texture2D(u_video, videoTex);
+            vec3 color = (videoColor.rgb - 0.5) * u_contrast + 0.5 + u_brightness;
+            outputColor = color;
+        }
     }
-    // else: outputColor remains black
-    
     gl_FragColor = vec4(outputColor, a);
 }
 `;
@@ -144,9 +176,11 @@ uniforms.forEach((name, i) => {
 const u_captureAreas = gl.getUniformLocation(program, 'u_captureAreas');
 const u_brightness = gl.getUniformLocation(program, 'u_brightness');
 const u_contrast = gl.getUniformLocation(program, 'u_contrast');
+const u_overlayMask = gl.getUniformLocation(program, 'u_overlayMask');
 // Set default values
 gl.uniform1f(u_brightness, 0.0);
 gl.uniform1f(u_contrast, 1.5);
+gl.uniform1i(u_overlayMask, 0);
 
 // Helper to set capture areas (expects array of 2 crops: [x, y, w, h] normalized to video texture)
 function setCaptureAreas(captureAreas) {
@@ -164,6 +198,13 @@ function setBrightnessContrast(brightness, contrast) {
     gl.uniform1f(u_contrast, contrast);
 }
 window.setBrightnessContrast = setBrightnessContrast;
+
+// Helper to set overlay mask mode
+function setOverlayMask(enabled) {
+    gl.useProgram(program);
+    gl.uniform1i(u_overlayMask, enabled ? 1 : 0);
+}
+window.setOverlayMask = setOverlayMask;
 
 // Texture creation helper
 function createAndSetupTexture(unit, format, w, h) {
