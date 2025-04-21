@@ -80,8 +80,6 @@ function drawRandomPixelsToCanvases() {
     }
 }
 
-const inCanvas0 = document.getElementById('in-canvas-0');
-const inCanvas1 = document.getElementById('in-canvas-1');
 const outCanvas = document.getElementById('out-canvas');
 const width = outCanvas.width;
 const height = outCanvas.height;
@@ -252,23 +250,4 @@ window.blendCanvasesToOutCanvas = blendCanvasesToOutCanvas;
 window.uploadMaskToTexture = uploadMaskToTexture;
 window.clearMaskTexture = clearMaskTexture;
 
-// Loop
-
-// drawRandomPixelsToCanvases();
-
-function loop() {
-    // drawRandomPixelsToCanvases();
-    blendCanvasesToOutCanvas();
-    // requestAnimationFrame(loop);
-}
-
-window.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") {
-        // drawRandomPixelsToCanvases();
-        blendCanvasesToOutCanvas();
-    }
-});
-
 export { blendCanvasesToOutCanvas };
-
-// loop();

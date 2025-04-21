@@ -44,7 +44,7 @@ export function setupVideoUtils({ videos, cropDivOuters, cdoMasks, dumpCanvases,
 
 let processing = false;
 let rawCaptureAreas = [];
-let lastMask0 = null, lastMask4 = null, lastMaskDims = { width: 0, height: 0 };
+let lastMask0 = null, lastMask4 = null, lastMaskDims0 = { width: 0, height: 0 }, lastMaskDims4 = { width: 0, height: 0 };
 
 // Adjust crop overlay to match video aspect ratio and update capture areas
 export function matchCropToVideo() {
@@ -118,7 +118,7 @@ let fpsTime = performance.now();
 
 // Main processing loop: capture, segment, and render video frames
 async function processStreams() {
-    if (processing) return; // Prevent multiple loops
+    if (processing) return;
     processing = true;
 
     async function loop() {
@@ -126,64 +126,98 @@ async function processStreams() {
         fpsTime = performance.now();
         ++frameCounter;
 
-        // Only process the first crop/video for performance
-        const i = 0;
-        const index = i * 4;
-        const [cx, cy, cw, ch] = rawCaptureAreas.slice(index, index + 4);
+        // Prepare for both crops
+        const maskPromises = [];
+        const maskMeta = [];
 
-        if (video.readyState === video.HAVE_ENOUGH_DATA) {
-            // Calculate output positions and sizes
-            const cRatio = cw / ch;
-            const cWidth = BASE_CUTOUT_HEIGHT * cRatio;
-            const cX = BASE_WIDTH_FOURTH * i + BASE_WIDTH_EIGHTH - (cWidth / 2);
+        for (let i = 0; i < 2; ++i) {
+            const index = i * 4;
+            const [cx, cy, cw, ch] = rawCaptureAreas.slice(index, index + 4);
+            if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                const cRatio = cw / ch;
+                const cWidth = BASE_CUTOUT_HEIGHT * cRatio;
+                const cX = BASE_WIDTH_FOURTH * i + BASE_WIDTH_EIGHTH - (cWidth / 2);
 
-            // Draw cropped video to final canvas (background)
-            _finalContext.drawImage(video, cx, cy, cw, ch, cX, TOP_OFFSET, cWidth, BASE_CUTOUT_HEIGHT);
+                // Draw each video crop to its side of the final canvas
+                _finalContext.drawImage(video, cx, cy, cw, ch, cX, TOP_OFFSET, cWidth, BASE_CUTOUT_HEIGHT);
 
-            // Draw cropped video to offscreen canvas for segmentation
-            offscreenCtx.drawImage(video, cx, cy, cw, ch, 0, 0, SEG_DIMENSION, SEG_DIMENSION);
-            const imageData = offscreenCtx.getImageData(0, 0, SEG_DIMENSION, SEG_DIMENSION);
+                // Prepare mask for this crop
+                offscreenCtx.drawImage(video, cx, cy, cw, ch, 0, 0, SEG_DIMENSION, SEG_DIMENSION);
+                const imageData = offscreenCtx.getImageData(0, 0, SEG_DIMENSION, SEG_DIMENSION);
 
-            // Run segmentation model
-            const segmentationResult = await segmenter.segmentForVideo(imageData, performance.now());
+                maskPromises.push(segmenter.segmentForVideo(imageData, performance.now()));
+                maskMeta.push({ i });
+            }
+        }
+
+        // Run both segmentations in parallel
+        const results = await Promise.all(maskPromises);
+
+        for (let k = 0; k < results.length; ++k) {
+            const segmentationResult = results[k];
             const confidenceMasks = segmentationResult.confidenceMasks;
+            const i = maskMeta[k].i;
             if (confidenceMasks && confidenceMasks[0]) {
                 const { width, height } = confidenceMasks[0];
-
-                // Only upload if mask or size changed
-                const mask0 = confidenceMasks[0].getAsFloat32Array();
-                if (!lastMask0 || lastMaskDims.width !== width || lastMaskDims.height !== height ||
-                    !mask0.every((v, idx) => v === lastMask0[idx])) {
-                    window.uploadMaskToTexture(mask0, 0, width, height);
-                    lastMask0 = mask0;
-                    lastMaskDims = { width, height };
-                }
-
-                if (confidenceMasks[4]) {
-                    const mask4 = confidenceMasks[4].getAsFloat32Array();
-                    if (!lastMask4 || !mask4.every((v, idx) => v === lastMask4[idx])) {
-                        window.uploadMaskToTexture(mask4, 1, width, height);
-                        lastMask4 = mask4;
-                    }
+                // Use separate lastMask/lastDims for each crop
+                let lastMask, lastMaskDims, maskSlot;
+                if (i === 0) {
+                    lastMask = lastMask0;
+                    lastMaskDims = lastMaskDims0;
+                    maskSlot = 0;
                 } else {
-                    window.clearMaskTexture(1, width, height);
-                    lastMask4 = null;
+                    lastMask = lastMask4;
+                    lastMaskDims = lastMaskDims4;
+                    maskSlot = 1;
                 }
-
+                const maskArr = confidenceMasks[0].getAsFloat32Array();
+                let needsUpload = false;
+                if (!lastMask || lastMaskDims.width !== width || lastMaskDims.height !== height) {
+                    needsUpload = true;
+                } else {
+                    // Fast check: only compare a few values for change
+                    for (let t = 0; t < maskArr.length; t += 32) {
+                        if (maskArr[t] !== lastMask[t]) {
+                            needsUpload = true;
+                            break;
+                        }
+                    }
+                }
+                if (needsUpload) {
+                    window.uploadMaskToTexture(maskArr, maskSlot, width, height);
+                    if (i === 0) {
+                        lastMask0 = maskArr;
+                        lastMaskDims0 = { width, height };
+                    } else {
+                        lastMask4 = maskArr;
+                        lastMaskDims4 = { width, height };
+                    }
+                }
                 segmentationResult.confidenceMasks.forEach(mask => mask.close());
             }
-
-            // Blend all mask textures to the output canvas using WebGL shader
-            blendCanvasesToOutCanvas();
-
-            // Draw the shader output (out-canvas) over the camera feed in final canvas
-            const outCanvas = document.getElementById('out-canvas');
-            _finalContext.drawImage(outCanvas, 0, 0, _finalCanvas.width, _finalCanvas.height);
-
-            requestAnimationFrame(loop);
-        } else {
-            requestAnimationFrame(loop);
         }
+
+        // Blend all mask textures to the output canvas using WebGL shader
+        blendCanvasesToOutCanvas();
+
+        // Draw the left and right halves of out-canvas over the corresponding video regions
+        const outCanvas = document.getElementById('out-canvas');
+        const outW = outCanvas.width;
+        const outH = outCanvas.height;
+        // Left mask overlay
+        _finalContext.drawImage(
+            outCanvas,
+            0, 0, outW / 2, outH,
+            BASE_WIDTH_EIGHTH - (BASE_CUTOUT_HEIGHT / 2), TOP_OFFSET, BASE_CUTOUT_HEIGHT, BASE_CUTOUT_HEIGHT
+        );
+        // Right mask overlay
+        _finalContext.drawImage(
+            outCanvas,
+            outW / 2, 0, outW / 2, outH,
+            BASE_WIDTH_FOURTH * 1 + BASE_WIDTH_EIGHTH - (BASE_CUTOUT_HEIGHT / 2), TOP_OFFSET, BASE_CUTOUT_HEIGHT, BASE_CUTOUT_HEIGHT
+        );
+
+        requestAnimationFrame(loop);
     }
 
     loop();
