@@ -23,6 +23,15 @@ uniform sampler2D u_mask1;
 uniform sampler2D u_mask2;
 uniform sampler2D u_mask3;
 uniform sampler2D u_video;
+uniform vec4 u_captureAreas[2];
+
+// Helper to map normalized quarter to crop area
+vec2 cropSample(vec2 t, vec4 area) {
+    return vec2(
+        area.x + t.x * area.z,
+        area.y + t.y * area.w
+    );
+}
 
 void main() {
     vec2 tex = vec2(v_texCoord.x, 1.0 - v_texCoord.y);
@@ -30,19 +39,21 @@ void main() {
 
     if (tex.x < 0.25) {
         // First video feed with both masks blended
-        vec2 videoTex = vec2(tex.x * 4.0, tex.y);
+        vec2 t = vec2(tex.x * 4.0, tex.y);
+        vec2 videoTex = cropSample(t, u_captureAreas[0]);
         vec4 videoColor = texture2D(u_video, videoTex);
-        float m0 = texture2D(u_mask0, videoTex).r;
-        float m1 = texture2D(u_mask1, videoTex).r;
+        float m0 = texture2D(u_mask0, t).r;
+        float m1 = texture2D(u_mask1, t).r;
         vec3 blendA = mix(videoColor.rgb, vec3(1.0, 0.0, 0.0), m0); // red mask
         blendA = mix(blendA, vec3(0.0, 1.0, 0.0), m1); // green mask
         outputColor = blendA;
     } else if (tex.x >= 0.5 && tex.x < 0.75) {
         // Second video feed with both masks blended
-        vec2 videoTex = vec2((tex.x - 0.5) * 4.0, tex.y);
+        vec2 t = vec2((tex.x - 0.5) * 4.0, tex.y);
+        vec2 videoTex = cropSample(t, u_captureAreas[1]);
         vec4 videoColor = texture2D(u_video, videoTex);
-        float m2 = texture2D(u_mask2, videoTex).r;
-        float m3 = texture2D(u_mask3, videoTex).r;
+        float m2 = texture2D(u_mask2, t).r;
+        float m3 = texture2D(u_mask3, t).r;
         vec3 blendB = mix(videoColor.rgb, vec3(0.0, 0.0, 1.0), m2); // blue mask
         blendB = mix(blendB, vec3(1.0, 1.0, 0.0), m3); // yellow mask
         outputColor = blendB;
@@ -108,6 +119,21 @@ const uniforms = ['u_mask0', 'u_mask1', 'u_mask2', 'u_mask3', 'u_video'];
 uniforms.forEach((name, i) => {
     gl.uniform1i(gl.getUniformLocation(program, name), textureUnits[i]);
 });
+
+// Add uniform location for capture areas
+const u_captureAreas = gl.getUniformLocation(program, 'u_captureAreas');
+
+// Helper to set capture areas (expects array of 2 crops: [x, y, w, h] normalized to video texture)
+function setCaptureAreas(captureAreas) {
+    // captureAreas: [[x0, y0, w0, h0], [x1, y1, w1, h1]] in normalized (0..1) coordinates
+    const flat = new Float32Array(8);
+    for (let i = 0; i < 2; ++i) {
+        flat.set(captureAreas[i], i * 4);
+    }
+    gl.useProgram(program);
+    gl.uniform4fv(u_captureAreas, flat);
+}
+window.setCaptureAreas = setCaptureAreas;
 
 const textures = textureUnits.map(() => gl.createTexture());
 textures.forEach((tex, i) => {

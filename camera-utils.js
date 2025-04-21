@@ -77,21 +77,28 @@ async function processStreams() {
     async function processFrame() {
         if (video.readyState < video.HAVE_ENOUGH_DATA) return;
 
-        combinedCtx.clearRect(0, 0, VIDEO_INPUT_WIDTH, VIDEO_INPUT_HEIGHT);
+        // Calculate normalized capture areas for shader
+        // [x, y, w, h] for each crop, normalized to video dimensions
+        const captureAreas = [];
+        for (let i = 0; i < 2; i++) {
+            const base = i * 4;
+            const x = rawCaptureAreas[base] / video.videoWidth;
+            const y = rawCaptureAreas[base + 1] / video.videoHeight;
+            const w = rawCaptureAreas[base + 2] / video.videoWidth;
+            const h = rawCaptureAreas[base + 3] / video.videoHeight;
+            captureAreas.push([x, y, w, h]);
+        }
+        // Send to shader
+        if (window.setCaptureAreas) {
+            window.setCaptureAreas(captureAreas);
+        }
 
-        // Each quarter width
         const quarterW = VIDEO_INPUT_WIDTH / 4;
         const quarterH = BASE_CUTOUT_HEIGHT;
 
         for (let i = 0; i < 2; i++) {
             const base = i * 4;
             const [cx, cy, cw, ch] = rawCaptureAreas.slice(base, base + 4);
-
-            // Draw video0 in quarter 1, video1 in quarter 3
-            combinedCtx.drawImage(
-                video, cx, cy, cw, ch,
-                i * 2 * quarterW, 0, quarterW, quarterH
-            );
 
             const bitmap = await createImageBitmap(video, cx, cy, cw, ch, {
                 resizeWidth: SEG_DIMENSION,
@@ -108,7 +115,6 @@ async function processStreams() {
                 const mask0 = masks[0].getAsFloat32Array();
                 const mask4 = masks[4]?.getAsFloat32Array() || null;
 
-                // Mask textures: 0/1 for first feed, 2/3 for second feed
                 window.uploadMaskToTexture(mask0, i * 2, w, h);
                 if (mask4) {
                     window.uploadMaskToTexture(mask4, i * 2 + 1, w, h);
@@ -122,11 +128,11 @@ async function processStreams() {
             segmentation.close();
         }
 
-        // Upload combined video canvas as video texture
+        // Upload the video frame directly as a texture for the shader
         const gl = _finalCanvas.getContext("webgl");
         gl.activeTexture(gl.TEXTURE0 + 4);
         gl.bindTexture(gl.TEXTURE_2D, window.videoTexture);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, combinedVideoCanvas);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, video);
 
         blendCanvasesToOutCanvas(_finalCanvas);
     }
