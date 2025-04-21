@@ -44,6 +44,7 @@ export function setupVideoUtils({ videos, cropDivOuters, cdoMasks, dumpCanvases,
 
 let processing = false;
 let rawCaptureAreas = [];
+let lastMask0 = null, lastMask4 = null, lastMaskDims = { width: 0, height: 0 };
 
 // Adjust crop overlay to match video aspect ratio and update capture areas
 export function matchCropToVideo() {
@@ -117,16 +118,16 @@ let fpsTime = performance.now();
 
 // Main processing loop: capture, segment, and render video frames
 async function processStreams() {
-
+    if (processing) return; // Prevent multiple loops
     processing = true;
 
-    // Update FPS display
-    fps.innerHTML = (1000 / (performance.now() - fpsTime)).toFixed(2);
-    fpsTime = performance.now();
+    async function loop() {
+        fps.innerHTML = (1000 / (performance.now() - fpsTime)).toFixed(2);
+        fpsTime = performance.now();
+        ++frameCounter;
 
-    ++frameCounter;
-
-    for (let i = 0; i < 2; ++i) {
+        // Only process the first crop/video for performance
+        const i = 0;
         const index = i * 4;
         const [cx, cy, cw, ch] = rawCaptureAreas.slice(index, index + 4);
 
@@ -135,9 +136,8 @@ async function processStreams() {
             const cRatio = cw / ch;
             const cWidth = BASE_CUTOUT_HEIGHT * cRatio;
             const cX = BASE_WIDTH_FOURTH * i + BASE_WIDTH_EIGHTH - (cWidth / 2);
-            const cX2 = BASE_WIDTH_FOURTH * (i + 2) + BASE_WIDTH_EIGHTH - (cWidth / 2);
 
-            // Draw cropped video to output canvas
+            // Draw cropped video to final canvas (background)
             _finalContext.drawImage(video, cx, cy, cw, ch, cX, TOP_OFFSET, cWidth, BASE_CUTOUT_HEIGHT);
 
             // Draw cropped video to offscreen canvas for segmentation
@@ -147,79 +147,45 @@ async function processStreams() {
             // Run segmentation model
             const segmentationResult = await segmenter.segmentForVideo(imageData, performance.now());
             const confidenceMasks = segmentationResult.confidenceMasks;
-
             if (confidenceMasks && confidenceMasks[0]) {
                 const { width, height } = confidenceMasks[0];
-                const pixelCount = width * height;
 
-                // Allocate or reuse buffers for mask processing
-                if (!tempFloatBuffer || lastBufferSize !== pixelCount) {
-                    tempFloatBuffer = new Float32Array(pixelCount * 3);
-                    imageDataBuffer = _finalContext.createImageData(width, height);
-                    u8TempView = new Uint8Array(tempFloatBuffer.buffer);
-                    lastBufferSize = pixelCount;
-                } else {
-                    tempFloatBuffer.fill(0);
+                // Only upload if mask or size changed
+                const mask0 = confidenceMasks[0].getAsFloat32Array();
+                if (!lastMask0 || lastMaskDims.width !== width || lastMaskDims.height !== height ||
+                    !mask0.every((v, idx) => v === lastMask0[idx])) {
+                    window.uploadMaskToTexture(mask0, 0, width, height);
+                    lastMask0 = mask0;
+                    lastMaskDims = { width, height };
                 }
 
-                processMask(confidenceMasks, tempFloatBuffer, pixelCount);
+                if (confidenceMasks[4]) {
+                    const mask4 = confidenceMasks[4].getAsFloat32Array();
+                    if (!lastMask4 || !mask4.every((v, idx) => v === lastMask4[idx])) {
+                        window.uploadMaskToTexture(mask4, 1, width, height);
+                        lastMask4 = mask4;
+                    }
+                } else {
+                    window.clearMaskTexture(1, width, height);
+                    lastMask4 = null;
+                }
 
-                // Mask processing (WASM or JS) would go here
-                // processMask(confidenceMasks[0], 0, tempFloatBuffer, pixelCount);
-                // processMask(confidenceMasks[4], 4, tempFloatBuffer, pixelCount);
-
-                const data = imageDataBuffer.data;
-                // Convert float buffer to RGBA image data
-                // for (let i = 0, j = 0; i < pixelCount; i++, j += 4) {
-                //     const base = i * 3;
-                //     let tfb0 = tempFloatBuffer[base + 0] * 255;
-                //     let tfb1 = tempFloatBuffer[base + 1] * 255;
-                //     let tfb2 = tempFloatBuffer[base + 2] * 255;
-                //     
-                //     data[j] = Math.min(255, Math.round(tfb0));
-                //     data[j + 1] = Math.min(255, Math.round(tfb1));
-                //     data[j + 2] = Math.min(255, Math.round(tfb2));
-                //     data[j + 3] = 255;
-                // }
-
-                // Render mask using shader program (WebGL)
-                offscreenRenderCtx.putImageData(imageDataBuffer, 0, 0);
-                _finalContext.drawImage(offscreenRenderCanvas, 0, 0, width, height, cX2, TOP_OFFSET, cWidth, BASE_CUTOUT_HEIGHT);
-                
-                // Release mask resources
                 segmentationResult.confidenceMasks.forEach(mask => mask.close());
             }
+
+            // Blend all mask textures to the output canvas using WebGL shader
+            blendCanvasesToOutCanvas();
+
+            // Draw the shader output (out-canvas) over the camera feed in final canvas
+            const outCanvas = document.getElementById('out-canvas');
+            _finalContext.drawImage(outCanvas, 0, 0, _finalCanvas.width, _finalCanvas.height);
+
+            requestAnimationFrame(loop);
+        } else {
+            requestAnimationFrame(loop);
         }
     }
 
-    // Blend all canvases to the output canvas using WebGL shader
-    blendCanvasesToOutCanvas();
-
-    // Schedule next frame
-    requestAnimationFrame(processStreams);
-}
-
-// JS fallback for mask processing (not used if WASM is enabled)
-function processMask(masks, outputBuffer, pixelCount) {
-
-    console.log("SIPPO", masks);
-
-    const mask0 = masks[0].getAsFloat32Array();
-    const mask1 = masks[4].getAsFloat32Array();
-
-    // _finalCanvas = SUBBO 900
-
-    // const maskArray = mask.getAsFloat32Array();
-    // const r = colors[(maskIndex * 3) % colors.length];
-    // const g = colors[(maskIndex * 3 + 1) % colors.length];
-    // const b = colors[(maskIndex * 3 + 2) % colors.length];
-
-    // for (let i = 0; i < pixelCount; i++) {
-    //     const alpha = maskArray[i];
-    //     const base = i * 3;
-    //     outputBuffer[base] += alpha * r;
-    //     outputBuffer[base + 1] += alpha * g;
-    //     outputBuffer[base + 2] += alpha * b;
-    // }
+    loop();
 }
 
