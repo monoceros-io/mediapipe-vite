@@ -14,9 +14,12 @@ const CUBE_COUNT = 200;
 export function init() {
     canvases = [
         document.getElementById('backing-canvas-0'),
-        document.getElementById('backing-canvas-1')
+        document.getElementById('backing-canvas-1'),
+        document.getElementById('fore-canvas-0'),
+        document.getElementById('fore-canvas-1')
     ];
 
+    // Backing canvases (cubes)
     for (let i = 0; i < 2; i++) {
         const renderer = new THREE.WebGLRenderer({ canvas: canvases[i], preserveDrawingBuffer: true, alpha: true });
         renderer.setSize(canvases[i].width, canvases[i].height, false);
@@ -50,6 +53,32 @@ export function init() {
         scene.add(light);
     }
 
+    // Fore canvases (single static torus)
+    for (let i = 0; i < 2; i++) {
+        const renderer = new THREE.WebGLRenderer({ canvas: canvases[i+2], preserveDrawingBuffer: true, alpha: true });
+        renderer.setSize(canvases[i+2].width, canvases[i+2].height, false);
+
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(45, canvases[i+2].width / canvases[i+2].height, 0.1, 100);
+        camera.position.set(0, 0, 5);
+
+        const geometry = new THREE.TorusGeometry(1, 0.4, 16, 100);
+        const color = i === 0 ? 0x00ff00 : 0xffff00;
+        const material = new THREE.MeshStandardMaterial({ color, roughness: 0.5, metalness: 0.5 });
+        const torus = new THREE.Mesh(geometry, material);
+        torus.position.set(0, 0, -5);
+        scene.add(torus);
+
+        renderers.push(renderer);
+        scenes.push(scene);
+        cameras.push(camera);
+        meshes.push([torus]);
+
+        const light = new THREE.DirectionalLight(0xffffff, 1);
+        light.position.set(2, 2, 5);
+        scene.add(light);
+    }
+
     worker = new Worker(new URL('./threeview.worker.js', import.meta.url), { type: 'module' });
     worker.onmessage = function(e) {
         for (let i = 0; i < 2; i++) {
@@ -59,6 +88,7 @@ export function init() {
                 meshes[i][j].rotation.z += Math.random() * 0.1;
             }
         }
+        // No rotation for torus meshes
     };
 }
 
@@ -78,7 +108,8 @@ export function run() {
         }
         worker.postMessage(meshTransforms);
 
-        for (let i = 0; i < 2; i++) {
+        // Render all four scenes (including static torus)
+        for (let i = 0; i < 4; i++) {
             renderers[i].render(scenes[i], cameras[i]);
         }
         requestAnimationFrame(animate);
