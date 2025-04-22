@@ -71,6 +71,7 @@ void main() {
             } else if (greenEdge > 0.0) {
                 // Green mask: multiply video by green, soft edge
                 vec3 color = (videoColor.rgb - 0.5) * u_contrast + 0.5 + u_brightness;
+                color.g += 0.2;
                 outputColor = mix(color, color * vec3(0.0, 1.0, 0.0), greenEdge);
                 a = 1.0;
             } else {
@@ -97,6 +98,8 @@ void main() {
             } else if (yellowEdge > 0.0) {
                 // Yellow mask: multiply video by yellow, soft edge
                 vec3 color = (videoColor.rgb - 0.5) * u_contrast + 0.5 + u_brightness;
+                color.r += 0.2;
+                color.g += 0.2;
                 outputColor = mix(color, color * vec3(1.0, 1.0, 0.0), yellowEdge);
                 a = 1.0;
             } else {
