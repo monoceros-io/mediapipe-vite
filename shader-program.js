@@ -1,5 +1,5 @@
 const finalCanvas = document.getElementById('final-canvas');
-const width = finalCanvas.width;
+const width = 1600;
 const height = finalCanvas.height;
 
 const gl = finalCanvas.getContext('webgl');

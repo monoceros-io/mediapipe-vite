@@ -80,12 +80,62 @@ contrastInput.addEventListener('input', updateShaderBC);
 
 // Wire up overlay-mask checkbox
 const overlayMaskInput = document.getElementById('overlay-mask');
+const foreCanvases = document.querySelector('.fore-canvases');
 if (overlayMaskInput && window.setOverlayMask) {
     window.setOverlayMask(overlayMaskInput.checked);
     overlayMaskInput.addEventListener('change', () => {
         window.setOverlayMask(overlayMaskInput.checked);
+        if (foreCanvases) {
+            foreCanvases.style.display = overlayMaskInput.checked ? 'flex' : 'none';
+        }
     });
+    // Set initial visibility on load
+    if (foreCanvases) {
+        foreCanvases.style.display = overlayMaskInput.checked ? 'flex' : 'none';
+    }
 }
+
+// Fullscreen button logic for qc-0
+const fullscreenBtn = document.getElementById('fullscreen-btn');
+const qc0 = document.querySelector('.qc-0');
+const mainColumn = document.querySelector('.main-column');
+
+fullscreenBtn.addEventListener('click', () => {
+    console.log("Fullscreen button clicked");
+    // Toggle display flex/none for qc-0
+    if (qc0.style.display === 'none') {
+        qc0.style.display = 'flex';
+    } else {
+        qc0.style.display = 'none';
+    }
+    // Enter fullscreen mode for main column
+    if (mainColumn.requestFullscreen) {
+        mainColumn.requestFullscreen();
+    } else if (mainColumn.webkitRequestFullscreen) {
+        mainColumn.webkitRequestFullscreen();
+    } else if (mainColumn.mozRequestFullScreen) {
+        mainColumn.mozRequestFullScreen();
+    } else if (mainColumn.msRequestFullscreen) {
+        mainColumn.msRequestFullscreen();
+    }
+});
+
+// Listen for Escape key and fullscreen change to turn off qc-0 hiding
+function exitQc0Hide() {
+    qc0.style.display = 'flex';
+}
+
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        exitQc0Hide();
+    }
+});
+
+document.addEventListener('fullscreenchange', () => {
+    if (!document.fullscreenElement) {
+        exitQc0Hide();
+    }
+});
 
 // Set initial values
 updateShaderBC();

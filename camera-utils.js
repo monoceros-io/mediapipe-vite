@@ -145,7 +145,7 @@ async function processStreams() {
         let d = now - t;
         frameCount++;
         if (frameCount % 10 === 0) {
-            fps.innerHTML = (1000 / d).toFixed(2);
+            fps.innerHTML = (10000 / d).toFixed(2);
             t = now;
         }
         run();

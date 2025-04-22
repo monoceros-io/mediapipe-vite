@@ -51,7 +51,7 @@ export function init() {
             mesh.position.set(
                 Math.random() * 10 - 5,
                 Math.random() * 10 - 5,
-                Math.random() * 10 - 5
+                Math.random() * -10
             );
             mesh.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
             scene.add(mesh);
@@ -84,8 +84,7 @@ export function init() {
             const material = new THREE.SpriteMaterial({ 
                 map: spriteTexture, 
                 color: i === 0 ? 0x00ff00 : 0xffff00,
-                transparent: true,
-                opacity: 0.1
+                transparent: true
             });
             const sprite = new THREE.Sprite(material);
             sprite.position.set(
@@ -93,7 +92,7 @@ export function init() {
                 Math.random() * 4 - 2,
                 Math.random() * 4 - 2
             );
-            sprite.scale.set(1, 1, 1);
+            sprite.scale.set(0.2, 0.2, 0.2);
             scene.add(sprite);
             sprites.push(sprite);
             // Assign random velocity
