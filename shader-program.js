@@ -35,6 +35,17 @@ vec2 cropSample(vec2 t, vec4 area) {
     );
 }
 
+// 3x3 box blur for mask channel
+float blurMask(sampler2D mask, vec2 uv, vec2 texel) {
+    float sum = 0.0;
+    for (int dx = -1; dx <= 1; ++dx) {
+        for (int dy = -1; dy <= 1; ++dy) {
+            sum += texture2D(mask, uv + vec2(float(dx), float(dy)) * texel).r;
+        }
+    }
+    return sum / 9.0;
+}
+
 void main() {
     vec2 tex = vec2(v_texCoord.x, 1.0 - v_texCoord.y);
     vec3 outputColor = vec3(0.0);
@@ -47,14 +58,21 @@ void main() {
             vec2 t = vec2(tex.x * 2.0, tex.y);
             vec2 videoTex = cropSample(t, u_captureAreas[0]);
             vec4 videoColor = texture2D(u_video, videoTex);
-            float m0 = texture2D(u_mask0, t).r;
-            float m1 = texture2D(u_mask1, t).r;
+
+            // Calculate texel size for blur
+            vec2 texel = vec2(1.0 / float(${width / 2}), 1.0 / float(${height}));
+
+            float m0 = blurMask(u_mask0, t, texel);
+            float m1 = blurMask(u_mask1, t, texel);
+
             // Red mask: discard pixel (fully transparent)
             if (m0 > 0.5) {
+                // Blur edge: smooth alpha for red mask
+                a = 1.0 - smoothstep(0.45, 0.55, m0);
                 outputColor = vec3(0.0, 0.0, 0.0);
-                a = 0.0;
             } else if (m1 > 0.5) {
-                outputColor = vec3(0.0, 1.0, 0.0); // green
+                float edge = smoothstep(0.45, 0.55, m1);
+                outputColor = mix((videoColor.rgb - 0.5) * u_contrast + 0.5 + u_brightness, vec3(0.0, 1.0, 0.0), edge);
                 a = 1.0;
             } else {
                 vec3 color = (videoColor.rgb - 0.5) * u_contrast + 0.5 + u_brightness;
@@ -66,13 +84,19 @@ void main() {
             vec2 t = vec2((tex.x - 0.5) * 2.0, tex.y);
             vec2 videoTex = cropSample(t, u_captureAreas[1]);
             vec4 videoColor = texture2D(u_video, videoTex);
-            float m2 = texture2D(u_mask2, t).r;
-            float m3 = texture2D(u_mask3, t).r;
+
+            vec2 texel = vec2(1.0 / float(${width / 2}), 1.0 / float(${height}));
+
+            float m2 = blurMask(u_mask2, t, texel);
+            float m3 = blurMask(u_mask3, t, texel);
+
             if (m2 > 0.5) {
-                outputColor = vec3(0.0, 0.0, 0.0); // blue
-                a = 0.0;
+                float edge = smoothstep(0.45, 0.55, m2);
+                outputColor = mix((videoColor.rgb - 0.5) * u_contrast + 0.5 + u_brightness, vec3(0.0, 0.0, 1.0), edge);
+                a = 1.0;
             } else if (m3 > 0.5) {
-                outputColor = vec3(1.0, 1.0, 0.0); // yellow
+                float edge = smoothstep(0.45, 0.55, m3);
+                outputColor = mix((videoColor.rgb - 0.5) * u_contrast + 0.5 + u_brightness, vec3(1.0, 1.0, 0.0), edge);
                 a = 1.0;
             } else {
                 vec3 color = (videoColor.rgb - 0.5) * u_contrast + 0.5 + u_brightness;
@@ -85,8 +109,9 @@ void main() {
         if (tex.x < 0.25) {
             // First mask pair (first quarter)
             vec2 t = vec2(tex.x * 4.0, tex.y);
-            float m0 = texture2D(u_mask0, t).r;
-            float m1 = texture2D(u_mask1, t).r;
+            vec2 texel = vec2(1.0 / float(${width / 4}), 1.0 / float(${height}));
+            float m0 = blurMask(u_mask0, t, texel);
+            float m1 = blurMask(u_mask1, t, texel);
             vec3 blendA = mix(vec3(0.0), vec3(1.0, 0.0, 0.0), m0); // red mask
             blendA = mix(blendA, vec3(0.0, 1.0, 0.0), m1); // green mask
             outputColor = blendA;
@@ -100,8 +125,9 @@ void main() {
         } else if (tex.x >= 0.5 && tex.x < 0.75) {
             // Second mask pair (third quarter)
             vec2 t = vec2((tex.x - 0.5) * 4.0, tex.y);
-            float m2 = texture2D(u_mask2, t).r;
-            float m3 = texture2D(u_mask3, t).r;
+            vec2 texel = vec2(1.0 / float(${width / 4}), 1.0 / float(${height}));
+            float m2 = blurMask(u_mask2, t, texel);
+            float m3 = blurMask(u_mask3, t, texel);
             vec3 blendB = mix(vec3(0.0), vec3(0.0, 0.0, 1.0), m2); // blue mask
             blendB = mix(blendB, vec3(1.0, 1.0, 0.0), m3); // yellow mask
             outputColor = blendB;
@@ -216,8 +242,8 @@ function createAndSetupTexture(unit, format, w, h) {
     const tex = gl.createTexture();
     gl.activeTexture(gl.TEXTURE0 + unit);
     gl.bindTexture(gl.TEXTURE_2D, tex);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.texImage2D(
