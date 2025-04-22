@@ -49,10 +49,10 @@ void main() {
             vec4 videoColor = texture2D(u_video, videoTex);
             float m0 = texture2D(u_mask0, t).r;
             float m1 = texture2D(u_mask1, t).r;
-            // If mask present, output pure color, else video
+            // Red mask: discard pixel (fully transparent)
             if (m0 > 0.5) {
-                outputColor = vec3(1.0, 0.0, 0.0); // red
-                a = 1.0;
+                outputColor = vec3(0.0, 0.0, 0.0);
+                a = 0.0;
             } else if (m1 > 0.5) {
                 outputColor = vec3(0.0, 1.0, 0.0); // green
                 a = 1.0;
@@ -69,8 +69,8 @@ void main() {
             float m2 = texture2D(u_mask2, t).r;
             float m3 = texture2D(u_mask3, t).r;
             if (m2 > 0.5) {
-                outputColor = vec3(0.0, 0.0, 1.0); // blue
-                a = 1.0;
+                outputColor = vec3(0.0, 0.0, 0.0); // blue
+                a = 0.0;
             } else if (m3 > 0.5) {
                 outputColor = vec3(1.0, 1.0, 0.0); // yellow
                 a = 1.0;
