@@ -35,15 +35,15 @@ vec2 cropSample(vec2 t, vec4 area) {
     );
 }
 
-// 3x3 box blur for mask channel
+// 7x7 box blur for mask channel (stronger blur)
 float blurMask(sampler2D mask, vec2 uv, vec2 texel) {
     float sum = 0.0;
-    for (int dx = -1; dx <= 1; ++dx) {
-        for (int dy = -1; dy <= 1; ++dy) {
+    for (int dx = -3; dx <= 3; ++dx) {
+        for (int dy = -3; dy <= 3; ++dy) {
             sum += texture2D(mask, uv + vec2(float(dx), float(dy)) * texel).r;
         }
     }
-    return sum / 9.0;
+    return sum / 49.0;
 }
 
 void main() {
@@ -52,27 +52,26 @@ void main() {
     float a = 1.0;
 
     if (u_overlayMask) {
-        // Split screen: left half = video 0 + mask overlay, right half = video 1 + mask overlay
         if (tex.x < 0.5) {
             // First video+mask (left half)
             vec2 t = vec2(tex.x * 2.0, tex.y);
             vec2 videoTex = cropSample(t, u_captureAreas[0]);
             vec4 videoColor = texture2D(u_video, videoTex);
-
-            // Calculate texel size for blur
             vec2 texel = vec2(1.0 / float(${width / 2}), 1.0 / float(${height}));
+            float m0 = blurMask(u_mask0, t, texel); // red
+            float m1 = blurMask(u_mask1, t, texel); // green
 
-            float m0 = blurMask(u_mask0, t, texel);
-            float m1 = blurMask(u_mask1, t, texel);
+            float redEdge = smoothstep(0.30, 0.70, m0);
+            float greenEdge = smoothstep(0.30, 0.70, m1);
 
-            // Red mask: discard pixel (fully transparent)
-            if (m0 > 0.5) {
-                // Blur edge: smooth alpha for red mask
-                a = 1.0 - smoothstep(0.45, 0.55, m0);
-                outputColor = vec3(0.0, 0.0, 0.0);
-            } else if (m1 > 0.5) {
-                float edge = smoothstep(0.45, 0.55, m1);
-                outputColor = mix((videoColor.rgb - 0.5) * u_contrast + 0.5 + u_brightness, vec3(0.0, 1.0, 0.0), edge);
+            if (redEdge > 0.5) {
+                // Red mask: transparency cutout
+                a = 1.0 - redEdge;
+                outputColor = vec3(0.0);
+            } else if (greenEdge > 0.0) {
+                // Green mask: multiply video by green, soft edge
+                vec3 color = (videoColor.rgb - 0.5) * u_contrast + 0.5 + u_brightness;
+                outputColor = mix(color, color * vec3(0.0, 1.0, 0.0), greenEdge);
                 a = 1.0;
             } else {
                 vec3 color = (videoColor.rgb - 0.5) * u_contrast + 0.5 + u_brightness;
@@ -84,19 +83,21 @@ void main() {
             vec2 t = vec2((tex.x - 0.5) * 2.0, tex.y);
             vec2 videoTex = cropSample(t, u_captureAreas[1]);
             vec4 videoColor = texture2D(u_video, videoTex);
-
             vec2 texel = vec2(1.0 / float(${width / 2}), 1.0 / float(${height}));
+            float m2 = blurMask(u_mask2, t, texel); // blue
+            float m3 = blurMask(u_mask3, t, texel); // yellow
 
-            float m2 = blurMask(u_mask2, t, texel);
-            float m3 = blurMask(u_mask3, t, texel);
+            float blueEdge = smoothstep(0.30, 0.70, m2);
+            float yellowEdge = smoothstep(0.30, 0.70, m3);
 
-            if (m2 > 0.5) {
-                float edge = smoothstep(0.45, 0.55, m2);
-                outputColor = mix((videoColor.rgb - 0.5) * u_contrast + 0.5 + u_brightness, vec3(0.0, 0.0, 1.0), edge);
-                a = 1.0;
-            } else if (m3 > 0.5) {
-                float edge = smoothstep(0.45, 0.55, m3);
-                outputColor = mix((videoColor.rgb - 0.5) * u_contrast + 0.5 + u_brightness, vec3(1.0, 1.0, 0.0), edge);
+            if (blueEdge > 0.5) {
+                // Blue mask: transparency cutout
+                a = 1.0 - blueEdge;
+                outputColor = vec3(0.0);
+            } else if (yellowEdge > 0.0) {
+                // Yellow mask: multiply video by yellow, soft edge
+                vec3 color = (videoColor.rgb - 0.5) * u_contrast + 0.5 + u_brightness;
+                outputColor = mix(color, color * vec3(1.0, 1.0, 0.0), yellowEdge);
                 a = 1.0;
             } else {
                 vec3 color = (videoColor.rgb - 0.5) * u_contrast + 0.5 + u_brightness;
@@ -107,7 +108,6 @@ void main() {
     } else {
         // Default: masks in first/third, videos in second/fourth (quarters)
         if (tex.x < 0.25) {
-            // First mask pair (first quarter)
             vec2 t = vec2(tex.x * 4.0, tex.y);
             vec2 texel = vec2(1.0 / float(${width / 4}), 1.0 / float(${height}));
             float m0 = blurMask(u_mask0, t, texel);
@@ -116,14 +116,12 @@ void main() {
             blendA = mix(blendA, vec3(0.0, 1.0, 0.0), m1); // green mask
             outputColor = blendA;
         } else if (tex.x >= 0.25 && tex.x < 0.5) {
-            // First video feed (second quarter)
             vec2 t = vec2((tex.x - 0.25) * 4.0, tex.y);
             vec2 videoTex = cropSample(t, u_captureAreas[0]);
             vec4 videoColor = texture2D(u_video, videoTex);
             vec3 color = (videoColor.rgb - 0.5) * u_contrast + 0.5 + u_brightness;
             outputColor = color;
         } else if (tex.x >= 0.5 && tex.x < 0.75) {
-            // Second mask pair (third quarter)
             vec2 t = vec2((tex.x - 0.5) * 4.0, tex.y);
             vec2 texel = vec2(1.0 / float(${width / 4}), 1.0 / float(${height}));
             float m2 = blurMask(u_mask2, t, texel);
@@ -132,7 +130,6 @@ void main() {
             blendB = mix(blendB, vec3(1.0, 1.0, 0.0), m3); // yellow mask
             outputColor = blendB;
         } else if (tex.x >= 0.75 && tex.x < 1.0) {
-            // Second video feed (fourth quarter)
             vec2 t = vec2((tex.x - 0.75) * 4.0, tex.y);
             vec2 videoTex = cropSample(t, u_captureAreas[1]);
             vec4 videoColor = texture2D(u_video, videoTex);
