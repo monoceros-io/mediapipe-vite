@@ -95,6 +95,7 @@ body {
 }
 
 .video-scaler-box {
+    pointer-events: all;
     position: absolute;
     bottom: 0;
     right: 0;
@@ -109,7 +110,7 @@ body {
 
 
 .video-centre-box {
-    
+    pointer-events: all;
     width: 1.2em;
     height: 1.2em;
     display: flex;

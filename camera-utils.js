@@ -81,6 +81,96 @@ export function matchCropToVideo() {
 
 window.addEventListener('resize', matchCropToVideo);
 
+function setupCropBoxDragging() {
+    const cropDivOuter = document.querySelector('.video-crop-div-outer');
+    const boxes = cropDivOuter.querySelectorAll('.video-crop-box');
+    if (!_cdoMasks) _cdoMasks = new Array(8).fill(0);
+
+    boxes.forEach((box, boxIdx) => {
+        // --- Move logic for video-centre-box ---
+        const centreHandle = box.querySelector('.video-centre-box');
+        let dragging = false;
+        let startX, startY, startLeft, startTop;
+        centreHandle.style.cursor = 'move';
+        centreHandle.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            dragging = true;
+            startX = e.clientX;
+            startY = e.clientY;
+            const rect = box.getBoundingClientRect();
+            const parentRect = cropDivOuter.getBoundingClientRect();
+            startLeft = rect.left - parentRect.left;
+            startTop = rect.top - parentRect.top;
+            document.body.style.userSelect = 'none';
+        });
+        window.addEventListener('mousemove', (e) => {
+            if (!dragging) return;
+            const dx = e.clientX - startX;
+            const dy = e.clientY - startY;
+            const cropRect = cropDivOuter.getBoundingClientRect();
+            let newLeft = startLeft + dx;
+            let newTop = startTop + dy;
+            // Clamp within parent
+            newLeft = Math.max(0, Math.min(newLeft, cropRect.width - box.offsetWidth));
+            newTop = Math.max(0, Math.min(newTop, cropRect.height - box.offsetHeight));
+            // Move the crop box
+            box.style.left = `${(newLeft / cropRect.width) * 100}%`;
+            box.style.top = `${(newTop / cropRect.height) * 100}%`;
+            // Update _cdoMasks
+            const base = boxIdx * 4;
+            _cdoMasks[base] = (newLeft / cropRect.width) * 100;
+            _cdoMasks[base + 1] = (newTop / cropRect.height) * 100;
+            // Optionally, update immediately
+            matchCropToVideo();
+        });
+        window.addEventListener('mouseup', () => {
+            if (dragging) {
+                dragging = false;
+                document.body.style.userSelect = '';
+            }
+        });
+
+        // --- Resize logic for video-scaler-box ---
+        const scalerHandle = box.querySelector('.video-scaler-box');
+        let resizing = false;
+        let resizeStartX, resizeStartY, startWidth, startHeight;
+        scalerHandle.style.cursor = 'nwse-resize';
+        scalerHandle.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            resizing = true;
+            resizeStartX = e.clientX;
+            resizeStartY = e.clientY;
+            const rect = box.getBoundingClientRect();
+            startWidth = rect.width;
+            startHeight = rect.height;
+            document.body.style.userSelect = 'none';
+        });
+        window.addEventListener('mousemove', (e) => {
+            if (!resizing) return;
+            const dx = e.clientX - resizeStartX;
+            const dy = e.clientY - resizeStartY;
+            const cropRect = cropDivOuter.getBoundingClientRect();
+            let newWidth = Math.max(20, Math.min(startWidth + dx, cropRect.width - box.offsetLeft));
+            let newHeight = Math.max(20, Math.min(startHeight + dy, cropRect.height - box.offsetTop));
+            // Resize the crop box
+            box.style.width = `${(newWidth / cropRect.width) * 100}%`;
+            box.style.height = `${(newHeight / cropRect.height) * 100}%`;
+            // Update _cdoMasks
+            const base = boxIdx * 4;
+            _cdoMasks[base + 2] = (newWidth / cropRect.width) * 100;
+            _cdoMasks[base + 3] = (newHeight / cropRect.height) * 100;
+            // Optionally, update immediately
+            matchCropToVideo();
+        });
+        window.addEventListener('mouseup', () => {
+            if (resizing) {
+                resizing = false;
+                document.body.style.userSelect = '';
+            }
+        });
+    });
+}
+
 async function processStreams() {
     if (processing) return;
     processing = true;
@@ -154,3 +244,5 @@ async function processStreams() {
 
     loop();
 }
+
+setupCropBoxDragging();
