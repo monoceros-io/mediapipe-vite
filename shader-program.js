@@ -47,7 +47,8 @@ float blurMask(sampler2D mask, vec2 uv, vec2 texel) {
 }
 
 void main() {
-    vec2 tex = vec2(v_texCoord.x, 1.0 - v_texCoord.y);
+    // Flip horizontally by reversing x
+    vec2 tex = vec2(1.0 - v_texCoord.x, 1.0 - v_texCoord.y);
     vec3 outputColor = vec3(0.0);
     float a = 1.0;
 
