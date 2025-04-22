@@ -47,25 +47,27 @@ void main() {
             vec2 t = vec2(tex.x * 2.0, tex.y);
             vec2 videoTex = cropSample(t, u_captureAreas[0]);
             vec4 videoColor = texture2D(u_video, videoTex);
-            vec3 color = (videoColor.rgb - 0.5) * u_contrast + 0.5 + u_brightness;
             float m0 = texture2D(u_mask0, t).r;
             float m1 = texture2D(u_mask1, t).r;
             vec3 maskColor = mix(vec3(0.0), vec3(1.0, 0.0, 0.0), m0);
             maskColor = mix(maskColor, vec3(0.0, 1.0, 0.0), m1);
-            float maskAlpha = max(m0, m1);
-            outputColor = mix(color, maskColor, maskAlpha * 0.7);
+            float maskAlpha = max(m0, m1) * 1.0;
+            // Apply brightness/contrast to video only
+            vec3 color = (videoColor.rgb - 0.5) * u_contrast + 0.5 + u_brightness;
+            // Blend mask color over video (mask color is NOT affected by brightness/contrast)
+            outputColor = mix(color, maskColor, maskAlpha);
         } else {
             // Second video+mask (right half)
             vec2 t = vec2((tex.x - 0.5) * 2.0, tex.y);
             vec2 videoTex = cropSample(t, u_captureAreas[1]);
             vec4 videoColor = texture2D(u_video, videoTex);
-            vec3 color = (videoColor.rgb - 0.5) * u_contrast + 0.5 + u_brightness;
             float m2 = texture2D(u_mask2, t).r;
             float m3 = texture2D(u_mask3, t).r;
             vec3 maskColor = mix(vec3(0.0), vec3(0.0, 0.0, 1.0), m2);
             maskColor = mix(maskColor, vec3(1.0, 1.0, 0.0), m3);
-            float maskAlpha = max(m2, m3);
-            outputColor = mix(color, maskColor, maskAlpha * 0.7);
+            float maskAlpha = max(m2, m3) * 1.0;
+            vec3 color = (videoColor.rgb - 0.5) * u_contrast + 0.5 + u_brightness;
+            outputColor = mix(color, maskColor, maskAlpha);
         }
     } else {
         // Default: masks in first/third, videos in second/fourth (quarters)
@@ -74,6 +76,7 @@ void main() {
             vec2 t = vec2(tex.x * 4.0, tex.y);
             float m0 = texture2D(u_mask0, t).r;
             float m1 = texture2D(u_mask1, t).r;
+            // No brightness/contrast on mask
             vec3 blendA = mix(vec3(0.0), vec3(1.0, 0.0, 0.0), m0); // red mask
             blendA = mix(blendA, vec3(0.0, 1.0, 0.0), m1); // green mask
             outputColor = blendA;
@@ -82,6 +85,7 @@ void main() {
             vec2 t = vec2((tex.x - 0.25) * 4.0, tex.y);
             vec2 videoTex = cropSample(t, u_captureAreas[0]);
             vec4 videoColor = texture2D(u_video, videoTex);
+            // Only apply brightness/contrast to video
             vec3 color = (videoColor.rgb - 0.5) * u_contrast + 0.5 + u_brightness;
             outputColor = color;
         } else if (tex.x >= 0.5 && tex.x < 0.75) {
@@ -89,6 +93,7 @@ void main() {
             vec2 t = vec2((tex.x - 0.5) * 4.0, tex.y);
             float m2 = texture2D(u_mask2, t).r;
             float m3 = texture2D(u_mask3, t).r;
+            // No brightness/contrast on mask
             vec3 blendB = mix(vec3(0.0), vec3(0.0, 0.0, 1.0), m2); // blue mask
             blendB = mix(blendB, vec3(1.0, 1.0, 0.0), m3); // yellow mask
             outputColor = blendB;
