@@ -25,11 +25,13 @@ export function init() {
         const camera = new THREE.PerspectiveCamera(45, canvases[i].width / canvases[i].height, 0.1, 100);
         camera.position.set(0, 0, 5);
 
-        // Create five cubes per scene
+        // Create cubes per scene
         const cubes = [];
         for (let j = 0; j < CUBE_COUNT; j++) {
             const geometry = new THREE.BoxGeometry(1, 1, 1);
-            const material = new THREE.MeshStandardMaterial({ color: 0x44aa88, roughness: 0.5, metalness: 0.5 });
+            // Set color: green for first window, yellow for second
+            const color = i === 0 ? 0x00ff00 : 0xffff00;
+            const material = new THREE.MeshStandardMaterial({ color, roughness: 0.5, metalness: 0.5 });
             const mesh = new THREE.Mesh(geometry, material);
             // Spread cubes out for visibility
             mesh.position.set((j % 10 - 5) * 1.5, Math.floor(j / 10 - 10) * 1.5, -5);

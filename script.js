@@ -12,8 +12,8 @@ const finalCanvas = document.querySelector("#final-canvas");
 
 
 const cdoMasks = [
-    0, 0, 50, 100,
-    50, 0, 50, 100
+    10, 5, 40, 90,
+    55, 5, 40, 90
 ];
 
 setupVideoUtils({ videos, cropDivOuters, cdoMasks, dumpCanvases, finalCanvas });
