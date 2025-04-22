@@ -1,6 +1,7 @@
 import { loadModels } from "./processing";
 import { blendCanvasesToOutCanvas } from "./shader-program.js";
 import "./shader-program.js";
+import { init, run } from "./threeview.js";
 
 let video, cropDivOuter;
 let _videos, _cropDivOuters, _cdoMasks, _finalCanvas;
@@ -27,6 +28,8 @@ let rawCaptureAreas = new Array(8).fill(0);
 let gl;
 let lastVideoFrameTime = -1;
 let frameCount = 0;
+
+init();
 
 export function setupVideoUtils({ videos, cropDivOuters, cdoMasks, finalCanvas }) {
     _videos = videos;
@@ -145,6 +148,7 @@ async function processStreams() {
             fps.innerHTML = (1000 / d).toFixed(2);
             t = now;
         }
+        run();
         processFrame().then(() => requestAnimationFrame(loop));
     }
 
