@@ -42,13 +42,15 @@ export async function loadModels() {
             modelAssetPath: `https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task`,
             delegate: "GPU"
         },
-        runningMode: runningMode,
+        runningMode: "IMAGE",
         numPoses: 2
     });
 
     return { segmenter, poseLandmarker };
 
 }
+
+const ctx = document.getElementById("skel-draw-canvas").getContext("2d");
 
 function updatePose(landmark) {
 
@@ -88,3 +90,28 @@ function updatePose(landmark) {
     }
 }
 
+
+
+export function detectPose(bitmap, segIndex) {
+
+    console.log("CHIFFO", segIndex);
+
+    // if(frameCount % 3 !== 0)
+    //     return;
+    
+    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    
+    if (poseLandmarker) {
+        poseLandmarker.detect(bitmap, performance.now(), poseResult => {
+            
+            for (const landmark of poseResult.landmarks) {
+                
+                const drawingUtils = new DrawingUtils(ctx)
+                drawingUtils.drawLandmarks(landmark, {
+                    radius: data => DrawingUtils.lerp(data.from.z, -0.15, 0.1, 5, 1)
+                })
+                drawingUtils.drawConnectors(landmark, PoseLandmarker.POSE_CONNECTIONS)
+            }
+        })
+    }
+};

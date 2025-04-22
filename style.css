@@ -173,3 +173,11 @@ body {
     display: flex;
     flex-direction: column;
 }
+
+#skel-draw-canvas {
+    background-color: red;
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    z-index: 999999999999;
+}

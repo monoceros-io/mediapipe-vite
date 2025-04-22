@@ -1,4 +1,4 @@
-import { loadModels } from "./processing";
+import { detectPose, loadModels } from "./processing";
 import { blendCanvasesToOutCanvas } from "./shader-program.js";
 import "./shader-program.js";
 import { init, run } from "./threeview.js";
@@ -28,6 +28,7 @@ let rawCaptureAreas = new Array(8).fill(0);
 let gl;
 let lastVideoFrameTime = -1;
 let frameCount = 0;
+
 
 init();
 
@@ -202,6 +203,9 @@ async function processStreams() {
             resizeHeight: SEG_DIMENSION,
             resizeQuality: "high"
         });
+
+        detectPose(bitmap, segIndex);
+        
         const segmentation = await segmenter.segmentForVideo(bitmap, performance.now());
         bitmap.close();
         const masks = segmentation.confidenceMasks;
@@ -231,6 +235,7 @@ async function processStreams() {
     }
 
     function loop() {
+
         let now = performance.now();
         let d = now - t;
         frameCount++;
@@ -244,5 +249,8 @@ async function processStreams() {
 
     loop();
 }
+
+
+
 
 setupCropBoxDragging();
