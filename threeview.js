@@ -1,5 +1,8 @@
 import * as THREE from 'three';
 
+import BASE_PART_IMG from "/basepart.png";
+const spriteTexture = new THREE.TextureLoader().load(BASE_PART_IMG);
+
 let renderers = [], scenes = [], cameras = [], meshes = [], canvases = [];
 let worker;
 let running = false;
@@ -9,7 +12,14 @@ let meshTransforms = [
     [ [0,0,0], [0,0,0], [0,0,0], [0,0,0], [0,0,0] ]
 ];
 
-const CUBE_COUNT = 200;
+const CUBE_COUNT = 100;
+const FORE_SPRITE_COUNT = 50;
+
+// Store sprite velocities for each fore-canvas
+let foreSpriteVelocities = [
+    Array(FORE_SPRITE_COUNT).fill().map(() => [0, 0, 0]),
+    Array(FORE_SPRITE_COUNT).fill().map(() => [0, 0, 0])
+];
 
 export function init() {
     canvases = [
@@ -29,6 +39,7 @@ export function init() {
         camera.position.set(0, 0, 5);
 
         // Create cubes per scene
+        
         const cubes = [];
         for (let j = 0; j < CUBE_COUNT; j++) {
             const geometry = new THREE.BoxGeometry(1, 1, 1);
@@ -37,7 +48,11 @@ export function init() {
             const material = new THREE.MeshStandardMaterial({ color, roughness: 0.5, metalness: 0.5 });
             const mesh = new THREE.Mesh(geometry, material);
             // Spread cubes out for visibility
-            mesh.position.set((j % 10 - 5) * 1.5, Math.floor(j / 10 - 10) * 1.5, -5);
+            mesh.position.set(
+                Math.random() * 10 - 5,
+                Math.random() * 10 - 5,
+                Math.random() * 10 - 5
+            );
             mesh.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
             scene.add(mesh);
             cubes.push(mesh);
@@ -53,7 +68,7 @@ export function init() {
         scene.add(light);
     }
 
-    // Fore canvases (single static torus)
+    // Fore canvases (sprites)
     for (let i = 0; i < 2; i++) {
         const renderer = new THREE.WebGLRenderer({ canvas: canvases[i+2], preserveDrawingBuffer: true, alpha: true });
         renderer.setSize(canvases[i+2].width, canvases[i+2].height, false);
@@ -62,17 +77,37 @@ export function init() {
         const camera = new THREE.PerspectiveCamera(45, canvases[i+2].width / canvases[i+2].height, 0.1, 100);
         camera.position.set(0, 0, 5);
 
-        const geometry = new THREE.TorusGeometry(1, 0.4, 16, 100);
-        const color = i === 0 ? 0x00ff00 : 0xffff00;
-        const material = new THREE.MeshStandardMaterial({ color, roughness: 0.5, metalness: 0.5 });
-        const torus = new THREE.Mesh(geometry, material);
-        torus.position.set(0, 0, -5);
-        scene.add(torus);
+        // Create 100 sprites with random positions and velocities
+        const sprites = [];
+        foreSpriteVelocities[i] = [];
+        for (let j = 0; j < FORE_SPRITE_COUNT; j++) {
+            const material = new THREE.SpriteMaterial({ 
+                map: spriteTexture, 
+                color: i === 0 ? 0x00ff00 : 0xffff00,
+                transparent: true,
+                opacity: 0.1
+            });
+            const sprite = new THREE.Sprite(material);
+            sprite.position.set(
+                Math.random() * 4 - 2,
+                Math.random() * 4 - 2,
+                Math.random() * 4 - 2
+            );
+            sprite.scale.set(1, 1, 1);
+            scene.add(sprite);
+            sprites.push(sprite);
+            // Assign random velocity
+            foreSpriteVelocities[i][j] = [
+                (Math.random() - 0.5) * 0.05,
+                (Math.random() - 0.5) * 0.05,
+                (Math.random() - 0.5) * 0.05
+            ];
+        }
 
         renderers.push(renderer);
         scenes.push(scene);
         cameras.push(camera);
-        meshes.push([torus]);
+        meshes.push(sprites);
 
         const light = new THREE.DirectionalLight(0xffffff, 1);
         light.position.set(2, 2, 5);
@@ -88,7 +123,7 @@ export function init() {
                 meshes[i][j].rotation.z += Math.random() * 0.1;
             }
         }
-        // No rotation for torus meshes
+        // No rotation for sprites
     };
 }
 
@@ -108,7 +143,35 @@ export function run() {
         }
         worker.postMessage(meshTransforms);
 
-        // Render all four scenes (including static torus)
+        // Animate sprites in fore canvases
+        for (let i = 0; i < 2; i++) {
+            const sprites = meshes[i+2];
+            for (let j = 0; j < FORE_SPRITE_COUNT; j++) {
+                const sprite = sprites[j];
+                let v = foreSpriteVelocities[i][j];
+                // Move sprite
+                sprite.position.x += v[0];
+                sprite.position.y += v[1];
+                sprite.position.z += v[2];
+                // Wrap and randomize velocity if out of bounds
+                let wrapped = false;
+                if (sprite.position.x > 2) { sprite.position.x = -2; wrapped = true; }
+                if (sprite.position.x < -2) { sprite.position.x = 2; wrapped = true; }
+                if (sprite.position.y > 2) { sprite.position.y = -2; wrapped = true; }
+                if (sprite.position.y < -2) { sprite.position.y = 2; wrapped = true; }
+                if (sprite.position.z > 2) { sprite.position.z = -2; wrapped = true; }
+                if (sprite.position.z < -2) { sprite.position.z = 2; wrapped = true; }
+                if (wrapped) {
+                    foreSpriteVelocities[i][j] = [
+                        (Math.random() - 0.5) * 0.05,
+                        (Math.random() - 0.5) * 0.05,
+                        (Math.random() - 0.5) * 0.05
+                    ];
+                }
+            }
+        }
+
+        // Render all four scenes (including animated sprites)
         for (let i = 0; i < 4; i++) {
             renderers[i].render(scenes[i], cameras[i]);
         }
