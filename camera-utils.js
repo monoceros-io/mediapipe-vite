@@ -79,6 +79,7 @@ export function matchCropToVideo() {
         rawCaptureAreas[base + 3] = vh * _cdoMasks[base + 3] / 100;
     }
 
+    updateShaderCaptureAreas();
     if (!processing) processStreams();
 }
 
@@ -192,9 +193,6 @@ async function processStreams() {
             const h = rawCaptureAreas[base + 3] / video.videoHeight;
             captureAreas.push([x, y, w, h]);
         }
-        if (window.setCaptureAreas) {
-            window.setCaptureAreas(captureAreas);
-        }
 
         // Only run segmenter for one video per frame, alternating
         const segIndex = frameCount % 2;
@@ -257,7 +255,20 @@ async function processStreams() {
     loop();
 }
 
-
-
+// Call setCaptureAreas only when crop areas change
+function updateShaderCaptureAreas() {
+    const captureAreas = [];
+    for (let i = 0; i < 2; i++) {
+        const base = i * 4;
+        const x = rawCaptureAreas[base] / video.videoWidth;
+        const y = rawCaptureAreas[base + 1] / video.videoHeight;
+        const w = rawCaptureAreas[base + 2] / video.videoWidth;
+        const h = rawCaptureAreas[base + 3] / video.videoHeight;
+        captureAreas.push([x, y, w, h]);
+    }
+    if (window.setCaptureAreas) {
+        window.setCaptureAreas(captureAreas);
+    }
+}
 
 setupCropBoxDragging();

@@ -57,6 +57,8 @@ export async function loadModels() {
 
 }
 
+const checkThreshold = x => x > 0.1 && x < 0.9;
+
 const ctx = document.getElementById("skel-draw-canvas").getContext("2d");
 
 function updatePose(landmark, regIndex) {
@@ -101,7 +103,7 @@ function updatePose(landmark, regIndex) {
 
 export function detectPose(bitmap, segIndex) {
 
-    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    // ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 
 
 
@@ -116,7 +118,7 @@ export function detectPose(bitmap, segIndex) {
                 drawingUtils.drawLandmarks(landmark, {
                     radius: data => DrawingUtils.lerp(data.from.z, -0.15, 0.1, 5, 1)
                 })
-                drawingUtils.drawConnectors(landmark, PoseLandmarker.POSE_CONNECTIONS)
+                // drawingUtils.drawConnectors(landmark, PoseLandmarker.POSE_CONNECTIONS)
             }
         })
     }

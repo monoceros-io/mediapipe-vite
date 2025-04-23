@@ -265,7 +265,6 @@ const textures = textureUnits.map(i =>
     createAndSetupTexture(i, gl.LUMINANCE, width, height)
 );
 
-window.videoTexture = textures[4];
 
 function uploadMaskToTexture(maskArray, unit, w, h) {
     const glTex = textures[unit];
@@ -290,6 +289,7 @@ function blendCanvasesToOutCanvas(destCanvas) {
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 }
 
+window.videoTexture = textures[4];
 window.uploadMaskToTexture = uploadMaskToTexture;
 window.clearMaskTexture = clearMaskTexture;
 window.blendCanvasesToOutCanvas = blendCanvasesToOutCanvas;
