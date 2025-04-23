@@ -104,7 +104,7 @@ function updatePose(landmark, regIndex) {
 export function detectPose(bitmap, segIndex) {
 
     // ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-
+    return;
 
 
     if (poseLandmarker) {
@@ -112,12 +112,12 @@ export function detectPose(bitmap, segIndex) {
 
             for (const landmark of poseResult.landmarks) {
 
-                updatePose(landmark, segIndex);
+                // updatePose(landmark, segIndex);
 
-                const drawingUtils = new DrawingUtils(ctx)
-                drawingUtils.drawLandmarks(landmark, {
-                    radius: data => DrawingUtils.lerp(data.from.z, -0.15, 0.1, 5, 1)
-                })
+                // const drawingUtils = new DrawingUtils(ctx)
+                // drawingUtils.drawLandmarks(landmark, {
+                //     radius: data => DrawingUtils.lerp(data.from.z, -0.15, 0.1, 5, 1)
+                // })
                 // drawingUtils.drawConnectors(landmark, PoseLandmarker.POSE_CONNECTIONS)
             }
         })

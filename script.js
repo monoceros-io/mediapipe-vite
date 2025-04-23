@@ -1,5 +1,6 @@
 import { setupVideoUtils, matchCropToVideo } from "./camera-utils";
 import { loadModels } from "./processing";
+import { setBrightnessContrast, setOverlayMask } from './shader-program.js';
 
 // PAGE ELEMENTS
 
@@ -8,8 +9,6 @@ const cameraSelectors = document.querySelectorAll('.camera-select');
 const cropDivOuters = document.querySelectorAll(".video-crop-div-outer");
 const dumpCanvases = document.querySelectorAll(".crop-canvas");
 const finalCanvas = document.querySelector("#final-canvas");
-
-
 
 const cdoMasks = [
     10, 5, 40, 90,
@@ -70,9 +69,7 @@ function updateShaderBC() {
     const contrast = Number(contrastInput.value); // -10 to 10
     // Clamp contrast to positive values for shader
     const shaderContrast = Math.max(0, contrast);
-    if (window.setBrightnessContrast) {
-        window.setBrightnessContrast(brightness, shaderContrast);
-    }
+    setBrightnessContrast(brightness, shaderContrast);
 }
 
 brightnessInput.addEventListener('input', updateShaderBC);
@@ -81,10 +78,10 @@ contrastInput.addEventListener('input', updateShaderBC);
 // Wire up overlay-mask checkbox
 const overlayMaskInput = document.getElementById('overlay-mask');
 const foreCanvases = document.querySelector('.fore-canvases');
-if (overlayMaskInput && window.setOverlayMask) {
-    window.setOverlayMask(overlayMaskInput.checked);
+if (overlayMaskInput) {
+    setOverlayMask(overlayMaskInput.checked);
     overlayMaskInput.addEventListener('change', () => {
-        window.setOverlayMask(overlayMaskInput.checked);
+        setOverlayMask(overlayMaskInput.checked);
         if (foreCanvases) {
             foreCanvases.style.display = overlayMaskInput.checked ? 'flex' : 'none';
         }

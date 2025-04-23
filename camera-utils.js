@@ -1,6 +1,5 @@
 import { detectPose, loadModels } from "./processing";
-import { blendCanvasesToOutCanvas } from "./shader-program.js";
-import "./shader-program.js";
+import { setCaptureAreas, setBrightnessContrast, setOverlayMask, uploadMaskToTexture, clearMaskTexture, blendCanvasesToOutCanvas, videoTexture } from './shader-program.js';
 import { init, run } from "./threeview.js";
 
 let video, cropDivOuter;
@@ -218,11 +217,11 @@ async function processStreams() {
             const w = masks[0].width, h = masks[0].height;
             const mask0 = masks[0].getAsFloat32Array();
             const mask4 = masks[4]?.getAsFloat32Array() || null;
-            window.uploadMaskToTexture(mask0, segIndex * 2, w, h);
+            uploadMaskToTexture(mask0, segIndex * 2, w, h);
             if (mask4) {
-                window.uploadMaskToTexture(mask4, segIndex * 2 + 1, w, h);
+                uploadMaskToTexture(mask4, segIndex * 2 + 1, w, h);
             } else {
-                window.clearMaskTexture(segIndex * 2 + 1, w, h);
+                clearMaskTexture(segIndex * 2 + 1, w, h);
             }
             masks.forEach(mask => mask.close());
         }
@@ -231,7 +230,7 @@ async function processStreams() {
         // Only upload video frame if it changed (using video.currentTime)
         if (video.currentTime !== lastVideoFrameTime) {
             gl.activeTexture(gl.TEXTURE0 + 4);
-            gl.bindTexture(gl.TEXTURE_2D, window.videoTexture);
+            gl.bindTexture(gl.TEXTURE_2D, videoTexture);
             gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, video);
             lastVideoFrameTime = video.currentTime;
         }
@@ -266,9 +265,7 @@ function updateShaderCaptureAreas() {
         const h = rawCaptureAreas[base + 3] / video.videoHeight;
         captureAreas.push([x, y, w, h]);
     }
-    if (window.setCaptureAreas) {
-        window.setCaptureAreas(captureAreas);
-    }
+    setCaptureAreas(captureAreas);
 }
 
 setupCropBoxDragging();

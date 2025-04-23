@@ -221,7 +221,6 @@ function setCaptureAreas(captureAreas) {
     for (let i = 0; i < 2; ++i) flat.set(captureAreas[i], i * 4);
     gl.uniform4fv(u_captureAreas, flat);
 }
-window.setCaptureAreas = setCaptureAreas;
 
 // Helper to set brightness/contrast
 function setBrightnessContrast(brightness, contrast) {
@@ -229,14 +228,12 @@ function setBrightnessContrast(brightness, contrast) {
     gl.uniform1f(u_brightness, brightness);
     gl.uniform1f(u_contrast, contrast);
 }
-window.setBrightnessContrast = setBrightnessContrast;
 
 // Helper to set overlay mask mode
 function setOverlayMask(enabled) {
     gl.useProgram(program);
     gl.uniform1i(u_overlayMask, enabled ? 1 : 0);
 }
-window.setOverlayMask = setOverlayMask;
 
 // Texture creation helper
 function createAndSetupTexture(unit, format, w, h) {
@@ -265,7 +262,6 @@ const textures = textureUnits.map(i =>
     createAndSetupTexture(i, gl.LUMINANCE, width, height)
 );
 
-
 function uploadMaskToTexture(maskArray, unit, w, h) {
     const glTex = textures[unit];
     const u8 = new Uint8Array(maskArray.length);
@@ -289,9 +285,14 @@ function blendCanvasesToOutCanvas(destCanvas) {
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 }
 
-window.videoTexture = textures[4];
-window.uploadMaskToTexture = uploadMaskToTexture;
-window.clearMaskTexture = clearMaskTexture;
-window.blendCanvasesToOutCanvas = blendCanvasesToOutCanvas;
+const videoTexture = textures[4];
 
-export { blendCanvasesToOutCanvas };
+export {
+    setCaptureAreas,
+    setBrightnessContrast,
+    setOverlayMask,
+    uploadMaskToTexture,
+    clearMaskTexture,
+    blendCanvasesToOutCanvas,
+    videoTexture
+};
