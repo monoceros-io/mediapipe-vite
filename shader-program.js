@@ -1,9 +1,20 @@
 const finalCanvas = document.getElementById('final-canvas');
-const width = 1600;
-const height = finalCanvas.height;
+let width = finalCanvas.width;
+let height = finalCanvas.height;
 
 const gl = finalCanvas.getContext('webgl');
 if (!gl) throw new Error('WebGL not supported');
+
+function updateGLSize() {
+    width = finalCanvas.width;
+    height = finalCanvas.height;
+    gl.viewport(0, 0, width, height);
+    gl.useProgram(program);
+    gl.uniform1f(u_width, width);
+    gl.uniform1f(u_height, height);
+}
+
+window.addEventListener('resize', updateGLSize);
 
 const vertSrc = `
 attribute vec2 a_position;
@@ -27,6 +38,8 @@ uniform vec4 u_captureAreas[2];
 uniform float u_brightness;
 uniform float u_contrast;
 uniform bool u_overlayMask;
+uniform float u_width;
+uniform float u_height;
 
 vec2 cropSample(vec2 t, vec4 area) {
     return vec2(
@@ -38,12 +51,12 @@ vec2 cropSample(vec2 t, vec4 area) {
 // 7x7 box blur for mask channel (stronger blur)
 float blurMask(sampler2D mask, vec2 uv, vec2 texel) {
     float sum = 0.0;
-    for (int dx = -3; dx <= 3; ++dx) {
-        for (int dy = -3; dy <= 3; ++dy) {
+    for (int dx = -2; dx <= 2; ++dx) {
+        for (int dy = -2; dy <= 2; ++dy) {
             sum += texture2D(mask, uv + vec2(float(dx), float(dy)) * texel).r;
         }
     }
-    return sum / 49.0;
+    return sum / 25.0;
 }
 
 void main() {
@@ -58,7 +71,7 @@ void main() {
             vec2 t = vec2(tex.x * 2.0, tex.y);
             vec2 videoTex = cropSample(t, u_captureAreas[0]);
             vec4 videoColor = texture2D(u_video, videoTex);
-            vec2 texel = vec2(1.0 / float(${width / 2}), 1.0 / float(${height}));
+            vec2 texel = vec2(1.0 / (u_width / 2.0), 1.0 / u_height);
             float m0 = blurMask(u_mask0, t, texel); // red
             float m1 = blurMask(u_mask1, t, texel); // green
 
@@ -85,7 +98,7 @@ void main() {
             vec2 t = vec2((tex.x - 0.5) * 2.0, tex.y);
             vec2 videoTex = cropSample(t, u_captureAreas[1]);
             vec4 videoColor = texture2D(u_video, videoTex);
-            vec2 texel = vec2(1.0 / float(${width / 2}), 1.0 / float(${height}));
+            vec2 texel = vec2(1.0 / (u_width / 2.0), 1.0 / u_height);
             float m2 = blurMask(u_mask2, t, texel); // blue
             float m3 = blurMask(u_mask3, t, texel); // yellow
 
@@ -113,7 +126,7 @@ void main() {
         // Default: masks in first/third, videos in second/fourth (quarters)
         if (tex.x < 0.25) {
             vec2 t = vec2(tex.x * 4.0, tex.y);
-            vec2 texel = vec2(1.0 / float(${width / 4}), 1.0 / float(${height}));
+            vec2 texel = vec2(1.0 / (u_width / 4.0), 1.0 / u_height);
             float m0 = blurMask(u_mask0, t, texel);
             float m1 = blurMask(u_mask1, t, texel);
             vec3 blendA = mix(vec3(0.0), vec3(1.0, 0.0, 0.0), m0); // red mask
@@ -127,7 +140,7 @@ void main() {
             outputColor = color;
         } else if (tex.x >= 0.5 && tex.x < 0.75) {
             vec2 t = vec2((tex.x - 0.5) * 4.0, tex.y);
-            vec2 texel = vec2(1.0 / float(${width / 4}), 1.0 / float(${height}));
+            vec2 texel = vec2(1.0 / (u_width / 4.0), 1.0 / u_height);
             float m2 = blurMask(u_mask2, t, texel);
             float m3 = blurMask(u_mask3, t, texel);
             vec3 blendB = mix(vec3(0.0), vec3(0.0, 0.0, 1.0), m2); // blue mask
@@ -209,6 +222,8 @@ const u_captureAreas = gl.getUniformLocation(program, 'u_captureAreas');
 const u_brightness = gl.getUniformLocation(program, 'u_brightness');
 const u_contrast = gl.getUniformLocation(program, 'u_contrast');
 const u_overlayMask = gl.getUniformLocation(program, 'u_overlayMask');
+const u_width = gl.getUniformLocation(program, 'u_width');
+const u_height = gl.getUniformLocation(program, 'u_height');
 // Set default values
 gl.uniform1f(u_brightness, 0.0);
 gl.uniform1f(u_contrast, 1.5);
@@ -280,7 +295,7 @@ function clearMaskTexture(unit, w, h) {
 }
 
 function blendCanvasesToOutCanvas(destCanvas) {
-    gl.viewport(0, 0, width, height);
+    updateGLSize();
     gl.clear(gl.COLOR_BUFFER_BIT);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 }

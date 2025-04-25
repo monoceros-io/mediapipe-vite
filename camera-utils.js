@@ -11,15 +11,10 @@ const fps = document.getElementById("fps");
 let t = performance.now();
 
 const SEG_DIMENSION = 256;
-const BASE_CUTOUT_HEIGHT = 1200;
-const TOP_OFFSET = (1900 - BASE_CUTOUT_HEIGHT) / 2;
-const BASE_WIDTH_FOURTH = 800;
-const BASE_WIDTH_EIGHTH = 400;
+const TOP_OFFSET = (1900 - 1200) / 2;
 
-const VIDEO_INPUT_WIDTH = 1600;
-const VIDEO_INPUT_HEIGHT = BASE_CUTOUT_HEIGHT;
-const combinedVideoCanvas = new OffscreenCanvas(VIDEO_INPUT_WIDTH, VIDEO_INPUT_HEIGHT);
-const combinedCtx = combinedVideoCanvas.getContext("2d");
+let combinedVideoCanvas = null;
+let combinedCtx = null;
 
 let processing = false;
 let rawCaptureAreas = new Array(8).fill(0);
@@ -46,6 +41,12 @@ export function setupVideoUtils({ videos, cropDivOuters, cdoMasks, finalCanvas }
 export function matchCropToVideo() {
     const vw = video.videoWidth, vh = video.videoHeight;
     const ew = video.clientWidth, eh = video.clientHeight;
+
+    // (Re)create combinedVideoCanvas if video size changed
+    if (!combinedVideoCanvas || combinedVideoCanvas.width !== vw || combinedVideoCanvas.height !== vh) {
+        combinedVideoCanvas = new OffscreenCanvas(vw, vh);
+        combinedCtx = combinedVideoCanvas.getContext("2d");
+    }
 
     const videoAspect = vw / vh;
     const elementAspect = ew / eh;

@@ -57,7 +57,16 @@ export async function loadModels() {
 
 }
 
-const checkThreshold = x => x > 0.1 && x < 0.9;
+// const checkThreshold = x => (x > 0.1 && x < 0.9);
+
+const checkThreshold = (landmark) => {
+    if (landmark.x > xThreshold && landmark.x < (1 - xThreshold) &&
+        landmark.y > yThreshold && landmark.y < (1 - yThreshold)) {
+        return true;
+    } else {
+        return false;
+    }
+}
 
 const ctx = document.getElementById("skel-draw-canvas").getContext("2d");
 
@@ -66,6 +75,7 @@ function updatePose(landmark, regIndex) {
     let body = bodies[regIndex];
 
     lastPoseTime = Date.now();
+
 
     if (checkThreshold(landmark[0])) {
         body.head[0] = landmark[0].x;
@@ -97,22 +107,22 @@ function updatePose(landmark, regIndex) {
     }
 
 
+    if(Math.random() < 0.1)
+        console.log(body);
+
+
 }
 
 
 
 export function detectPose(bitmap, segIndex) {
 
-    // ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-    return;
-
-
     if (poseLandmarker) {
         poseLandmarker.detect(bitmap, performance.now(), poseResult => {
 
             for (const landmark of poseResult.landmarks) {
 
-                // updatePose(landmark, segIndex);
+                updatePose(landmark, segIndex);
 
                 // const drawingUtils = new DrawingUtils(ctx)
                 // drawingUtils.drawLandmarks(landmark, {
