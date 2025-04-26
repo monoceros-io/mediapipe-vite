@@ -1,6 +1,7 @@
 import { setupVideoUtils, matchCropToVideo } from "./camera-utils";
 import { loadModels } from "./processing";
 import { setBrightnessContrast, setOverlayMask } from './shader-program.js';
+import { activeBackground, activeForeground } from './threeview.js';
 
 // PAGE ELEMENTS
 
@@ -132,6 +133,32 @@ document.addEventListener('fullscreenchange', () => {
     if (!document.fullscreenElement) {
         exitQc0Hide();
     }
+});
+
+// --- Experience switching logic ---
+
+// Helper to update experience for a view
+function setExperience(view, type, idx) {
+    if (type === 'bg') {
+        activeBackground[view] = idx;
+    } else {
+        activeForeground[view] = idx;
+    }
+}
+
+// Wire up control-panel buttons
+const controlPanel = document.querySelector('.control-panel');
+const cbRows = controlPanel.querySelectorAll('.cb-row');
+// cbRows[0] = left, cbRows[1] = right
+cbRows.forEach((row, viewIdx) => {
+    const buttons = row.querySelectorAll('button');
+    buttons.forEach((btn, expIdx) => {
+        btn.addEventListener('click', () => {
+            // For this demo, both bg and fg switch together
+            setExperience(viewIdx, 'bg', expIdx);
+            setExperience(viewIdx, 'fg', expIdx);
+        });
+    });
 });
 
 // Set initial values

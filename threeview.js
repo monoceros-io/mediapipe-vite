@@ -43,6 +43,17 @@ const PARTICLE_FRICTION = 0.97;
 // Particle max life
 const MAX_LIFE = 1000;
 
+// Experience colors: Red, Green, Blue, Yellow
+const EXPERIENCE_COLORS = [0xff0000, 0x00ff00, 0x0000ff, 0xffff00];
+
+// Track which background/foreground experience is active in each view (left/right)
+let activeBackground = [0, 1]; // default: left=0, right=1
+let activeForeground = [0, 1];
+
+// Arrays for 4 backgrounds and 4 foregrounds
+let bgRenderers = [], bgScenes = [], bgCameras = [], bgMeshes = [];
+let fgRenderers = [], fgScenes = [], fgCameras = [], fgMeshes = [], fgSpriteVelocities = [], fgSpriteLife = [], fgGravityPoints = [];
+
 export function init() {
     canvases = [
         document.getElementById('backing-canvas-0'),
@@ -51,25 +62,23 @@ export function init() {
         document.getElementById('fore-canvas-1')
     ];
 
-    // Backing canvases (cubes)
-    for (let i = 0; i < 2; i++) {
-        const renderer = new THREE.WebGLRenderer({ canvas: canvases[i], preserveDrawingBuffer: true, alpha: true });
-        renderer.setSize(canvases[i].width, canvases[i].height, false);
-
+    // Create 4 background experiences
+    for (let i = 0; i < 4; i++) {
+        const renderer = new THREE.WebGLRenderer({ alpha: true });
+        renderer.setSize(canvases[0].width, canvases[0].height, false);
+        bgRenderers.push(renderer);
         const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(45, canvases[i].width / canvases[i].height, 0.1, 100);
+        bgScenes.push(scene);
+        const camera = new THREE.PerspectiveCamera(45, canvases[0].width / canvases[0].height, 0.1, 100);
         camera.position.set(0, 0, 5);
-
+        bgCameras.push(camera);
         // Create cubes per scene
-        
         const cubes = [];
         for (let j = 0; j < CUBE_COUNT; j++) {
             const geometry = new THREE.BoxGeometry(1, 1, 1);
-            // Set color: green for first window, yellow for second
-            const color = i === 0 ? 0x00ff00 : 0xffff00;
+            const color = EXPERIENCE_COLORS[i];
             const material = new THREE.MeshStandardMaterial({ color, roughness: 0.5, metalness: 0.5 });
             const mesh = new THREE.Mesh(geometry, material);
-            // Spread cubes out for visibility
             mesh.position.set(
                 Math.random() * 10 - 5,
                 Math.random() * 10 - 5,
@@ -79,33 +88,30 @@ export function init() {
             scene.add(mesh);
             cubes.push(mesh);
         }
-
-        renderers.push(renderer);
-        scenes.push(scene);
-        cameras.push(camera);
-        meshes.push(cubes);
-
+        bgMeshes.push(cubes);
         const light = new THREE.DirectionalLight(0xffffff, 1);
         light.position.set(2, 2, 5);
         scene.add(light);
     }
 
-    // Fore canvases (sprites)
-    for (let i = 0; i < 2; i++) {
-        const renderer = new THREE.WebGLRenderer({ canvas: canvases[i+2], preserveDrawingBuffer: true, alpha: true });
-        renderer.setSize(canvases[i+2].width, canvases[i+2].height, false);
-
+    // Create 4 foreground experiences
+    for (let i = 0; i < 4; i++) {
+        const renderer = new THREE.WebGLRenderer({ alpha: true });
+        renderer.setSize(canvases[2].width, canvases[2].height, false);
+        fgRenderers.push(renderer);
         const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(45, canvases[i+2].width / canvases[i+2].height, 0.1, 100);
+        fgScenes.push(scene);
+        const camera = new THREE.PerspectiveCamera(45, canvases[2].width / canvases[2].height, 0.1, 100);
         camera.position.set(0, 0, 5);
-
-        // Create 100 sprites with random positions and velocities
+        fgCameras.push(camera);
+        // Create sprites
         const sprites = [];
-        foreSpriteVelocities[i] = [];
+        fgSpriteVelocities[i] = [];
+        fgSpriteLife[i] = [];
         for (let j = 0; j < FORE_SPRITE_COUNT; j++) {
             const material = new THREE.SpriteMaterial({ 
                 map: spriteTexture, 
-                color: i === 0 ? 0x00ff00 : 0xffff00,
+                color: EXPERIENCE_COLORS[i],
                 transparent: true
             });
             const sprite = new THREE.Sprite(material);
@@ -117,21 +123,19 @@ export function init() {
             sprite.scale.set(0.2, 0.2, 0.2);
             scene.add(sprite);
             sprites.push(sprite);
-            // Assign random velocity
-            foreSpriteVelocities[i][j] = [
+            fgSpriteVelocities[i][j] = [
                 (Math.random() - 0.5) * 0.05,
                 (Math.random() - 0.5) * 0.05,
                 (Math.random() - 0.5) * 0.05
             ];
-            // Assign random life
-            foreSpriteLife[i][j] = Math.floor(Math.random() * MAX_LIFE);
+            fgSpriteLife[i][j] = Math.floor(Math.random() * MAX_LIFE);
         }
-
-        renderers.push(renderer);
-        scenes.push(scene);
-        cameras.push(camera);
-        meshes.push(sprites);
-
+        fgMeshes.push(sprites);
+        // Gravity points for this experience
+        fgGravityPoints[i] = [
+            { x: 1.5, y: 1.5, z: 0, g: 0.002 },
+            { x: -1.5, y: -1.5, z: 0, g: 0.002 }
+        ];
         const light = new THREE.DirectionalLight(0xffffff, 1);
         light.position.set(2, 2, 5);
         scene.add(light);
@@ -157,42 +161,32 @@ export function run() {
     if (running) return;
     running = true;
     function animate() {
-
-        for(let i = 0; i < 2; i++) {
-            const { head, hand0, hand1 } = bodies[1 - i];
-            
-            if(hand0.length === 2) {
-                gravityPoints[i][0].x = -(hand0[0] - 0.5) * X_MULT;
-                gravityPoints[i][0].y = -(hand0[1] - 0.5) * Y_MULT;
-            }
-            if(hand1.length === 2) {
-                gravityPoints[i][1].x = -(hand1[0] - 0.5) * X_MULT;
-                gravityPoints[i][1].y = -(hand1[1] - 0.5) * Y_MULT;
-            }
-            
-        }
-
-        // Update meshTransforms with current rotations before sending to worker
-        for (let i = 0; i < 2; i++) {
+        // Only update/render active experiences
+        for (let view = 0; view < 2; view++) {
+            // Background
+            const bgIdx = activeBackground[view];
+            // Animate cubes (simple rotation for now)
             for (let j = 0; j < CUBE_COUNT; j++) {
-                meshTransforms[i][j] = [
-                    meshes[i][j].rotation.x,
-                    meshes[i][j].rotation.y,
-                    meshes[i][j].rotation.z
-                ];
+                bgMeshes[bgIdx][j].rotation.x += 0.01;
+                bgMeshes[bgIdx][j].rotation.y += 0.01;
             }
-        }
-        worker.postMessage(meshTransforms);
+            // Render to correct canvas
+            bgRenderers[bgIdx].setSize(canvases[view].width, canvases[view].height, false);
+            bgRenderers[bgIdx].render(bgScenes[bgIdx], bgCameras[bgIdx]);
+            // Copy renderer output to canvas
+            const ctx = canvases[view].getContext('2d');
+            ctx.clearRect(0, 0, canvases[view].width, canvases[view].height);
+            ctx.drawImage(bgRenderers[bgIdx].domElement, 0, 0);
 
-        // Animate sprites in fore canvases
-        for (let i = 0; i < 2; i++) {
-            const sprites = meshes[i+2];
+            // Foreground
+            const fgIdx = activeForeground[view];
+            // Animate sprites
             for (let j = 0; j < FORE_SPRITE_COUNT; j++) {
-                const sprite = sprites[j];
-                let v = foreSpriteVelocities[i][j];
-                let life = foreSpriteLife[i][j];
-                // Gravity attraction (use only this window's gravity points)
-                for (const pt of gravityPoints[i]) {
+                const sprite = fgMeshes[fgIdx][j];
+                let v = fgSpriteVelocities[fgIdx][j];
+                let life = fgSpriteLife[fgIdx][j];
+                // Gravity attraction
+                for (const pt of fgGravityPoints[fgIdx]) {
                     const dx = pt.x - sprite.position.x;
                     const dy = pt.y - sprite.position.y;
                     const dz = pt.z - sprite.position.z;
@@ -202,19 +196,14 @@ export function run() {
                     v[1] += force * dy;
                     v[2] += force * dz;
                 }
-                // Apply friction
                 v[0] *= PARTICLE_FRICTION;
                 v[1] *= PARTICLE_FRICTION;
                 v[2] *= PARTICLE_FRICTION;
-                // Move sprite
                 sprite.position.x += v[0];
                 sprite.position.y += v[1];
                 sprite.position.z += v[2];
-                // Decrement life
                 life--;
-                // Scale by life
                 sprite.scale.set(0.7 * life / MAX_LIFE, 0.7 * life / MAX_LIFE, 0.7 * life / MAX_LIFE);
-                // Respawn if life is zero or out of bounds
                 let wrapped = false;
                 if (sprite.position.x > 2) { sprite.position.x = -2; wrapped = true; }
                 if (sprite.position.x < -2) { sprite.position.x = 2; wrapped = true; }
@@ -223,29 +212,26 @@ export function run() {
                 if (sprite.position.z > 2) { sprite.position.z = -2; wrapped = true; }
                 if (sprite.position.z < -2) { sprite.position.z = 2; wrapped = true; }
                 if (life <= 0 || wrapped) {
-                    // Respawn at a random gravity point for this view
-                    const respawnPt = gravityPoints[i][Math.floor(Math.random() * gravityPoints[i].length)];
-                    sprite.position.set(
-                        respawnPt.x,
-                        respawnPt.y,
-                        respawnPt.z
-                    );
-                    foreSpriteVelocities[i][j] = [
+                    const respawnPt = fgGravityPoints[fgIdx][Math.floor(Math.random() * fgGravityPoints[fgIdx].length)];
+                    sprite.position.set(respawnPt.x, respawnPt.y, respawnPt.z);
+                    fgSpriteVelocities[fgIdx][j] = [
                         (Math.random() - 0.5) * 0.05,
                         (Math.random() - 0.5) * 0.05,
                         (Math.random() - 0.5) * 0.05
                     ];
                     life = Math.floor(Math.random() * MAX_LIFE);
                 }
-                foreSpriteLife[i][j] = life;
+                fgSpriteLife[fgIdx][j] = life;
             }
-        }
-
-        // Render all four scenes (including animated sprites)
-        for (let i = 0; i < 4; i++) {
-            renderers[i].render(scenes[i], cameras[i]);
+            fgRenderers[fgIdx].setSize(canvases[view+2].width, canvases[view+2].height, false);
+            fgRenderers[fgIdx].render(fgScenes[fgIdx], fgCameras[fgIdx]);
+            const ctxf = canvases[view+2].getContext('2d');
+            ctxf.clearRect(0, 0, canvases[view+2].width, canvases[view+2].height);
+            ctxf.drawImage(fgRenderers[fgIdx].domElement, 0, 0);
         }
         requestAnimationFrame(animate);
     }
     animate();
 }
+
+export { activeBackground, activeForeground };
