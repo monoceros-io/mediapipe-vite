@@ -1,6 +1,6 @@
 import { setupVideoUtils, matchCropToVideo } from "./camera-utils";
 import { loadModels } from "./processing";
-import { setBrightnessContrast, setOverlayMask } from './shader-program.js';
+import { setBrightnessContrast, setOverlayMask, setMaskColors } from './shader-program.js';
 import { activeBackground, activeForeground } from './threeview.js';
 
 // PAGE ELEMENTS
@@ -136,6 +136,44 @@ document.addEventListener('fullscreenchange', () => {
 });
 
 // --- Experience switching logic ---
+
+const EXPERIENCE_COLORS = [
+    [1, 0, 0], // Red
+    [0, 1, 0], // Green
+    [0, 0, 1], // Blue
+    [1, 1, 0]  // Yellow
+];
+
+function updateMaskColors() {
+    setMaskColors([
+        EXPERIENCE_COLORS[activeForeground[1]], // left view (flipped: use right)
+        EXPERIENCE_COLORS[activeForeground[1]], // left mask (for both left masks)
+        EXPERIENCE_COLORS[activeForeground[0]], // right view (flipped: use left)
+        EXPERIENCE_COLORS[activeForeground[0]]  // right mask (for both right masks)
+    ]);
+}
+
+// Wire up control-panel buttons for experience switching
+const leftButtons = document.querySelectorAll('.control-panel label:nth-of-type(1) + .cb-row button');
+const rightButtons = document.querySelectorAll('.control-panel label:nth-of-type(2) + .cb-row button');
+
+leftButtons.forEach((btn, idx) => {
+    btn.addEventListener('click', () => {
+        activeForeground[0] = idx;
+        activeBackground[0] = idx;
+        updateMaskColors();
+    });
+});
+rightButtons.forEach((btn, idx) => {
+    btn.addEventListener('click', () => {
+        activeForeground[1] = idx;
+        activeBackground[1] = idx;
+        updateMaskColors();
+    });
+});
+
+// Set initial mask colors
+updateMaskColors();
 
 // Helper to update experience for a view
 function setExperience(view, type, idx) {

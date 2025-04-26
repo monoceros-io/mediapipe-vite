@@ -40,6 +40,7 @@ uniform float u_contrast;
 uniform bool u_overlayMask;
 uniform float u_width;
 uniform float u_height;
+uniform vec3 u_maskColors[4];
 
 vec2 cropSample(vec2 t, vec4 area) {
     return vec2(
@@ -72,21 +73,20 @@ void main() {
             vec2 videoTex = cropSample(t, u_captureAreas[0]);
             vec4 videoColor = texture2D(u_video, videoTex);
             vec2 texel = vec2(1.0 / (u_width / 2.0), 1.0 / u_height);
-            float m0 = blurMask(u_mask0, t, texel); // red
-            float m1 = blurMask(u_mask1, t, texel); // green
+            float m0 = blurMask(u_mask0, t, texel); // mask0 (left view, experience color)
+            float m1 = blurMask(u_mask1, t, texel); // mask1 (left view, experience color)
 
-            float redEdge = smoothstep(0.30, 0.70, m0);
-            float greenEdge = smoothstep(0.30, 0.70, m1);
+            float mask0Edge = smoothstep(0.30, 0.70, m0);
+            float mask1Edge = smoothstep(0.30, 0.70, m1);
 
-            if (redEdge > 0.5) {
-                // Red mask: transparency cutout
-                a = 1.0 - redEdge;
+            if (mask0Edge > 0.5) {
+                // Mask0: transparency cutout
+                a = 1.0 - mask0Edge;
                 outputColor = vec3(0.0);
-            } else if (greenEdge > 0.0) {
-                // Green mask: multiply video by green, soft edge
+            } else if (mask1Edge > 0.0) {
+                // Mask1: multiply video by mask color, soft edge
                 vec3 color = (videoColor.rgb - 0.5) * u_contrast + 0.5 + u_brightness;
-                color.g += 0.2;
-                outputColor = mix(color, color * vec3(0.0, 1.0, 0.0), greenEdge);
+                outputColor = mix(color, color * u_maskColors[1], mask1Edge);
                 a = 1.0;
             } else {
                 vec3 color = (videoColor.rgb - 0.5) * u_contrast + 0.5 + u_brightness;
@@ -99,22 +99,20 @@ void main() {
             vec2 videoTex = cropSample(t, u_captureAreas[1]);
             vec4 videoColor = texture2D(u_video, videoTex);
             vec2 texel = vec2(1.0 / (u_width / 2.0), 1.0 / u_height);
-            float m2 = blurMask(u_mask2, t, texel); // blue
-            float m3 = blurMask(u_mask3, t, texel); // yellow
+            float m2 = blurMask(u_mask2, t, texel); // mask2 (right view, experience color)
+            float m3 = blurMask(u_mask3, t, texel); // mask3 (right view, experience color)
 
-            float blueEdge = smoothstep(0.30, 0.70, m2);
-            float yellowEdge = smoothstep(0.30, 0.70, m3);
+            float mask2Edge = smoothstep(0.30, 0.70, m2);
+            float mask3Edge = smoothstep(0.30, 0.70, m3);
 
-            if (blueEdge > 0.5) {
-                // Blue mask: transparency cutout
-                a = 1.0 - blueEdge;
+            if (mask2Edge > 0.5) {
+                // Mask2: transparency cutout
+                a = 1.0 - mask2Edge;
                 outputColor = vec3(0.0);
-            } else if (yellowEdge > 0.0) {
-                // Yellow mask: multiply video by yellow, soft edge
+            } else if (mask3Edge > 0.0) {
+                // Mask3: multiply video by mask color, soft edge
                 vec3 color = (videoColor.rgb - 0.5) * u_contrast + 0.5 + u_brightness;
-                color.r += 0.2;
-                color.g += 0.2;
-                outputColor = mix(color, color * vec3(1.0, 1.0, 0.0), yellowEdge);
+                outputColor = mix(color, color * u_maskColors[3], mask3Edge);
                 a = 1.0;
             } else {
                 vec3 color = (videoColor.rgb - 0.5) * u_contrast + 0.5 + u_brightness;
@@ -129,8 +127,8 @@ void main() {
             vec2 texel = vec2(1.0 / (u_width / 4.0), 1.0 / u_height);
             float m0 = blurMask(u_mask0, t, texel);
             float m1 = blurMask(u_mask1, t, texel);
-            vec3 blendA = mix(vec3(0.0), vec3(1.0, 0.0, 0.0), m0); // red mask
-            blendA = mix(blendA, vec3(0.0, 1.0, 0.0), m1); // green mask
+            vec3 blendA = mix(vec3(0.0), u_maskColors[0], m0); // red mask
+            blendA = mix(blendA, u_maskColors[1], m1); // green mask
             outputColor = blendA;
         } else if (tex.x >= 0.25 && tex.x < 0.5) {
             vec2 t = vec2((tex.x - 0.25) * 4.0, tex.y);
@@ -143,8 +141,8 @@ void main() {
             vec2 texel = vec2(1.0 / (u_width / 4.0), 1.0 / u_height);
             float m2 = blurMask(u_mask2, t, texel);
             float m3 = blurMask(u_mask3, t, texel);
-            vec3 blendB = mix(vec3(0.0), vec3(0.0, 0.0, 1.0), m2); // blue mask
-            blendB = mix(blendB, vec3(1.0, 1.0, 0.0), m3); // yellow mask
+            vec3 blendB = mix(vec3(0.0), u_maskColors[2], m2); // blue mask
+            blendB = mix(blendB, u_maskColors[3], m3); // yellow mask
             outputColor = blendB;
         } else if (tex.x >= 0.75 && tex.x < 1.0) {
             vec2 t = vec2((tex.x - 0.75) * 4.0, tex.y);
@@ -224,10 +222,17 @@ const u_contrast = gl.getUniformLocation(program, 'u_contrast');
 const u_overlayMask = gl.getUniformLocation(program, 'u_overlayMask');
 const u_width = gl.getUniformLocation(program, 'u_width');
 const u_height = gl.getUniformLocation(program, 'u_height');
+const u_maskColors = gl.getUniformLocation(program, 'u_maskColors');
 // Set default values
 gl.uniform1f(u_brightness, 0.0);
 gl.uniform1f(u_contrast, 1.5);
 gl.uniform1i(u_overlayMask, 0);
+gl.uniform3fv(u_maskColors, new Float32Array([
+    1.0, 0.0, 0.0, // Red
+    0.0, 1.0, 0.0, // Green
+    0.0, 0.0, 1.0, // Blue
+    1.0, 1.0, 0.0  // Yellow
+]));
 
 // Helper to set capture areas (expects array of 2 crops: [x, y, w, h] normalized to video texture)
 function setCaptureAreas(captureAreas) {
@@ -248,6 +253,13 @@ function setBrightnessContrast(brightness, contrast) {
 function setOverlayMask(enabled) {
     gl.useProgram(program);
     gl.uniform1i(u_overlayMask, enabled ? 1 : 0);
+}
+
+// Helper to set mask colors dynamically
+function setMaskColors(maskColors) {
+    // maskColors: [[r,g,b], [r,g,b], [r,g,b], [r,g,b]]
+    gl.useProgram(program);
+    gl.uniform3fv(u_maskColors, new Float32Array(maskColors.flat()));
 }
 
 // Texture creation helper
@@ -309,5 +321,6 @@ export {
     uploadMaskToTexture,
     clearMaskTexture,
     blendCanvasesToOutCanvas,
-    videoTexture
+    videoTexture,
+    setMaskColors
 };

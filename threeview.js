@@ -54,6 +54,15 @@ let activeForeground = [0, 1];
 let bgRenderers = [], bgScenes = [], bgCameras = [], bgMeshes = [];
 let fgRenderers = [], fgScenes = [], fgCameras = [], fgMeshes = [], fgSpriteVelocities = [], fgSpriteLife = [], fgGravityPoints = [];
 
+// For each foreground experience, keep two gravity points (for two possible views)
+// fgGravityPoints[experience][view][point]
+for (let i = 0; i < 4; i++) {
+    fgGravityPoints[i] = [
+        [ { x: 1.5, y: 1.5, z: 0, g: 0.002 }, { x: -1.5, y: -1.5, z: 0, g: 0.002 } ], // left view
+        [ { x: 1.5, y: -1.5, z: 0, g: 0.002 }, { x: -1.5, y: 1.5, z: 0, g: 0.002 } ]  // right view
+    ];
+}
+
 export function init() {
     canvases = [
         document.getElementById('backing-canvas-0'),
@@ -131,11 +140,6 @@ export function init() {
             fgSpriteLife[i][j] = Math.floor(Math.random() * MAX_LIFE);
         }
         fgMeshes.push(sprites);
-        // Gravity points for this experience
-        fgGravityPoints[i] = [
-            { x: 1.5, y: 1.5, z: 0, g: 0.002 },
-            { x: -1.5, y: -1.5, z: 0, g: 0.002 }
-        ];
         const light = new THREE.DirectionalLight(0xffffff, 1);
         light.position.set(2, 2, 5);
         scene.add(light);
@@ -161,6 +165,19 @@ export function run() {
     if (running) return;
     running = true;
     function animate() {
+        // Update gravity points for each view's active experience
+        for (let view = 0; view < 2; view++) {
+            const fgIdx = activeForeground[view];
+            const { hand0, hand1 } = bodies[1 - view];
+            if (hand0.length === 2) {
+                fgGravityPoints[fgIdx][view][0].x = -(hand0[0] - 0.5) * X_MULT;
+                fgGravityPoints[fgIdx][view][0].y = -(hand0[1] - 0.5) * Y_MULT;
+            }
+            if (hand1.length === 2) {
+                fgGravityPoints[fgIdx][view][1].x = -(hand1[0] - 0.5) * X_MULT;
+                fgGravityPoints[fgIdx][view][1].y = -(hand1[1] - 0.5) * Y_MULT;
+            }
+        }
         // Only update/render active experiences
         for (let view = 0; view < 2; view++) {
             // Background
@@ -185,8 +202,8 @@ export function run() {
                 const sprite = fgMeshes[fgIdx][j];
                 let v = fgSpriteVelocities[fgIdx][j];
                 let life = fgSpriteLife[fgIdx][j];
-                // Gravity attraction
-                for (const pt of fgGravityPoints[fgIdx]) {
+                // Gravity attraction (use only this view's gravity points for this experience)
+                for (const pt of fgGravityPoints[fgIdx][view]) {
                     const dx = pt.x - sprite.position.x;
                     const dy = pt.y - sprite.position.y;
                     const dz = pt.z - sprite.position.z;
@@ -212,7 +229,8 @@ export function run() {
                 if (sprite.position.z > 2) { sprite.position.z = -2; wrapped = true; }
                 if (sprite.position.z < -2) { sprite.position.z = 2; wrapped = true; }
                 if (life <= 0 || wrapped) {
-                    const respawnPt = fgGravityPoints[fgIdx][Math.floor(Math.random() * fgGravityPoints[fgIdx].length)];
+                    // Respawn at a random gravity point for this view/experience
+                    const respawnPt = fgGravityPoints[fgIdx][view][Math.floor(Math.random() * fgGravityPoints[fgIdx][view].length)];
                     sprite.position.set(respawnPt.x, respawnPt.y, respawnPt.z);
                     fgSpriteVelocities[fgIdx][j] = [
                         (Math.random() - 0.5) * 0.05,
