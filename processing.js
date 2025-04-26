@@ -66,7 +66,7 @@ export async function loadModels() {
             delegate: "GPU"
         },
         runningMode: "IMAGE",
-        numPoses: 2
+        numPoses: 1
     });
 
     return { segmenter, poseLandmarker };

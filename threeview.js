@@ -165,6 +165,10 @@ export function run() {
     if (running) return;
     running = true;
     function animate() {
+        if (document.hidden) {
+            requestAnimationFrame(animate);
+            return;
+        }
         // Update gravity points for each view's active experience
         for (let view = 0; view < 2; view++) {
             const fgIdx = activeForeground[view];
@@ -183,27 +187,38 @@ export function run() {
             // Background
             const bgIdx = activeBackground[view];
             // Animate cubes (simple rotation for now)
+            const cubes = bgMeshes[bgIdx];
             for (let j = 0; j < CUBE_COUNT; j++) {
-                bgMeshes[bgIdx][j].rotation.x += 0.01;
-                bgMeshes[bgIdx][j].rotation.y += 0.01;
+                const mesh = cubes[j];
+                mesh.rotation.x += 0.01;
+                mesh.rotation.y += 0.01;
             }
-            // Render to correct canvas
-            bgRenderers[bgIdx].setSize(canvases[view].width, canvases[view].height, false);
-            bgRenderers[bgIdx].render(bgScenes[bgIdx], bgCameras[bgIdx]);
-            // Copy renderer output to canvas
-            const ctx = canvases[view].getContext('2d');
-            ctx.clearRect(0, 0, canvases[view].width, canvases[view].height);
-            ctx.drawImage(bgRenderers[bgIdx].domElement, 0, 0);
-
+            // Only resize renderer if canvas size changed
+            const renderer = bgRenderers[bgIdx];
+            const canvas = canvases[view];
+            if (renderer.domElement.width !== canvas.width || renderer.domElement.height !== canvas.height) {
+                renderer.setSize(canvas.width, canvas.height, false);
+            }
+            renderer.render(bgScenes[bgIdx], bgCameras[bgIdx]);
+            // Copy renderer output to canvas only if not the same element
+            if (renderer.domElement !== canvas) {
+                const ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(renderer.domElement, 0, 0);
+            }
             // Foreground
             const fgIdx = activeForeground[view];
-            // Animate sprites
+            const sprites = fgMeshes[fgIdx];
+            const velocities = fgSpriteVelocities[fgIdx];
+            const lifeArr = fgSpriteLife[fgIdx];
+            const gravPts = fgGravityPoints[fgIdx][view];
             for (let j = 0; j < FORE_SPRITE_COUNT; j++) {
-                const sprite = fgMeshes[fgIdx][j];
-                let v = fgSpriteVelocities[fgIdx][j];
-                let life = fgSpriteLife[fgIdx][j];
+                const sprite = sprites[j];
+                let v = velocities[j];
+                let life = lifeArr[j];
                 // Gravity attraction (use only this view's gravity points for this experience)
-                for (const pt of fgGravityPoints[fgIdx][view]) {
+                for (let k = 0; k < gravPts.length; k++) {
+                    const pt = gravPts[k];
                     const dx = pt.x - sprite.position.x;
                     const dy = pt.y - sprite.position.y;
                     const dz = pt.z - sprite.position.z;
@@ -220,7 +235,8 @@ export function run() {
                 sprite.position.y += v[1];
                 sprite.position.z += v[2];
                 life--;
-                sprite.scale.set(0.7 * life / MAX_LIFE, 0.7 * life / MAX_LIFE, 0.7 * life / MAX_LIFE);
+                const scale = 0.7 * life / MAX_LIFE;
+                sprite.scale.set(scale, scale, scale);
                 let wrapped = false;
                 if (sprite.position.x > 2) { sprite.position.x = -2; wrapped = true; }
                 if (sprite.position.x < -2) { sprite.position.x = 2; wrapped = true; }
@@ -229,23 +245,27 @@ export function run() {
                 if (sprite.position.z > 2) { sprite.position.z = -2; wrapped = true; }
                 if (sprite.position.z < -2) { sprite.position.z = 2; wrapped = true; }
                 if (life <= 0 || wrapped) {
-                    // Respawn at a random gravity point for this view/experience
-                    const respawnPt = fgGravityPoints[fgIdx][view][Math.floor(Math.random() * fgGravityPoints[fgIdx][view].length)];
+                    const respawnPt = gravPts[Math.floor(Math.random() * gravPts.length)];
                     sprite.position.set(respawnPt.x, respawnPt.y, respawnPt.z);
-                    fgSpriteVelocities[fgIdx][j] = [
-                        (Math.random() - 0.5) * 0.05,
-                        (Math.random() - 0.5) * 0.05,
-                        (Math.random() - 0.5) * 0.05
-                    ];
+                    v[0] = (Math.random() - 0.5) * 0.05;
+                    v[1] = (Math.random() - 0.5) * 0.05;
+                    v[2] = (Math.random() - 0.5) * 0.05;
                     life = Math.floor(Math.random() * MAX_LIFE);
                 }
-                fgSpriteLife[fgIdx][j] = life;
+                lifeArr[j] = life;
             }
-            fgRenderers[fgIdx].setSize(canvases[view+2].width, canvases[view+2].height, false);
-            fgRenderers[fgIdx].render(fgScenes[fgIdx], fgCameras[fgIdx]);
-            const ctxf = canvases[view+2].getContext('2d');
-            ctxf.clearRect(0, 0, canvases[view+2].width, canvases[view+2].height);
-            ctxf.drawImage(fgRenderers[fgIdx].domElement, 0, 0);
+            // Only resize renderer if canvas size changed
+            const fgRenderer = fgRenderers[fgIdx];
+            const fgCanvas = canvases[view+2];
+            if (fgRenderer.domElement.width !== fgCanvas.width || fgRenderer.domElement.height !== fgCanvas.height) {
+                fgRenderer.setSize(fgCanvas.width, fgCanvas.height, false);
+            }
+            fgRenderer.render(fgScenes[fgIdx], fgCameras[fgIdx]);
+            if (fgRenderer.domElement !== fgCanvas) {
+                const ctxf = fgCanvas.getContext('2d');
+                ctxf.clearRect(0, 0, fgCanvas.width, fgCanvas.height);
+                ctxf.drawImage(fgRenderer.domElement, 0, 0);
+            }
         }
         requestAnimationFrame(animate);
     }
