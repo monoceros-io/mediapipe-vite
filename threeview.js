@@ -26,16 +26,20 @@ let foreSpriteLife = [
     Array(FORE_SPRITE_COUNT).fill(0)
 ];
 
-// Define gravity points
+// Define gravity points for each particle window
 const gravityPoints = [
-    { x: 1.5, y: 1.5, z: 0, g: 0.002 },
-    { x: -1.5, y: 1.5, z: 0, g: 0.002 },
-    { x: 1.5, y: -1.5, z: 0, g: 0.002 },
-    { x: -1.5, y: -1.5, z: 0, g: 0.002 }
+    [ // For fore-canvas-0
+        { x: 1.5, y: 1.5, z: 0, g: 0.002 },
+        { x: -1.5, y: -1.5, z: 0, g: 0.002 }
+    ],
+    [ // For fore-canvas-1
+        { x: 1.5, y: -1.5, z: 0, g: 0.002 },
+        { x: -1.5, y: 1.5, z: 0, g: 0.002 }
+    ]
 ];
 
 // Particle friction constant
-const PARTICLE_FRICTION = 0.99;
+const PARTICLE_FRICTION = 0.97;
 // Particle max life
 const MAX_LIFE = 1000;
 
@@ -146,12 +150,27 @@ export function init() {
     };
 }
 
+const X_MULT = 3.0;
+const Y_MULT = 3.0;
+
 export function run() {
     if (running) return;
     running = true;
     function animate() {
 
-        console.log(bodies[0].head[0]);
+        for(let i = 0; i < 2; i++) {
+            const { head, hand0, hand1 } = bodies[1 - i];
+            
+            if(hand0.length === 2) {
+                gravityPoints[i][0].x = -(hand0[0] - 0.5) * X_MULT;
+                gravityPoints[i][0].y = -(hand0[1] - 0.5) * Y_MULT;
+            }
+            if(hand1.length === 2) {
+                gravityPoints[i][1].x = -(hand1[0] - 0.5) * X_MULT;
+                gravityPoints[i][1].y = -(hand1[1] - 0.5) * Y_MULT;
+            }
+            
+        }
 
         // Update meshTransforms with current rotations before sending to worker
         for (let i = 0; i < 2; i++) {
@@ -172,13 +191,13 @@ export function run() {
                 const sprite = sprites[j];
                 let v = foreSpriteVelocities[i][j];
                 let life = foreSpriteLife[i][j];
-                // Gravity attraction
-                for (const pt of gravityPoints) {
+                // Gravity attraction (use only this window's gravity points)
+                for (const pt of gravityPoints[i]) {
                     const dx = pt.x - sprite.position.x;
                     const dy = pt.y - sprite.position.y;
                     const dz = pt.z - sprite.position.z;
                     const distSq = dx*dx + dy*dy + dz*dz + 0.0001;
-                    const force = pt.g / distSq;
+                    const force = pt.g / (distSq / 3);
                     v[0] += force * dx;
                     v[1] += force * dy;
                     v[2] += force * dz;
@@ -194,7 +213,7 @@ export function run() {
                 // Decrement life
                 life--;
                 // Scale by life
-                sprite.scale.set(1 * life / MAX_LIFE, 1 * life / MAX_LIFE, 1 * life / MAX_LIFE);
+                sprite.scale.set(0.7 * life / MAX_LIFE, 0.7 * life / MAX_LIFE, 0.7 * life / MAX_LIFE);
                 // Respawn if life is zero or out of bounds
                 let wrapped = false;
                 if (sprite.position.x > 2) { sprite.position.x = -2; wrapped = true; }
@@ -204,10 +223,12 @@ export function run() {
                 if (sprite.position.z > 2) { sprite.position.z = -2; wrapped = true; }
                 if (sprite.position.z < -2) { sprite.position.z = 2; wrapped = true; }
                 if (life <= 0 || wrapped) {
+                    // Respawn at a random gravity point for this view
+                    const respawnPt = gravityPoints[i][Math.floor(Math.random() * gravityPoints[i].length)];
                     sprite.position.set(
-                        Math.random() * 4 - 2,
-                        Math.random() * 4 - 2,
-                        Math.random() * 4 - 2
+                        respawnPt.x,
+                        respawnPt.y,
+                        respawnPt.z
                     );
                     foreSpriteVelocities[i][j] = [
                         (Math.random() - 0.5) * 0.05,

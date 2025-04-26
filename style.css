@@ -181,3 +181,12 @@ body {
     bottom: 0;
     z-index: 999999999999;
 }
+
+.cb-row {
+    padding: 0.5em;
+}
+
+.cb-det-sta {
+    padding: 0.5em;
+    font-size: 0.75em;
+}
