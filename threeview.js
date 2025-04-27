@@ -81,10 +81,19 @@ export function init() {
         const camera = new THREE.PerspectiveCamera(45, canvases[0].width / canvases[0].height, 0.1, 100);
         camera.position.set(0, 0, 5);
         bgCameras.push(camera);
-        // Create cubes per scene
+        // Create geometry per experience
+        let geometry;
+        if (i === 0) {
+            geometry = new THREE.BoxGeometry(1, 1, 1); // Cubes
+        } else if (i === 1) {
+            geometry = new THREE.TorusGeometry(0.7, 0.3, 16, 100); // Torus
+        } else if (i === 2) {
+            geometry = new THREE.ConeGeometry(1, 1.5, 4); // Pyramid (4-sided cone)
+        } else if (i === 3) {
+            geometry = new THREE.TorusKnotGeometry(0.6, 0.2, 100, 16); // Torus knot
+        }
         const cubes = [];
         for (let j = 0; j < CUBE_COUNT; j++) {
-            const geometry = new THREE.BoxGeometry(1, 1, 1);
             const color = EXPERIENCE_COLORS[i];
             const material = new THREE.MeshStandardMaterial({ color, roughness: 0.5, metalness: 0.5 });
             const mesh = new THREE.Mesh(geometry, material);
@@ -186,12 +195,19 @@ export function run() {
         for (let view = 0; view < 2; view++) {
             // Background
             const bgIdx = activeBackground[view];
-            // Animate cubes (simple rotation for now)
             const cubes = bgMeshes[bgIdx];
             for (let j = 0; j < CUBE_COUNT; j++) {
                 const mesh = cubes[j];
-                mesh.rotation.x += 0.01;
-                mesh.rotation.y += 0.01;
+                if (bgIdx % 2 === 0) {
+                    // Even: rotation
+                    mesh.rotation.x += 0.01;
+                    mesh.rotation.y += 0.01;
+                } else {
+                    // Odd: sin oscillating scale
+                    const t = performance.now() * 0.001 + j;
+                    const s = 0.7 + 0.3 * Math.sin(t + j);
+                    mesh.scale.set(s, s, s);
+                }
             }
             // Only resize renderer if canvas size changed
             const renderer = bgRenderers[bgIdx];
