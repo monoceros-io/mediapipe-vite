@@ -25,6 +25,7 @@ let foreground = { renderer: null, scene: null, camera: null };
 let scene, camera;
 
 export default {
+    foreBlendMode: "plus-lighter",
     async initBackground(canvas) {
         // Load chili texture
         const loader = new THREE.TextureLoader();

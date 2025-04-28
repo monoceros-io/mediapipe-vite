@@ -3,6 +3,16 @@ import { loadModels } from "./processing";
 import { setBrightnessContrast, setOverlayMask, setMaskColors } from './shader-program.js';
 import { activeBackground, activeForeground } from './threeview.js';
 
+import experience0 from './experience0.js';
+import experience1 from './experience1.js';
+import experience2 from './experience2.js';
+import experience3 from './experience3.js';
+import eventController from "./EventController.js";
+
+const experiences = [experience0, experience1, experience2, experience3];
+
+const foreCanvasArray = document.querySelectorAll('.fore-canvas');
+
 // PAGE ELEMENTS
 
 const videos = document.querySelectorAll(".video");
@@ -63,6 +73,19 @@ cameraSelectors.forEach((sel, index) => {
 // Wire up brightness and contrast controls
 const brightnessInput = document.getElementById('brightness');
 const contrastInput = document.getElementById('contrast');
+
+const detectedReadouts = document.querySelectorAll('.cb-det-sta');
+
+eventController.addEventListener("pose-found", ({ segIndex }) => {
+    detectedReadouts[segIndex].innerHTML = "Persona detectada";
+    detectedReadouts[segIndex].style.color = "green";
+});
+
+
+eventController.addEventListener("pose-lost", ({ segIndex }) => {
+    detectedReadouts[segIndex].innerHTML = "Nadie detectado";
+    detectedReadouts[segIndex].style.color = "red";
+});
 
 function updateShaderBC() {
     // Map slider values to shader-friendly ranges
@@ -177,9 +200,14 @@ updateMaskColors();
 
 // Helper to update experience for a view
 function setExperience(view, type, idx) {
+
+
     if (type === 'bg') {
         activeBackground[view] = idx;
     } else {
+        const canvas = foreCanvasArray[view];
+        const mode = experiences[idx].foreBlendMode;
+        canvas.style.mixBlendMode = mode;
         activeForeground[view] = idx;
     }
 }
@@ -195,6 +223,7 @@ cbRows.forEach((row, viewIdx) => {
             // For this demo, both bg and fg switch together
             setExperience(viewIdx, 'bg', expIdx);
             setExperience(viewIdx, 'fg', expIdx);
+            console.log("TOGGO");
         });
     });
 });

@@ -1,3 +1,4 @@
+import eventController from "./EventController";
 import { ImageSegmenter, FilesetResolver, PoseLandmarker, DrawingUtils } from "./node_modules/@mediapipe/tasks-vision";
 
 const runningMode = "VIDEO";
@@ -149,16 +150,29 @@ function updatePose(landmark, regIndex) {
         body.foot1[0] = landmark[28].x;
         body.foot1[1] = landmark[28].y;
     }
-
-
 }
 
+
+let foundPoses = [false, false];
 
 
 export function detectPose(bitmap, segIndex) {
 
     if (poseLandmarker) {
         poseLandmarker.detect(bitmap, performance.now(), poseResult => {
+
+            const lastFound = foundPoses[segIndex];
+            const found = poseResult.landmarks.length > 0;
+
+            if(found !== lastFound) {
+                if (found) {
+                    eventController.dispatchEvent("pose-found", { segIndex });
+                } else {
+                    eventController.dispatchEvent("pose-lost", { segIndex });
+                }
+            }
+
+            foundPoses[segIndex] = found;
 
             for (const landmark of poseResult.landmarks) {
 

@@ -15,6 +15,7 @@ let background = { renderer: null, scene: null, camera: null };
 let foreground = { renderer: null, scene: null, camera: null };
 
 export default {
+    foreBlendMode: "color-burn",
     initBackground(canvas) {
         const renderer = new THREE.WebGLRenderer({ alpha: true });
         renderer.setSize(canvas.width, canvas.height, false);

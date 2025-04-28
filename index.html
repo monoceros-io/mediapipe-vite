@@ -49,16 +49,18 @@
                 <canvas width="1920" height="2160" class="backing-canvas" id="backing-canvas-1"></canvas>
                 <canvas width="1920" height="2160" class="final-canvas" id="final-canvas"></canvas>
                 <div class="fore-canvases">
-                    <canvas width="1920" height="2160" class="backing-canvas" id="fore-canvas-0"></canvas>
-                    <canvas width="1920" height="2160" class="backing-canvas" id="fore-canvas-1"></canvas>
+                    <canvas width="1920" height="2160" class="backing-canvas fore-canvas" id="fore-canvas-0"></canvas>
+                    <canvas width="1920" height="2160" class="backing-canvas fore-canvas" id="fore-canvas-1"></canvas>
                     <div class="fore-canvas-text-outer">
                         <div class="fore-canvas-text">
-                            <div class="fore-big">3</div>
-                            <div class="fore-small">Searching for you...</div>
+                            <div class="fore-small fsmall-0">Buscando a una persona...</div>
+                            <div id="fcount-0" class="fore-big">3</div>
+                            <div class="fore-small fsmall-0">Buscando a una persona...</div>
                         </div>
                         <div class="fore-canvas-text">
-                            <div class="fore-big">3</div>
-                            <div class="fore-small">Searching for you...</div>
+                            <div class="fore-small fsmall-1">Buscando a una persona...</div>
+                            <div id="fcount-1" class="fore-big">3</div>
+                            <div class="fore-small fsmall-1">Buscando a una persona...</div>
                         </div>
                     </div>
                 </div>
@@ -76,7 +78,8 @@
             <button>4</button>
         </div>
 
-        <div class="cb-det-sta">Nobody detected</div>
+        <div class="cb-det-sta">Nadie detectado</div>
+        <button>Comienza la cuenta</button>
 
         <label>Right</label>
         <div class="cb-row">
@@ -86,22 +89,23 @@
             <button>4</button>
         </div>
 
-        <div class="cb-det-sta">Nobody detected</div>
+        <div class="cb-det-sta">Nadie detectado</div>
+        <button>Comienza la cuenta</button>
 
 
         <div class="frame-readout">
             <div>FPS</div>
             <div id="fps">20</div>
         </div>
-        <label for="">Brightnoss</label>
+        <label for="">Brightness</label>
         <input type="range" id="brightness" min="-10" max="10" value="0">
         <label for="">Contrast</label>
         <input type="range" id="contrast" min="0" max="10" value="1">
         <span>
-            <label for="">Overlay masks</label>
+            <label for="">Overlay</label>
             <input type="checkbox" id="overlay-mask">
         </span>
-        <button id="fullscreen-btn">Fullscreen</button>
+        <button id="fullscreen-btn">Toda la pantalla</button>
 
     </div>
 

@@ -8,6 +8,8 @@ import experience1 from './experience1.js';
 import experience2 from './experience2.js';
 import experience3 from './experience3.js';
 
+const experiences = [experience0, experience1, experience2, experience3];
+
 const spriteTexture = new THREE.TextureLoader().load(BASE_PART_IMG);
 
 let canvases = [];
@@ -33,7 +35,6 @@ for (let i = 0; i < 4; i++) {
     ];
 }
 
-const experiences = [experience0, experience1, experience2, experience3];
 
 export function init() {
     canvases = [
