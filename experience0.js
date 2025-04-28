@@ -1,13 +1,19 @@
 import * as THREE from 'three';
 
+
 const EXPERIENCE_COLOR = 0xff0000;
 const FORE_SPRITE_COUNT = 50;
 const MAX_LIFE = 1000;
 const PARTICLE_FRICTION = 0.97;
 
 const STARFIELD_COUNT = 100;
+const CHILI_SCALE = 2;
+const CHILI_GROW = 0.08; // How fast chilis grow in (per frame)
+const HYPER_SPEED = 0.19; // Constant speed for all chilis
+const MAX_ROT = 0.08; // Maximum rotation speed (radians per frame)
 let starPlanes = [];
-let starVelocities = [];
+let starScales = []; // Track scale scalar for each chili
+let starRotations = []; // Track rotation speed for each chili
 let starTexture = null;
 
 let sprites = [], velocities = [], life = [];
@@ -18,6 +24,8 @@ let foreground = { renderer: null, scene: null, camera: null };
 
 let scene, camera;
 
+
+
 export default {
     async initBackground(canvas) {
         // Load chili texture
@@ -25,9 +33,13 @@ export default {
         starTexture = await new Promise((resolve, reject) => {
             loader.load('chili.png', resolve, undefined, reject);
         });
+        // Ensure correct color space for texture
+        starTexture.encoding = THREE.sRGBEncoding;
 
         const renderer = new THREE.WebGLRenderer({ alpha: true });
         renderer.setSize(canvas.width, canvas.height, false);
+        // Ensure renderer outputs sRGB
+        renderer.outputEncoding = THREE.sRGBEncoding;
         scene = new THREE.Scene();
         camera = new THREE.PerspectiveCamera(45, canvas.width / canvas.height, 0.1, 100);
         camera.position.set(0, 0, 5);
@@ -35,7 +47,8 @@ export default {
         // Starfield planes
         const geometry = new THREE.PlaneGeometry(0.4, 0.4);
         starPlanes = [];
-        starVelocities = [];
+        starScales = [];
+        starRotations = [];
         for (let j = 0; j < STARFIELD_COUNT; j++) {
             const material = new THREE.MeshBasicMaterial({
                 map: starTexture,
@@ -51,9 +64,10 @@ export default {
             );
             scene.add(mesh);
             starPlanes.push(mesh);
-            // Give each star a random z velocity (towards camera)
-
-            starVelocities.push(0.05 + Math.random() * 0.07);
+            // Start with full scale
+            starScales.push(1);
+            // Assign random rotation speed between -MAX_ROT and MAX_ROT
+            starRotations.push((Math.random() * 2 - 1) * MAX_ROT);
         }
         // No lighting needed for unlit material
         background.renderer = renderer;
@@ -66,17 +80,26 @@ export default {
         for (let j = 0; j < starPlanes.length; j++) {
             const plane = starPlanes[j];
             // Move towards camera
-
-            plane.position.z += starVelocities[j];
+            plane.position.z += HYPER_SPEED;
+            // Rotate through Y
+            plane.rotation.z += starRotations[j];
             // Respawn if passed camera
             if (plane.position.z > camera.position.z) {
                 plane.position.x = Math.random() * 10 - 5;
                 plane.position.y = Math.random() * 10 - 5;
                 plane.position.z = Math.random() * -30 - 5;
-                starVelocities[j] = 0.05 + Math.random() * 0.07;
+                // Set scale scalar to 0 for grow-in effect
+                starScales[j] = 0;
+                // Assign new random rotation speed
+                starRotations[j] = (Math.random() * 2 - 1) * MAX_ROT;
             }
+            // Grow scale if not yet 1
+            if (starScales[j] < CHILI_SCALE) {
+                starScales[j] = Math.min(1, starScales[j] + CHILI_GROW);
+            }
+            plane.scale.setScalar(starScales[j]);
             // Always face the camera
-            plane.lookAt(camera.position);
+            // plane.lookAt(camera.position);
         }
         if (renderer.domElement.width !== canvas.width || renderer.domElement.height !== canvas.height) {
             renderer.setSize(canvas.width, canvas.height, false);
