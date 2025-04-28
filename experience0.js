@@ -1,16 +1,16 @@
 import * as THREE from 'three';
-
+import SpiralShaderMaterial from './spiral-shader.js';
 
 const EXPERIENCE_COLOR = 0xff0000;
-const FORE_SPRITE_COUNT = 50;
+const FORE_SPRITE_COUNT = 20;
 const MAX_LIFE = 1000;
 const PARTICLE_FRICTION = 0.97;
-
-const STARFIELD_COUNT = 100;
+const STARFIELD_COUNT = 50;
 const CHILI_SCALE = 2;
 const CHILI_GROW = 0.08; // How fast chilis grow in (per frame)
 const HYPER_SPEED = 0.19; // Constant speed for all chilis
 const MAX_ROT = 0.08; // Maximum rotation speed (radians per frame)
+
 let starPlanes = [];
 let starScales = []; // Track scale scalar for each chili
 let starRotations = []; // Track rotation speed for each chili
@@ -19,12 +19,10 @@ let starTexture = null;
 let sprites = [], velocities = [], life = [];
 
 // Add these to hold internal state
-let background = { renderer: null, scene: null, camera: null };
+let background = { renderer: null, scene: null, camera: null, spiralMaterial: null };
 let foreground = { renderer: null, scene: null, camera: null };
 
 let scene, camera;
-
-
 
 export default {
     async initBackground(canvas) {
@@ -69,13 +67,40 @@ export default {
             // Assign random rotation speed between -MAX_ROT and MAX_ROT
             starRotations.push((Math.random() * 2 - 1) * MAX_ROT);
         }
+
+        // Add spiral-shader plane to background
+        const spiralGeometry = new THREE.PlaneGeometry(3, 3);
+        const spiralMaterial = SpiralShaderMaterial();
+        spiralMaterial.uniforms.rot_points.value = Float32Array.from({length: 100}, (_, i) => {
+            const idx = i % 5;
+            if (idx === 0) return Math.random() * Math.PI * 2; // angle
+            if (idx === 1) return 0.2 + Math.random() * 0.2;   // range
+            if (idx === 2) return Math.random() * 0.2;         // start
+            if (idx === 3) return 0.5 + Math.random() * 0.5;   // alpha
+            if (idx === 4) return 0.01 + Math.random() * 0.03; // speed
+        });
+        const spiralPlane = new THREE.Mesh(spiralGeometry, spiralMaterial);
+        spiralPlane.position.set(0, 0, -20);
+        spiralPlane.scale.set(10, 10, 1);
+        scene.add(spiralPlane);
+        background.spiralMaterial = spiralMaterial;
+
         // No lighting needed for unlit material
         background.renderer = renderer;
         background.scene = scene;
         background.camera = camera;
     },
     updateBackground({ canvas, time }) {
-        const { renderer } = background;
+        const { renderer, spiralMaterial } = background;
+
+        // Animate spiral points: angle += speed
+        if (spiralMaterial) {
+            const arr = spiralMaterial.uniforms.rot_points.value;
+            for (let i = 0; i < 100; i += 5) {
+                arr[i] += arr[i + 4];
+                if (arr[i] > Math.PI * 2) arr[i] -= Math.PI * 2;
+            }
+        }
 
         for (let j = 0; j < starPlanes.length; j++) {
             const plane = starPlanes[j];

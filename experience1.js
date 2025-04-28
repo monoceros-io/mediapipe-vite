@@ -1,7 +1,8 @@
 import * as THREE from 'three';
+import SpiralShaderMaterial from './spiral-shader.js';
 
 const EXPERIENCE_COLOR = 0x00ff00;
-const CUBE_COUNT = 100;
+const CUBE_COUNT = 10;
 const FORE_SPRITE_COUNT = 50;
 const MAX_LIFE = 1000;
 const PARTICLE_FRICTION = 0.97;
@@ -10,7 +11,7 @@ let cubes = [];
 let sprites = [], velocities = [], life = [];
 
 // Add these to hold internal state
-let background = { renderer: null, scene: null, camera: null };
+let background = { renderer: null, scene: null, camera: null, spiralMaterial: null };
 let foreground = { renderer: null, scene: null, camera: null };
 
 export default {
@@ -33,16 +34,42 @@ export default {
         const light = new THREE.DirectionalLight(0xffffff, 1);
         light.position.set(2, 2, 5);
         scene.add(light);
+
+        // Add spiral-shader plane to background
+        const spiralGeometry = new THREE.PlaneGeometry(3, 3);
+        const spiralMaterial = SpiralShaderMaterial();
+        spiralMaterial.uniforms.rot_points.value = Float32Array.from({length: 100}, (_, i) => {
+            const idx = i % 5;
+            if (idx === 0) return Math.random() * Math.PI * 2;
+            if (idx === 1) return 0.2 + Math.random() * 0.2;
+            if (idx === 2) return Math.random() * 0.2;
+            if (idx === 3) return 0.5 + Math.random() * 0.5;
+            if (idx === 4) return 0.01 + Math.random() * 0.03;
+        });
+        const spiralPlane = new THREE.Mesh(spiralGeometry, spiralMaterial);
+        spiralPlane.position.set(0, 0, -2.5);
+        spiralPlane.scale.set(3, 3, 1);
+        scene.add(spiralPlane);
+        background.spiralMaterial = spiralMaterial;
+
         background.renderer = renderer;
         background.scene = scene;
         background.camera = camera;
     },
     updateBackground({ canvas, time }) {
-        const { renderer, scene, camera } = background;
+        const { renderer, scene, camera, spiralMaterial } = background;
         for (let j = 0; j < cubes.length; j++) {
             const t = time * 0.001 + j;
             const s = 0.7 + 0.3 * Math.sin(t + j);
             cubes[j].scale.set(s, s, s);
+        }
+        // Animate spiral points: angle += speed
+        if (spiralMaterial) {
+            const arr = spiralMaterial.uniforms.rot_points.value;
+            for (let i = 0; i < 100; i += 5) {
+                arr[i] += arr[i + 4];
+                if (arr[i] > Math.PI * 2) arr[i] -= Math.PI * 2;
+            }
         }
         if (renderer.domElement.width !== canvas.width || renderer.domElement.height !== canvas.height) {
             renderer.setSize(canvas.width, canvas.height, false);
@@ -84,6 +111,7 @@ export default {
         const light = new THREE.DirectionalLight(0xffffff, 1);
         light.position.set(2, 2, 5);
         scene.add(light);
+
         foreground.renderer = renderer;
         foreground.scene = scene;
         foreground.camera = camera;
