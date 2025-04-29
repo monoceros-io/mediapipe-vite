@@ -190,6 +190,7 @@ body {
     right: 0;
     bottom: 0;
     z-index: 999999999999;
+    display: none;
 }
 
 .cb-row {
@@ -237,4 +238,9 @@ body {
     padding: 0.5em;
     height: 2em;
     text-shadow: 0 0 0.5em black;
+}
+
+.clc-btn {
+    margin-bottom: 1em;
+    display: none;
 }

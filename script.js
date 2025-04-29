@@ -2,6 +2,7 @@ import { setupVideoUtils, matchCropToVideo } from "./camera-utils";
 import { loadModels } from "./processing";
 import { setBrightnessContrast, setOverlayMask, setMaskColors } from './shader-program.js';
 import { activeBackground, activeForeground } from './threeview.js';
+import "./image-camera";
 
 import experience0 from './experience0.js';
 import experience1 from './experience1.js';
@@ -76,15 +77,19 @@ const contrastInput = document.getElementById('contrast');
 
 const detectedReadouts = document.querySelectorAll('.cb-det-sta');
 
+const startButtons = document.querySelectorAll('.clc-btn');
+
 eventController.addEventListener("pose-found", ({ segIndex }) => {
     detectedReadouts[segIndex].innerHTML = "Persona detectada";
     detectedReadouts[segIndex].style.color = "green";
+    startButtons[segIndex].style.display = "block";
 });
 
 
 eventController.addEventListener("pose-lost", ({ segIndex }) => {
     detectedReadouts[segIndex].innerHTML = "Nadie detectado";
     detectedReadouts[segIndex].style.color = "red";
+    startButtons[segIndex].style.display = "none";
 });
 
 function updateShaderBC() {
