@@ -194,47 +194,47 @@ async function processStreams() {
             captureAreas.push([x, y, w, h]);
         }
 
-        // Only run segmenter for one video per frame, alternating
-        const segIndex = frameCount % 2;
-        const base = segIndex * 4;
-        const [cx, cy, cw, ch] = rawCaptureAreas.slice(base, base + 4);
-        const bitmap = await createImageBitmap(video, cx, cy, cw, ch, {
-            resizeWidth: SEG_DIMENSION,
-            resizeHeight: SEG_DIMENSION,
-            resizeQuality: "high"
-        });
-
-        // Only detect pose every SKEL_FRAMES frames
-        skelFrameCounter++;
-        if (skelFrameCounter >= SKEL_FRAMES) {
-            detectPose(bitmap, segIndex);
-            skelFrameCounter = 0;
-        }
-
-        const segmentation = await segmenter.segmentForVideo(bitmap, performance.now());
-        bitmap.close();
-        const masks = segmentation.confidenceMasks;
-        if (masks?.[0]) {
-            const w = masks[0].width, h = masks[0].height;
-            const mask0 = masks[0].getAsFloat32Array();
-            const mask4 = masks[4]?.getAsFloat32Array() || null;
-            uploadMaskToTexture(mask0, segIndex * 2, w, h);
-            if (mask4) {
-                uploadMaskToTexture(mask4, segIndex * 2 + 1, w, h);
-            } else {
-                clearMaskTexture(segIndex * 2 + 1, w, h);
-            }
-            masks.forEach(mask => mask.close());
-        }
-        segmentation.close();
-
-        // Only upload video frame if it changed (using video.currentTime)
-        if (video.currentTime !== lastVideoFrameTime) {
+        // --- Fix: For each crop, grab a fresh bitmap from the latest video frame ---
+        // Always upload video frame before *each* crop extraction
+        for (let i = 0; i < 2; i++) {
             gl.activeTexture(gl.TEXTURE0 + 4);
             gl.bindTexture(gl.TEXTURE_2D, videoTexture);
             gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, video);
             lastVideoFrameTime = video.currentTime;
+
+            const base = i * 4;
+            const [cx, cy, cw, ch] = rawCaptureAreas.slice(base, base + 4);
+            const bitmap = await createImageBitmap(video, cx, cy, cw, ch, {
+                resizeWidth: SEG_DIMENSION,
+                resizeHeight: SEG_DIMENSION,
+                resizeQuality: "high"
+            });
+
+            // Only detect pose every SKEL_FRAMES frames
+            if (skelFrameCounter >= SKEL_FRAMES) {
+                detectPose(bitmap, i);
+            }
+
+            const segmentation = await segmenter.segmentForVideo(bitmap, performance.now());
+            bitmap.close();
+            const masks = segmentation.confidenceMasks;
+            if (masks?.[0]) {
+                const w = masks[0].width, h = masks[0].height;
+                const mask0 = masks[0].getAsFloat32Array();
+                const mask4 = masks[4]?.getAsFloat32Array() || null;
+                uploadMaskToTexture(mask0, i * 2, w, h);
+                if (mask4) {
+                    uploadMaskToTexture(mask4, i * 2 + 1, w, h);
+                } else {
+                    clearMaskTexture(i * 2 + 1, w, h);
+                }
+                masks.forEach(mask => mask.close());
+            }
+            segmentation.close();
         }
+        // Increment pose frame counter after both processed
+        skelFrameCounter++;
+        if (skelFrameCounter >= SKEL_FRAMES) skelFrameCounter = 0;
 
         blendCanvasesToOutCanvas(_finalCanvas);
     }
