@@ -203,38 +203,41 @@ async function processStreams() {
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, frameBitmap);
         lastVideoFrameTime = video.currentTime;
 
-        for (let i = 0; i < 2; i++) {
-            const base = i * 4;
-            const [cx, cy, cw, ch] = rawCaptureAreas.slice(base, base + 4);
-            const cropBitmap = await createImageBitmap(frameBitmap, cx, cy, cw, ch, {
-                resizeWidth: SEG_DIMENSION,
-                resizeHeight: SEG_DIMENSION,
-                resizeQuality: "high"
-            });
+        // for (let i = 0; i < 2; i++) {
 
-            // Only detect pose every SKEL_FRAMES frames
-            if (skelFrameCounter == 0) {
-                detectPose(cropBitmap, i);
-            }
+        let i = frameCount % 2;
+        const base = i * 4;
+        const [cx, cy, cw, ch] = rawCaptureAreas.slice(base, base + 4);
+        const cropBitmap = await createImageBitmap(frameBitmap, cx, cy, cw, ch, {
+            resizeWidth: SEG_DIMENSION,
+            resizeHeight: SEG_DIMENSION,
+            resizeQuality: "high"
+        });
 
-            // Segment every frame for both feeds
-            const segmentation = await segmenter.segmentForVideo(cropBitmap, performance.now());
-            cropBitmap.close();
-            const masks = segmentation.confidenceMasks;
-            if (masks?.[0]) {
-                const w = masks[0].width, h = masks[0].height;
-                const mask0 = masks[0].getAsFloat32Array();
-                const mask4 = masks[4]?.getAsFloat32Array() || null;
-                uploadMaskToTexture(mask0, i * 2, w, h);
-                if (mask4) {
-                    uploadMaskToTexture(mask4, i * 2 + 1, w, h);
-                } else {
-                    clearMaskTexture(i * 2 + 1, w, h);
-                }
-                masks.forEach(mask => mask.close());
-            }
-            segmentation.close();
+        // Only detect pose every SKEL_FRAMES frames
+        if (skelFrameCounter == 0) {
+            detectPose(cropBitmap, i);
         }
+
+        // Segment every frame for both feeds
+        const segmentation = await segmenter.segmentForVideo(cropBitmap, performance.now());
+        cropBitmap.close();
+        const masks = segmentation.confidenceMasks;
+        if (masks?.[0]) {
+            const w = masks[0].width, h = masks[0].height;
+            const mask0 = masks[0].getAsFloat32Array();
+            const mask4 = masks[4]?.getAsFloat32Array() || null;
+            uploadMaskToTexture(mask0, i * 2, w, h);
+            if (mask4) {
+                uploadMaskToTexture(mask4, i * 2 + 1, w, h);
+            } else {
+                clearMaskTexture(i * 2 + 1, w, h);
+            }
+            masks.forEach(mask => mask.close());
+        }
+        segmentation.close();
+        // }
+
         frameBitmap.close();
 
         // Increment pose frame counter after both processed
