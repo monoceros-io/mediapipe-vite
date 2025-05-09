@@ -230,6 +230,7 @@ body {
     background-color: white;
     opacity: 0.75;
     pointer-events: none;
+    display: none;
 }
 
 .fore-big {
