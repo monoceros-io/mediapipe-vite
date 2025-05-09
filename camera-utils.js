@@ -23,7 +23,7 @@ let gl;
 let lastVideoFrameTime = -1;
 let frameCount = 0;
 
-const SKEL_FRAMES = 3; // Only detect pose every 5 frames (adjust as needed)
+const SKEL_FRAMES = 5; // Only detect pose every 5 frames (adjust as needed)
 let skelFrameCounter = 0;
 
 init();
@@ -213,7 +213,7 @@ async function processStreams() {
             });
 
             // Only detect pose every SKEL_FRAMES frames
-            if (skelFrameCounter >= SKEL_FRAMES) {
+            if (skelFrameCounter == 0) {
                 detectPose(cropBitmap, i);
             }
 
@@ -238,6 +238,7 @@ async function processStreams() {
 
         // Increment pose frame counter after both processed
         skelFrameCounter++;
+        
         if (skelFrameCounter >= SKEL_FRAMES) skelFrameCounter = 0;
 
         blendCanvasesToOutCanvas(_finalCanvas);

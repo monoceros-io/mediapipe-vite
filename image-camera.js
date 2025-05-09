@@ -64,9 +64,22 @@ const startCount1 = (count) => {
 // buttons[0].addEventListener('click', startCount0);
 // buttons[1].addEventListener('click', startCount1);
 
-
-eventController.addEventListener("pose-lost", ({ segIndex }) => segIndex ? killCount0() : killCount1());
-eventController.addEventListener("pose-found", ({ segIndex }) => segIndex ? startCount0() : startCount1());
+eventController.addEventListener("pose-lost", ({ segIndex }) => {
+    console.log("Pose lost", segIndex);
+    if (segIndex === 0) {
+        killCount0();
+    } else if (segIndex === 1) {
+        killCount1();
+    }
+});
+eventController.addEventListener("pose-found", ({ segIndex }) => {
+    console.log("Pose found", segIndex);
+    if (segIndex === 0) {
+        startCount0();
+    } else if (segIndex === 1) {
+        startCount1();
+    }
+});
 
 const startExperience0 = () => {
 

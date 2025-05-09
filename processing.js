@@ -164,10 +164,13 @@ export function detectPose(bitmap, segIndex) {
             const lastFound = foundPoses[segIndex];
             const found = poseResult.landmarks.length > 0;
 
+
             if(found !== lastFound) {
                 if (found) {
+                    console.log("Pose found", segIndex);
                     eventController.dispatchEvent("pose-found", { segIndex });
                 } else {
+                    console.log("Pose lost", segIndex);
                     eventController.dispatchEvent("pose-lost", { segIndex });
                 }
             }
@@ -175,14 +178,7 @@ export function detectPose(bitmap, segIndex) {
             foundPoses[segIndex] = found;
 
             for (const landmark of poseResult.landmarks) {
-
                 updatePose(landmark, segIndex);
-
-                // const drawingUtils = new DrawingUtils(ctx)
-                // drawingUtils.drawLandmarks(landmark, {
-                //     radius: data => DrawingUtils.lerp(data.from.z, -0.15, 0.1, 5, 1)
-                // })
-                // drawingUtils.drawConnectors(landmark, PoseLandmarker.POSE_CONNECTIONS)
             }
         })
     }
