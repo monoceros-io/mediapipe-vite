@@ -66,17 +66,17 @@ const startCount1 = (count) => {
 
 eventController.addEventListener("pose-lost", ({ segIndex }) => {
     console.log("Pose lost", segIndex);
-    if (segIndex === 0) {
+    if (segIndex === 1) {
         killCount0();
-    } else if (segIndex === 1) {
+    } else if (segIndex === 0) {
         killCount1();
     }
 });
 eventController.addEventListener("pose-found", ({ segIndex }) => {
     console.log("Pose found", segIndex);
-    if (segIndex === 0) {
+    if (segIndex === 1) {
         startCount0();
-    } else if (segIndex === 1) {
+    } else if (segIndex === 0) {
         startCount1();
     }
 });
