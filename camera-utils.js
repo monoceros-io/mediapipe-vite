@@ -194,17 +194,19 @@ async function processStreams() {
             captureAreas.push([x, y, w, h]);
         }
 
-        // --- Fix: For each crop, grab a fresh bitmap from the latest video frame ---
-        // Always upload video frame before *each* crop extraction
-        for (let i = 0; i < 2; i++) {
-            gl.activeTexture(gl.TEXTURE0 + 4);
-            gl.bindTexture(gl.TEXTURE_2D, videoTexture);
-            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, video);
-            lastVideoFrameTime = video.currentTime;
+        // --- Fix: Capture the video frame ONCE and use for both crops ---
+        const frameBitmap = await createImageBitmap(video);
 
+        // Upload the captured frame to the GL texture ONCE
+        gl.activeTexture(gl.TEXTURE0 + 4);
+        gl.bindTexture(gl.TEXTURE_2D, videoTexture);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, frameBitmap);
+        lastVideoFrameTime = video.currentTime;
+
+        for (let i = 0; i < 2; i++) {
             const base = i * 4;
             const [cx, cy, cw, ch] = rawCaptureAreas.slice(base, base + 4);
-            const bitmap = await createImageBitmap(video, cx, cy, cw, ch, {
+            const cropBitmap = await createImageBitmap(frameBitmap, cx, cy, cw, ch, {
                 resizeWidth: SEG_DIMENSION,
                 resizeHeight: SEG_DIMENSION,
                 resizeQuality: "high"
@@ -212,11 +214,11 @@ async function processStreams() {
 
             // Only detect pose every SKEL_FRAMES frames
             if (skelFrameCounter >= SKEL_FRAMES) {
-                detectPose(bitmap, i);
+                detectPose(cropBitmap, i);
             }
 
-            const segmentation = await segmenter.segmentForVideo(bitmap, performance.now());
-            bitmap.close();
+            const segmentation = await segmenter.segmentForVideo(cropBitmap, performance.now());
+            cropBitmap.close();
             const masks = segmentation.confidenceMasks;
             if (masks?.[0]) {
                 const w = masks[0].width, h = masks[0].height;
@@ -232,6 +234,8 @@ async function processStreams() {
             }
             segmentation.close();
         }
+        frameBitmap.close();
+
         // Increment pose frame counter after both processed
         skelFrameCounter++;
         if (skelFrameCounter >= SKEL_FRAMES) skelFrameCounter = 0;
