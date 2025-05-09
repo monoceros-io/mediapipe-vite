@@ -244,7 +244,7 @@ async function processStreams() {
         skelFrameCounter++;
         if (skelFrameCounter >= SKEL_FRAMES) skelFrameCounter = 0;
 
-        blendCanvasesToOutCanvas(_finalCanvas);
+        blendCanvasesToOutCanvas(_finalCanvas, i);
     }
 
     function loop() {

@@ -306,7 +306,7 @@ function clearMaskTexture(unit, w, h) {
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, w, h, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, zero);
 }
 
-function blendCanvasesToOutCanvas(destCanvas) {
+function blendCanvasesToOutCanvas(destCanvas, index) {
     updateGLSize();
     gl.clear(gl.COLOR_BUFFER_BIT);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
