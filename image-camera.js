@@ -41,7 +41,6 @@ const startCount0 = (count) => {
     }, 1000);
 }
 
-
 const startCount1 = (count) => {
     clearTimeout(countTimeout1);
     messageElements1[0].innerHTML = messageElements1[1].innerHTML = "Preparate...";
@@ -60,6 +59,7 @@ const startCount1 = (count) => {
         }, 1000);
     }, 1000);
 }
+
 
 // buttons[0].addEventListener('click', startCount0);
 // buttons[1].addEventListener('click', startCount1);

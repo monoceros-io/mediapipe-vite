@@ -51,10 +51,7 @@ cameraSelectors.forEach((sel, index) => {
         const video = document.getElementById(`vid-${index}`);
         const stream = await navigator.mediaDevices.getUserMedia({
             video: {
-                frameRate: { min: 30, ideal: 120 },
                 deviceId: { exact: event.target.value },
-                width: { ideal: 1920 }, // Try for 4K width
-                height: { ideal: 1080 }, // Try for 4K height
             }
         });
 

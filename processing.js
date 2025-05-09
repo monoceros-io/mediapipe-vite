@@ -167,10 +167,8 @@ export function detectPose(bitmap, segIndex) {
 
             if(found !== lastFound) {
                 if (found) {
-                    console.log("Pose found", segIndex);
                     eventController.dispatchEvent("pose-found", { segIndex });
                 } else {
-                    console.log("Pose lost", segIndex);
                     eventController.dispatchEvent("pose-lost", { segIndex });
                 }
             }

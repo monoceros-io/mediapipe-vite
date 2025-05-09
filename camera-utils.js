@@ -194,7 +194,7 @@ async function processStreams() {
             captureAreas.push([x, y, w, h]);
         }
 
-        // --- Fix: Capture the video frame ONCE and use for both crops ---
+        // Capture the video frame ONCE and use for both crops
         const frameBitmap = await createImageBitmap(video);
 
         // Upload the captured frame to the GL texture ONCE
@@ -217,6 +217,7 @@ async function processStreams() {
                 detectPose(cropBitmap, i);
             }
 
+            // Segment every frame for both feeds
             const segmentation = await segmenter.segmentForVideo(cropBitmap, performance.now());
             cropBitmap.close();
             const masks = segmentation.confidenceMasks;
@@ -238,7 +239,6 @@ async function processStreams() {
 
         // Increment pose frame counter after both processed
         skelFrameCounter++;
-        
         if (skelFrameCounter >= SKEL_FRAMES) skelFrameCounter = 0;
 
         blendCanvasesToOutCanvas(_finalCanvas);
