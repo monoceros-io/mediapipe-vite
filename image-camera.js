@@ -34,7 +34,7 @@ const startCount0 = (count) => {
                 countdown0.innerHTML = "1";
                 countTimeout0 = setTimeout(() => {
                     countdown0.innerHTML = "";
-                    
+                    takePhoto(0);
                 }, 1000);
             }, 1000);
         }, 1000);
@@ -54,12 +54,30 @@ const startCount1 = (count) => {
                 countdown1.innerHTML = "1";
                 countTimeout1 = setTimeout(() => {
                     countdown1.innerHTML = "";
+                    takePhoto(1);
                 }, 1000);
             }, 1000);
         }, 1000);
     }, 1000);
 }
 
+const flashElements = document.querySelectorAll('.flash-white');
+
+
+
+const takePhoto = index => {
+    const flash = flashElements[index];
+    flash.style.display = "none";
+    flash.style.transition = "1s";
+    setTimeout(() => {
+        flash.style.display = "flex";
+        flash.style.opacity = "1";
+        setTimeout(() => {
+            flash.style.opacity = "0";
+        });
+    });
+    
+}
 
 // buttons[0].addEventListener('click', startCount0);
 // buttons[1].addEventListener('click', startCount1);

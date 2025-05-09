@@ -307,12 +307,14 @@ function clearMaskTexture(unit, w, h) {
 }
 
 function blendCanvasesToOutCanvas(destCanvas, index) {
-    updateGLSize();
+    // updateGLSize();
     gl.clear(gl.COLOR_BUFFER_BIT);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 }
 
 const videoTexture = textures[4];
+
+updateGLSize();
 
 export {
     setCaptureAreas,

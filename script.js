@@ -51,6 +51,10 @@ cameraSelectors.forEach((sel, index) => {
         const video = document.getElementById(`vid-${index}`);
         const stream = await navigator.mediaDevices.getUserMedia({
             video: {
+
+                width: { ideal: 4096 },
+                height: { ideal: 2160 },
+                aspectRatio: { ideal: 16 / 9 },
                 deviceId: { exact: event.target.value },
             }
         });
