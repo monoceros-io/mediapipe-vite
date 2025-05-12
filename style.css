@@ -257,3 +257,7 @@ body {
     margin-bottom: 1em;
     display: none;
 }
+
+.photo-canvas {
+    background-color: red;
+}

@@ -62,10 +62,17 @@ const startCount1 = (count) => {
 }
 
 const flashElements = document.querySelectorAll('.flash-white');
-
-
+const foreCanvases = document.querySelectorAll('.fore-canvas');
+const backingCanvases = [
+    document.getElementById('backing-canvas-0'),
+    document.getElementById('backing-canvas-1')
+];
+const finalCanvas = document.getElementById('final-canvas');
+const photoCanvas = document.getElementById('photo-canvas');
+const photoCtx = photoCanvas.getContext('2d');
 
 const takePhoto = index => {
+    // Flash logic
     const flash = flashElements[index];
     flash.style.display = "none";
     flash.style.transition = "1s";
@@ -76,11 +83,43 @@ const takePhoto = index => {
             flash.style.opacity = "0";
         });
     });
+
+    // Composite logic
+    // Clear photo canvas
+    photoCtx.clearRect(0, 0, photoCanvas.width, photoCanvas.height);
+
+    // Fill the canvas with black
+    photoCtx.fillStyle = "black";
+    photoCtx.fillRect(0, 0, photoCanvas.width, photoCanvas.height);
+
+    // Draw backing canvas for this side
+    photoCtx.drawImage(backingCanvases[index], 0, 0, photoCanvas.width, photoCanvas.height);
+
+    // Draw the correct half of the final canvas
+    // Left half: index 0, Right half: index 1
+    const halfW = finalCanvas.width / 2;
+    const sx = index === 0 ? 0 : halfW;
+
+    photoCtx.drawImage(
+        finalCanvas,
+        
+        sx, 
+        0, 
+        halfW, 
+        finalCanvas.height, // source rect
+
+        0,
+        0,
+        photoCanvas.width / 2,
+        photoCanvas.height // dest rect
+
+    );
+
+    // Draw fore canvas for this side
+    photoCtx.drawImage(foreCanvases[index], 0, 0, photoCanvas.width, photoCanvas.height);
+
     
 }
-
-// buttons[0].addEventListener('click', startCount0);
-// buttons[1].addEventListener('click', startCount1);
 
 eventController.addEventListener("pose-lost", ({ segIndex }) => {
     console.log("Pose lost", segIndex);
@@ -98,7 +137,3 @@ eventController.addEventListener("pose-found", ({ segIndex }) => {
         startCount1();
     }
 });
-
-const startExperience0 = () => {
-
-}
