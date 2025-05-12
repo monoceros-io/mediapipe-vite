@@ -25,6 +25,9 @@ body {
 }
 
 .qc-2 {
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 .video {
     position: absolute;
@@ -160,9 +163,9 @@ body {
 
 .canvas-container {
     position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
+    /* top: 0;
+    left: 0; */
+    /* width: 100%; */
     height: 100%;
     display: flex;
     flex-direction: row;

@@ -146,15 +146,15 @@ fullscreenBtn.addEventListener('click', () => {
         qc0.style.display = 'none';
     }
     // Enter fullscreen mode for main column
-    // if (mainColumn.requestFullscreen) {
-    //     mainColumn.requestFullscreen();
-    // } else if (mainColumn.webkitRequestFullscreen) {
-    //     mainColumn.webkitRequestFullscreen();
-    // } else if (mainColumn.mozRequestFullScreen) {
-    //     mainColumn.mozRequestFullScreen();
-    // } else if (mainColumn.msRequestFullscreen) {
-    //     mainColumn.msRequestFullscreen();
-    // }
+    if (mainColumn.requestFullscreen) {
+        mainColumn.requestFullscreen();
+    } else if (mainColumn.webkitRequestFullscreen) {
+        mainColumn.webkitRequestFullscreen();
+    } else if (mainColumn.mozRequestFullScreen) {
+        mainColumn.mozRequestFullScreen();
+    } else if (mainColumn.msRequestFullscreen) {
+        mainColumn.msRequestFullscreen();
+    }
 });
 
 // Listen for Escape key and fullscreen change to turn off qc-0 hiding
