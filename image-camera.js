@@ -119,6 +119,7 @@ const takePhoto = index => {
             0,
             photoCanvas.width,
             photoCanvas.height // dest rect
+            
         );
 
         // Draw fore canvas for this side
