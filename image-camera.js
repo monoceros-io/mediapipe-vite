@@ -6,8 +6,6 @@ const messageElements1 = document.querySelectorAll('.fsmall-1');
 const countdown0 = document.querySelector('#fcount-0');
 const countdown1 = document.querySelector('#fcount-1');
 
-const buttons = document.querySelectorAll('.clc-btn');
-
 let countTimeout0, countTimeout1;
 
 const killCount0 = () => {
@@ -119,7 +117,7 @@ const takePhoto = index => {
             0,
             photoCanvas.width,
             photoCanvas.height // dest rect
-            
+
         );
 
         // Draw fore canvas for this side

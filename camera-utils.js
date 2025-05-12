@@ -36,6 +36,7 @@ export function setupVideoUtils({ videos, cropDivOuters, cdoMasks, finalCanvas }
     video = _videos[0];
     cropDivOuter = _cropDivOuters[0];
     gl = _finalCanvas.getContext("webgl");
+    matchCropToVideo();
 }
 
 export function matchCropToVideo() {
@@ -132,6 +133,10 @@ function setupCropBoxDragging() {
                 dragging = false;
                 document.body.style.userSelect = '';
             }
+
+            console.log("Drag ended");
+            console.log(_cdoMasks);
+            document.cookie = `cdoMaskCache=${JSON.stringify(_cdoMasks)}; path=/; max-age=31536000`;
         });
 
         // --- Resize logic for video-scaler-box ---

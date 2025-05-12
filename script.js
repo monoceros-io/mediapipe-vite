@@ -23,9 +23,23 @@ const dumpCanvases = document.querySelectorAll(".crop-canvas");
 const finalCanvas = document.querySelector("#final-canvas");
 
 const cdoMasks = [
-    10, 5, 40, 90,
-    55, 5, 40, 90
+     0, 0, 50, 100,
+    50, 0, 50, 100
 ];
+
+
+const cookieMatch = document.cookie.match(/cdoMaskCache=([^;]+)/);
+if (cookieMatch) {
+    try {
+        const cachedMasks = JSON.parse(cookieMatch[1]);
+        if (Array.isArray(cachedMasks) && cachedMasks.length === cdoMasks.length) {
+            cdoMasks.splice(0, cdoMasks.length, ...cachedMasks);
+            console.log("Loaded cdoMaskCache from cookie:", cdoMasks);
+        }
+    } catch (e) {
+        console.error("Failed to parse cdoMaskCache cookie:", e);
+    }
+}
 
 setupVideoUtils({ videos, cropDivOuters, cdoMasks, dumpCanvases, finalCanvas });
 
@@ -78,19 +92,15 @@ const contrastInput = document.getElementById('contrast');
 
 const detectedReadouts = document.querySelectorAll('.cb-det-sta');
 
-const startButtons = document.querySelectorAll('.clc-btn');
-
 eventController.addEventListener("pose-found", ({ segIndex }) => {
     detectedReadouts[segIndex].innerHTML = "Persona detectada";
     detectedReadouts[segIndex].style.color = "green";
-    startButtons[segIndex].style.display = "block";
 });
 
 
 eventController.addEventListener("pose-lost", ({ segIndex }) => {
     detectedReadouts[segIndex].innerHTML = "Nadie detectado";
     detectedReadouts[segIndex].style.color = "red";
-    startButtons[segIndex].style.display = "none";
 });
 
 function updateShaderBC() {
@@ -129,22 +139,22 @@ const mainColumn = document.querySelector('.main-column');
 
 fullscreenBtn.addEventListener('click', () => {
     console.log("Fullscreen button clicked");
-    // Toggle display flex/none for qc-0
+    
     if (qc0.style.display === 'none') {
         qc0.style.display = 'flex';
     } else {
         qc0.style.display = 'none';
     }
     // Enter fullscreen mode for main column
-    if (mainColumn.requestFullscreen) {
-        mainColumn.requestFullscreen();
-    } else if (mainColumn.webkitRequestFullscreen) {
-        mainColumn.webkitRequestFullscreen();
-    } else if (mainColumn.mozRequestFullScreen) {
-        mainColumn.mozRequestFullScreen();
-    } else if (mainColumn.msRequestFullscreen) {
-        mainColumn.msRequestFullscreen();
-    }
+    // if (mainColumn.requestFullscreen) {
+    //     mainColumn.requestFullscreen();
+    // } else if (mainColumn.webkitRequestFullscreen) {
+    //     mainColumn.webkitRequestFullscreen();
+    // } else if (mainColumn.mozRequestFullScreen) {
+    //     mainColumn.mozRequestFullScreen();
+    // } else if (mainColumn.msRequestFullscreen) {
+    //     mainColumn.msRequestFullscreen();
+    // }
 });
 
 // Listen for Escape key and fullscreen change to turn off qc-0 hiding
