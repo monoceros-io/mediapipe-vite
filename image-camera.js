@@ -100,25 +100,30 @@ const takePhoto = index => {
     const halfW = finalCanvas.width / 2;
     const sx = index === 0 ? 0 : halfW;
 
-    photoCtx.drawImage(
-        finalCanvas,
-        
-        sx, 
-        0, 
-        halfW, 
-        finalCanvas.height, // source rect
+    // Ensure WebGL rendering is finished before drawing
+    if (finalCanvas.getContext("webgl")) {
+        finalCanvas.getContext("webgl").flush();
+    }
 
-        0,
-        0,
-        photoCanvas.width / 2,
-        photoCanvas.height // dest rect
+    // Use requestAnimationFrame to ensure the canvas is ready
+    requestAnimationFrame(() => {
+        photoCtx.drawImage(
+            finalCanvas,
 
-    );
+            sx,
+            0,
+            halfW,
+            finalCanvas.height, // source rect
 
-    // Draw fore canvas for this side
-    photoCtx.drawImage(foreCanvases[index], 0, 0, photoCanvas.width, photoCanvas.height);
+            0,
+            0,
+            photoCanvas.width,
+            photoCanvas.height // dest rect
+        );
 
-    
+        // Draw fore canvas for this side
+        photoCtx.drawImage(foreCanvases[index], 0, 0, photoCanvas.width, photoCanvas.height);
+    });
 }
 
 eventController.addEventListener("pose-lost", ({ segIndex }) => {
