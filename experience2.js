@@ -35,7 +35,7 @@ export default {
 
         // Add spiral-shader plane to background
         const spiralGeometry = new THREE.PlaneGeometry(3, 3);
-        const spiralMaterial = SpiralShaderMaterial();
+        const spiralMaterial = SpiralShaderMaterial([0, 0, 1]); // BLUE
         spiralMaterial.uniforms.rot_points.value = Float32Array.from({length: 100}, (_, i) => {
             const idx = i % 5;
             if (idx === 0) return Math.random() * Math.PI * 2;

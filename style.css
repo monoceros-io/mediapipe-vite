@@ -258,5 +258,15 @@ body {
 
 .photo-canvas {
     background-color: red;
-    display: none;
+    /* display: none; */
+}
+
+.photo-overlay-outer {
+    width: 30%;
+    aspect-ratio: 9 / 12;
+    background-color: white;
+}
+
+.photo-overlay-inner {
+
 }
