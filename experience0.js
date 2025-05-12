@@ -92,6 +92,7 @@ export default {
         background.camera = camera;
     },
     updateBackground({ canvas, time }) {
+        if (!background.renderer) return;
         const { renderer, spiralMaterial } = background;
 
         // Animate spiral points: angle += speed
