@@ -9,6 +9,8 @@ import experience1 from './experience1.js';
 import experience2 from './experience2.js';
 import experience3 from './experience3.js';
 import eventController from "./EventController.js";
+import "./canvas2d.js";
+
 
 const experiences = [experience0, experience1, experience2, experience3];
 

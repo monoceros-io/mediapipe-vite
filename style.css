@@ -262,11 +262,84 @@ body {
 }
 
 .photo-overlay-outer {
-    width: 30%;
-    aspect-ratio: 9 / 12;
+    padding: 1%;
+    padding-bottom: 6%;
     background-color: white;
+    
+    position: absolute;
+    
+    rotate: 20deg;
+    width: 20%;
+    top: 10%;
+    left: 10%;
+    animation-duration: 5s;
+    animation-name: photo-spin-in;
+    animation-iteration-count: infinite;
+    animation-timing-function: cubic-bezier(1,-0.28,.76,1.33);
+
 }
 
 .photo-overlay-inner {
+    aspect-ratio: 1920 / 2160;
+    width: 100%;
+    background-color: black;
+}
 
+@keyframes photo-spin-in {
+    0% {
+        rotate: 0deg;
+        left: 0;
+        top: 0;
+        width: 100%;
+        opacity: 0;
+    }
+    75% {
+        rotate: 740deg;
+        width: 20%;
+        top: 10%;
+        left: 10%;
+        scale: 1;
+        opacity: 1;
+    }
+    80% {
+        scale: 1.2;
+        rotate: 740deg;
+    }
+    85% {
+        scale: 1.0;
+        rotate: 740deg;
+    }
+    90% {
+        scale: 1.2;
+        rotate: 740deg;
+    }
+    95% {
+        scale: 0.8;
+        rotate: 700deg;
+        opacity: 1;
+    }
+    100% {
+        scale: 2;
+        rotate: 740deg;
+        opacity: 0;
+    }
+}
+
+
+.konva-parent {
+    width: 50%;
+    height: 100%;
+    z-index: 999999;
+}
+
+#fore-2d-0 {
+    /* background-color: blue; */
+    position: absolute !important;
+
+}
+
+#fore-2d-1 {
+    /* background-color: red; */
+    position: absolute !important;
+    left: 50%;
 }
