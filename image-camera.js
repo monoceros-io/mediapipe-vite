@@ -67,7 +67,7 @@ const backingCanvases = [
 ];
 const finalCanvas = document.getElementById('final-canvas');
 const photoCanvas = document.getElementById('photo-canvas');
-const photoCtx = photoCanvas.getContext('2d');
+const photoCtx = photoCanvas.getContext('2d', { antialias: true });
 
 const takePhoto = index => {
     // Flash logic

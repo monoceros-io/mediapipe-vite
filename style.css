@@ -258,7 +258,7 @@ body {
 
 .photo-canvas {
     background-color: red;
-    /* display: none; */
+    display: none;
 }
 
 .photo-overlay-outer {
