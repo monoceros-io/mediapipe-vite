@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import SpiralShaderMaterial from './spiral-shader.js';
 
-const EXPERIENCE_COLOR = 0x00ff00;
+const EXPERIENCE_COLOR = 0x00953b;
 const CUBE_COUNT = 10;
 const FORE_SPRITE_COUNT = 50;
 const MAX_LIFE = 1000;
@@ -22,7 +22,7 @@ export default {
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(45, canvas.width / canvas.height, 0.1, 100);
         camera.position.set(0, 0, 5);
-        const geometry = new THREE.TorusGeometry(0.7, 0.3, 16, 100);
+        const geometry = new THREE.BoxGeometry(1, 1, 1);
         cubes = [];
         for (let j = 0; j < CUBE_COUNT; j++) {
             const material = new THREE.MeshStandardMaterial({ color: EXPERIENCE_COLOR, roughness: 0.5, metalness: 0.5 });
@@ -38,7 +38,7 @@ export default {
 
         // Add spiral-shader plane to background
         const spiralGeometry = new THREE.PlaneGeometry(3, 3);
-        const spiralMaterial = SpiralShaderMaterial([0, 1, 0]); // GREEN
+        const spiralMaterial = SpiralShaderMaterial([0, 0.5843, 0.29804]); // GREEN
         spiralMaterial.uniforms.rot_points.value = Float32Array.from({length: 100}, (_, i) => {
             const idx = i % 5;
             if (idx === 0) return Math.random() * Math.PI * 2;
@@ -94,7 +94,8 @@ export default {
         for (let j = 0; j < FORE_SPRITE_COUNT; j++) {
             const material = new THREE.SpriteMaterial({ 
                 map: spriteTexture, 
-                color: EXPERIENCE_COLOR,
+                // color: EXPERIENCE_COLOR,
+                color: 0xffffff,
                 transparent: true
             });
             const sprite = new THREE.Sprite(material);

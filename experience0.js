@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import SpiralShaderMaterial from './spiral-shader.js';
 
-const EXPERIENCE_COLOR = 0xff0000;
+const EXPERIENCE_COLOR = 0xffd100;
 const FORE_SPRITE_COUNT = 20;
 const MAX_LIFE = 1000;
 const PARTICLE_FRICTION = 0.97;
@@ -30,7 +30,7 @@ export default {
         // Load chili texture
         const loader = new THREE.TextureLoader();
         starTexture = await new Promise((resolve, reject) => {
-            loader.load('chili.png', resolve, undefined, reject);
+            loader.load('chip0.png', resolve, undefined, reject);
         });
         // Ensure correct color space for texture
         starTexture.encoding = THREE.sRGBEncoding;
@@ -44,7 +44,7 @@ export default {
         camera.position.set(0, 0, 5);
 
         // Starfield planes
-        const geometry = new THREE.PlaneGeometry(0.4, 0.4);
+        const geometry = new THREE.PlaneGeometry(1, 1);
         starPlanes = [];
         starScales = [];
         starRotations = [];
@@ -71,7 +71,7 @@ export default {
 
         // Add spiral-shader plane to background
         const spiralGeometry = new THREE.PlaneGeometry(3, 3);
-        const spiralMaterial = SpiralShaderMaterial([1, 0, 0]); // RED
+        const spiralMaterial = SpiralShaderMaterial([0.996, 0.8196, 0.0118]); // RED
         spiralMaterial.uniforms.rot_points.value = Float32Array.from({length: 100}, (_, i) => {
             const idx = i % 5;
             if (idx === 0) return Math.random() * Math.PI * 2; // angle

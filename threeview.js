@@ -1,8 +1,10 @@
 import * as THREE from 'three';
-import BASE_PART_IMG from "/basepart.png";
+// import BASE_PART_IMG from "/basepart.png";
+import BASE_PART_IMG from "/chip0.png";
 import { bodies } from './processing';
 
 // Import experience modules
+
 import experience0 from './experience0.js';
 import experience1 from './experience1.js';
 import experience2 from './experience2.js';
@@ -19,7 +21,7 @@ const CUBE_COUNT = 100;
 const FORE_SPRITE_COUNT = 50;
 const PARTICLE_FRICTION = 0.97;
 const MAX_LIFE = 1000;
-const EXPERIENCE_COLORS = [0xff0000, 0x00ff00, 0x0000ff, 0xffff00];
+const EXPERIENCE_COLORS = [0xffd100, 0x00953b, 0x5c0f8b, 0x101820];
 
 let activeBackground = [0, 1];
 let activeForeground = [0, 1];

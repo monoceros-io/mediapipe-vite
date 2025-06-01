@@ -179,10 +179,10 @@ document.addEventListener('fullscreenchange', () => {
 // --- Experience switching logic ---
 
 const EXPERIENCE_COLORS = [
-    [1, 0, 0], // Red
-    [0, 1, 0], // Green
-    [0, 0, 1], // Blue
-    [1, 1, 0]  // Yellow
+    [0.3, 0.2, 0],  // Yellow
+    [0.2, 1.0, 0.1],  // Yellow
+    [1, 1, 0], // Blue
+    [1.0, 0.5, 0]  // Yellow
 ];
 
 function updateMaskColors() {
@@ -205,6 +205,7 @@ leftButtons.forEach((btn, idx) => {
         updateMaskColors();
     });
 });
+
 rightButtons.forEach((btn, idx) => {
     btn.addEventListener('click', () => {
         activeForeground[1] = idx;
@@ -224,8 +225,8 @@ function setExperience(view, type, idx) {
         activeBackground[view] = idx;
     } else {
         const canvas = foreCanvasArray[view];
-        const mode = experiences[idx].foreBlendMode;
-        canvas.style.mixBlendMode = mode;
+        // const mode = experiences[idx].foreBlendMode;
+        // canvas.style.mixBlendMode = mode;
         activeForeground[view] = idx;
     }
 }

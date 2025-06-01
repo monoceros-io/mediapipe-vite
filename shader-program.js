@@ -275,7 +275,7 @@ gl.uniform1f(u_brightness, 0.0);
 gl.uniform1f(u_contrast, 1.5);
 gl.uniform1i(u_overlayMask, 0);
 gl.uniform3fv(u_maskColors, new Float32Array([
-    1.0, 0.0, 0.0, // Red
+    1.0, 1.0, 0.0, // Red
     0.0, 1.0, 0.0, // Green
     0.0, 0.0, 1.0, // Blue
     1.0, 1.0, 0.0  // Yellow

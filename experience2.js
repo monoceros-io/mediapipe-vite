@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import SpiralShaderMaterial from './spiral-shader.js';
 
-const EXPERIENCE_COLOR = 0x0000ff;
+const EXPERIENCE_COLOR = 0x5c0f8b;
 const CUBE_COUNT = 10;
 const FORE_SPRITE_COUNT = 50;
 const MAX_LIFE = 1000;
@@ -35,7 +35,7 @@ export default {
 
         // Add spiral-shader plane to background
         const spiralGeometry = new THREE.PlaneGeometry(3, 3);
-        const spiralMaterial = SpiralShaderMaterial([0, 0, 1]); // BLUE
+        const spiralMaterial = SpiralShaderMaterial([0.3608, 0.1725, 0.5255]); // BLUE
         spiralMaterial.uniforms.rot_points.value = Float32Array.from({length: 100}, (_, i) => {
             const idx = i % 5;
             if (idx === 0) return Math.random() * Math.PI * 2;
@@ -96,7 +96,7 @@ export default {
         for (let j = 0; j < FORE_SPRITE_COUNT; j++) {
             const material = new THREE.SpriteMaterial({ 
                 map: spriteTexture, 
-                color: EXPERIENCE_COLOR,
+                // color: EXPERIENCE_COLOR,
                 transparent: true
             });
             const sprite = new THREE.Sprite(material);
