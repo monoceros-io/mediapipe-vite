@@ -19,48 +19,7 @@ const killCount1 = () => {
     clearTimeout(countTimeout1);
 }
 
-const startCount0 = (count) => {
-    clearTimeout(countTimeout0);
-    messageElements0[0].innerHTML = messageElements0[1].innerHTML = "Preparate...";
-    countdown0.innerHTML = "";
-    countTimeout0 = setTimeout(() => {
-        messageElements0[0].innerHTML = messageElements0[1].innerHTML = "";
-        countdown0.innerHTML = "3";
-        countTimeout0 = setTimeout(() => {
-            countdown0.innerHTML = "2";
-            countTimeout0 = setTimeout(() => {
-                countdown0.innerHTML = "1";
-                countTimeout0 = setTimeout(() => {
-                    countdown0.innerHTML = "";
-                    takePhoto(0);
-                }, 1000);
-            }, 1000);
-        }, 1000);
-    }, 1000);
-}
-
-const startCount1 = (count) => {
-    clearTimeout(countTimeout1);
-    messageElements1[0].innerHTML = messageElements1[1].innerHTML = "Preparate...";
-    countdown1.innerHTML = "";
-    countTimeout1 = setTimeout(() => {
-        messageElements1[0].innerHTML = messageElements1[1].innerHTML = "";
-        countdown1.innerHTML = "3";
-        countTimeout1 = setTimeout(() => {
-            countdown1.innerHTML = "2";
-            countTimeout1 = setTimeout(() => {
-                countdown1.innerHTML = "1";
-                countTimeout1 = setTimeout(() => {
-                    countdown1.innerHTML = "";
-                    takePhoto(1);
-                }, 1000);
-            }, 1000);
-        }, 1000);
-    }, 1000);
-}
-
 const flashElements = document.querySelectorAll('.flash-white');
-const foreCanvases = document.querySelectorAll('.fore-canvas');
 const backingCanvases = [
     document.getElementById('backing-canvas-0'),
     document.getElementById('backing-canvas-1')
@@ -105,39 +64,126 @@ const takePhoto = index => {
 
     // Use requestAnimationFrame to ensure the canvas is ready
     requestAnimationFrame(() => {
-        photoCtx.drawImage(
-            finalCanvas,
+        // photoCtx.drawImage(
+        //     finalCanvas,
 
-            sx,
-            0,
-            halfW,
-            finalCanvas.height, // source rect
+        //     sx,
+        //     0,
+        //     halfW,
+        //     finalCanvas.height, // source rect
 
-            0,
-            0,
-            photoCanvas.width,
-            photoCanvas.height // dest rect
+        //     0,
+        //     0,
+        //     photoCanvas.width,
+        //     photoCanvas.height // dest rect
 
-        );
+        // );
 
-        // Draw fore canvas for this side
-        photoCtx.drawImage(foreCanvases[index], 0, 0, photoCanvas.width, photoCanvas.height);
+        // photoCtx.drawImage(foreCanvases[index], 0, 0, photoCanvas.width, photoCanvas.height);
     });
 }
 
+const posesDetected = [false, false];
+
 eventController.addEventListener("pose-lost", ({ segIndex }) => {
-    console.log("Pose lost", segIndex);
-    if (segIndex === 1) {
-        killCount0();
-    } else if (segIndex === 0) {
-        killCount1();
+    
+    if (posesDetected[segIndex]) {
+        posesDetected[segIndex] = false;
+        showCTA(+(!segIndex));
     }
+
+
 });
 eventController.addEventListener("pose-found", ({ segIndex }) => {
-    console.log("Pose found", segIndex);
-    if (segIndex === 1) {
-        startCount0();
-    } else if (segIndex === 0) {
-        startCount1();
+
+    if (!posesDetected[segIndex]) {
+        posesDetected[segIndex] = true;
+        hideCTA(+(!segIndex));
     }
+
+    // showPrepare(i);
 });
+
+
+const ctas = document.querySelectorAll(".cta-inner");
+let ctasVisible = [false, false];
+
+ctas[0].style.opacity = 0.0;
+ctas[0].style.transform = "scale(3) rotate(180deg)";
+
+ctas[1].style.opacity = 0.0;
+ctas[1].style.transform = "scale(3) rotate(180deg)";
+
+let ctaImageIndices = [0, 1];
+
+let ctaImageCount = 2;
+
+let ctaTimeouts = [NaN, NaN];
+
+const ctaLoop = index => {
+
+    if (!ctasVisible[index])
+        return;
+
+    const cta = ctas[index];
+    cta.style.transform = "scale(1) rotate(0deg)";
+    cta.style.opacity = 1;
+
+    clearTimeout(ctaTimeouts[index]);
+
+    ctaTimeouts[index] = setTimeout(() => {
+        cta.style.transform = "scale(3) rotate(180deg)";
+        cta.style.opacity = 0;
+        ctaTimeouts[index] = setTimeout(() => {
+
+            if (!ctasVisible[index])
+                return;
+
+            let i = ctaImageIndices[index];
+            i = (i + 1) % ctaImageCount;
+            ctaImageIndices[index] = i;
+            cta.style.backgroundImage = `url("./images/cta${i}.png")`;
+            ctaLoop(index);
+        }, 2000);
+    }, 2000);
+}
+
+const showCTA = index => {
+
+    console.log("SHOW CTA", index);
+
+    if (ctasVisible[index])
+        return;
+    ctasVisible[index] = true;
+
+    ctaLoop(index);
+
+}
+
+const hideCTA = index => {
+
+    console.log("HIDE CTA", index);
+    ctasVisible[index] = false;
+    const cta = ctas[index];
+    cta.style.transform = "scale(3) rotate(180deg)";
+    cta.style.opacity = 0;
+}
+
+showCTA(0);
+showCTA(1);
+
+const prepNotices = document.querySelectorAll(".prep-inner");
+
+let prepTimeouts = [NaN, NaN];
+
+const showPrepare = index => {
+    const notice = prepNotices[index];
+    notice.style.opacity = 1;
+    notice.style.transform = "scale(1)";
+
+    clearTimeout(prepTimeouts[index]);
+    prepTimeouts[index] = setTimeout(() => {
+        notice.style.opacity = 0.1;
+        notice.style.transform = "scale(3)";
+    }, 3000);
+}

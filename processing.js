@@ -155,6 +155,9 @@ function updatePose(landmark, regIndex) {
 
 let foundPoses = [false, false];
 
+const CHANGE_TIMEOUT = 250;
+let foundChangeTimeouts = [];
+let canChange = [true, true];
 
 export function detectPose(bitmap, segIndex) {
 
@@ -164,12 +167,26 @@ export function detectPose(bitmap, segIndex) {
             const lastFound = foundPoses[segIndex];
             const found = poseResult.landmarks.length > 0;
 
-
-            if(found !== lastFound) {
+            if (found !== lastFound) {
                 if (found) {
-                    eventController.dispatchEvent("pose-found", { segIndex });
+                    if (canChange[segIndex]) {
+                        canChange[segIndex] = false;
+                        eventController.dispatchEvent("pose-found", { segIndex });
+                        clearTimeout(foundChangeTimeouts[segIndex]);
+                        foundChangeTimeouts[segIndex] = setTimeout(()=>{
+                            canChange[segIndex] = true;
+                        }, CHANGE_TIMEOUT);
+                    }
+
                 } else {
-                    eventController.dispatchEvent("pose-lost", { segIndex });
+                    if (canChange[segIndex]) {
+                        canChange[segIndex] = false;
+                        eventController.dispatchEvent("pose-lost", { segIndex });
+                        clearTimeout(foundChangeTimeouts[segIndex]);
+                        foundChangeTimeouts[segIndex] = setTimeout(()=>{
+                            canChange[segIndex] = true;
+                        }, CHANGE_TIMEOUT);
+                    }
                 }
             }
 

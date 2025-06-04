@@ -50,7 +50,7 @@ export function matchCropToVideo() {
     }
 
     const videoAspect = vw / vh;
-    const elementAspect = ew / eh;
+    const elementAspect = (ew / eh) / 2;
 
     const visibleWidth = videoAspect > elementAspect ? ew : eh * videoAspect;
     const visibleHeight = videoAspect > elementAspect ? ew / videoAspect : eh;

@@ -25,7 +25,7 @@ const dumpCanvases = document.querySelectorAll(".crop-canvas");
 const finalCanvas = document.querySelector("#final-canvas");
 
 const cdoMasks = [
-     0, 0, 50, 100,
+    0, 0, 50, 100,
     50, 0, 50, 100
 ];
 
@@ -50,43 +50,61 @@ let frameCounter = 0;
 
 const devices = await navigator.mediaDevices.enumerateDevices();
 
+let firstSet = false;
+
+
+const cameraChange = async (id) => {
+
+
+    cameraSourceActive[0] = false;
+    const video = document.getElementById(`vid-0`);
+    const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+            width: { ideal: 4096 },
+            height: { ideal: 1920 },
+            aspectRatio: { ideal: 16 / 9 },
+            deviceId: { exact: id },
+        }
+    });
+
+    const streamStart = () => {
+        video.removeEventListener('loadeddata', streamStart);
+        cameraSourceActive[0] = true;
+        matchCropToVideo();
+    }
+
+    video.addEventListener('loadeddata', streamStart);
+    video.srcObject = stream;
+    video.play();
+}
+
 devices.filter(device => device.kind === 'videoinput').forEach((device, index) => {
 
     for (let sel of cameraSelectors) {
+
+        if(!firstSet){
+            firstSet = true;
+            cameraChange(device.deviceId);
+        }
+        
         const option = document.createElement('option');
         option.value = device.deviceId;
         option.textContent = device.label || `Camera ${index + 1}`;
         sel.appendChild(option);
         sel.selectedIndex = 2;
     }
+
+
 });
+
 
 cameraSelectors.forEach((sel, index) => {
-    sel.addEventListener('change', async (event) => {
-        cameraSourceActive[index] = false;
-        const video = document.getElementById(`vid-${index}`);
-        const stream = await navigator.mediaDevices.getUserMedia({
-            video: {
 
-                width: { ideal: 4096 },
-                height: { ideal: 2160 },
-                aspectRatio: { ideal: 16 / 9 },
-                deviceId: { exact: event.target.value },
-            }
-        });
-
-        const streamStart = () => {
-            video.removeEventListener('loadeddata', streamStart);
-            cameraSourceActive[index] = true;
-            matchCropToVideo();
-        }
-
-        video.addEventListener('loadeddata', streamStart);
-        video.srcObject = stream;
-        video.play();
-
+    sel.addEventListener('change', event => {
+        cameraChange(event.target.value);
     });
 });
+
 
 // Wire up brightness and contrast controls
 const brightnessInput = document.getElementById('brightness');
@@ -141,7 +159,7 @@ const mainColumn = document.querySelector('.main-column');
 
 fullscreenBtn.addEventListener('click', () => {
     console.log("Fullscreen button clicked");
-    
+
     if (qc0.style.display === 'none') {
         qc0.style.display = 'flex';
     } else {
@@ -249,3 +267,4 @@ cbRows.forEach((row, viewIdx) => {
 
 // Set initial values
 updateShaderBC();
+

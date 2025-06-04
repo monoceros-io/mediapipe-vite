@@ -45,7 +45,7 @@ body {
 .final-canvas {
     position: absolute;
     height: 100%;
-    aspect-ratio: 1.6842;
+    aspect-ratio: 1.015625;
     
 }
 
@@ -53,7 +53,7 @@ body {
     top: 0;
     left: 0;
     height: 100%;
-    aspect-ratio: 0.8421;
+    aspect-ratio: 0.5078125;
     /* mix-blend-mode: plus-lighter; */
 }
 
@@ -61,7 +61,7 @@ body {
     top: 0;
     left: 50%;
     height: 100%;
-    aspect-ratio: 0.8421;
+    aspect-ratio: 0.5078125;
 }
 
 
@@ -276,11 +276,12 @@ body {
     animation-name: photo-spin-in;
     animation-iteration-count: infinite;
     animation-timing-function: cubic-bezier(1,-0.28,.76,1.33);
+    display: none;
 
 }
 
 .photo-overlay-inner {
-    aspect-ratio: 1920 / 2160;
+    aspect-ratio: 975 / 1920;
     width: 100%;
     background-color: black;
 }
@@ -342,4 +343,60 @@ body {
     /* background-color: red; */
     position: absolute !important;
     left: 50%;
+}
+
+
+.cta-overlay {
+    width: 50%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    
+}
+
+.cta-inner {
+    width: 100%;
+    height: 20%;
+    background-image: url("./src/images/cta1.png");
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    transition: 0.5s;
+    transition-timing-function: cubic-bezier(1,-0.28,.76,1.33);
+}
+
+
+.prep-inner {
+    width: 100%;
+    height: 20%;
+    background-image: url("./src/images/prep.png");
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    transition: 0.5s;
+    transition-timing-function: cubic-bezier(1,-0.28,.76,1.33);
+    opacity: 0.0;
+    transform: scale(3);
+}
+
+.fore-canvas-prep-text {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    display: flex;
+}
+
+.prep-overlay {
+    width: 50%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
 }
