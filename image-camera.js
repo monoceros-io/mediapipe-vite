@@ -6,6 +6,10 @@ const messageElements1 = document.querySelectorAll('.fsmall-1');
 const countdown0 = document.querySelector('#fcount-0');
 const countdown1 = document.querySelector('#fcount-1');
 
+const photoElements = document.querySelectorAll(".photo-overlay-outer");
+const foreCanvases = document.querySelectorAll(".fore-canvas");
+
+
 let countTimeout0, countTimeout1;
 
 const killCount0 = () => {
@@ -13,6 +17,7 @@ const killCount0 = () => {
     countdown0.innerHTML = "";
     clearTimeout(countTimeout0);
 }
+
 const killCount1 = () => {
     messageElements1[0].innerHTML = messageElements1[1].innerHTML = "Buscando a una persona...";
     countdown1.innerHTML = "";
@@ -20,76 +25,78 @@ const killCount1 = () => {
 }
 
 const flashElements = document.querySelectorAll('.flash-white');
+
 const backingCanvases = [
     document.getElementById('backing-canvas-0'),
     document.getElementById('backing-canvas-1')
 ];
+
 const finalCanvas = document.getElementById('final-canvas');
 const photoCanvas = document.getElementById('photo-canvas');
+
 const photoCtx = photoCanvas.getContext('2d', { antialias: true });
 
+const flashTimeouts = [NaN, NaN];
+
 const takePhoto = index => {
+
+    clearTimeout(flashTimeouts[index]);
     // Flash logic
     const flash = flashElements[index];
     flash.style.display = "none";
     flash.style.transition = "1s";
-    setTimeout(() => {
+    flashTimeouts[index] = setTimeout(() => {
         flash.style.display = "flex";
         flash.style.opacity = "1";
-        setTimeout(() => {
+        flashTimeouts[index] = setTimeout(() => {
             flash.style.opacity = "0";
         });
-    });
 
-    // Composite logic
-    // Clear photo canvas
-    photoCtx.clearRect(0, 0, photoCanvas.width, photoCanvas.height);
+        // Composite logic
+        // Clear photo canvas
+        photoCtx.clearRect(0, 0, photoCanvas.width, photoCanvas.height);
+        // Fill the canvas with black
+        photoCtx.fillStyle = "black";
+        photoCtx.fillRect(0, 0, photoCanvas.width, photoCanvas.height);
+        // Draw backing canvas for this side
+        photoCtx.drawImage(backingCanvases[index], 0, 0, photoCanvas.width, photoCanvas.height);
 
-    // Fill the canvas with black
-    photoCtx.fillStyle = "black";
-    photoCtx.fillRect(0, 0, photoCanvas.width, photoCanvas.height);
+        requestAnimationFrame(() => {
+            const isLeft = index === 0;
 
-    // Draw backing canvas for this side
-    photoCtx.drawImage(backingCanvases[index], 0, 0, photoCanvas.width, photoCanvas.height);
+            const sx = isLeft ? 0 : finalCanvas.width / 2;  // source x
+            const sy = 0;
+            const sWidth = finalCanvas.width / 2;
+            const sHeight = finalCanvas.height;
 
-    // Draw the correct half of the final canvas
-    // Left half: index 0, Right half: index 1
-    const halfW = finalCanvas.width / 2;
-    const sx = index === 0 ? 0 : halfW;
+            const dx = 0;
+            const dy = 0;
+            const dWidth = photoCanvas.width;
+            const dHeight = photoCanvas.height;
 
-    // Ensure WebGL rendering is finished before drawing
-    if (finalCanvas.getContext("webgl")) {
-        finalCanvas.getContext("webgl").flush();
-    }
+            photoCtx.drawImage(
+                finalCanvas,
+                sx, sy, sWidth, sHeight,  // source rectangle
+                dx, dy, dWidth, dHeight   // destination rectangle
+            );
 
-    // Use requestAnimationFrame to ensure the canvas is ready
-    requestAnimationFrame(() => {
-        // photoCtx.drawImage(
-        //     finalCanvas,
+            photoCtx.drawImage(foreCanvases[index], 0, 0, );
+        });
 
-        //     sx,
-        //     0,
-        //     halfW,
-        //     finalCanvas.height, // source rect
+    }, 2000);
 
-        //     0,
-        //     0,
-        //     photoCanvas.width,
-        //     photoCanvas.height // dest rect
 
-        // );
 
-        // photoCtx.drawImage(foreCanvases[index], 0, 0, photoCanvas.width, photoCanvas.height);
-    });
 }
 
 const posesDetected = [false, false];
 
 eventController.addEventListener("pose-lost", ({ segIndex }) => {
-    
+
     if (posesDetected[segIndex]) {
         posesDetected[segIndex] = false;
         showCTA(+(!segIndex));
+        hidePrepare(+(!segIndex));
     }
 
 
@@ -99,9 +106,11 @@ eventController.addEventListener("pose-found", ({ segIndex }) => {
     if (!posesDetected[segIndex]) {
         posesDetected[segIndex] = true;
         hideCTA(+(!segIndex));
+        showPrepare(+(!segIndex));
+        takePhoto(+(!segIndex));
     }
 
-    // showPrepare(i);
+
 });
 
 
@@ -150,8 +159,6 @@ const ctaLoop = index => {
 
 const showCTA = index => {
 
-    console.log("SHOW CTA", index);
-
     if (ctasVisible[index])
         return;
     ctasVisible[index] = true;
@@ -162,7 +169,6 @@ const showCTA = index => {
 
 const hideCTA = index => {
 
-    console.log("HIDE CTA", index);
     ctasVisible[index] = false;
     const cta = ctas[index];
     cta.style.transform = "scale(3) rotate(180deg)";
@@ -183,7 +189,14 @@ const showPrepare = index => {
 
     clearTimeout(prepTimeouts[index]);
     prepTimeouts[index] = setTimeout(() => {
-        notice.style.opacity = 0.1;
+        notice.style.opacity = 0.0;
         notice.style.transform = "scale(3)";
     }, 3000);
+}
+
+const hidePrepare = index => {
+    clearTimeout(prepTimeouts[index]);
+    const notice = prepNotices[index];
+    notice.style.opacity = 0.0;
+    notice.style.transform = "scale(3)";
 }
