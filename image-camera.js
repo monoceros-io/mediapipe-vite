@@ -10,6 +10,15 @@ const photoElements = document.querySelectorAll(".photo-overlay-outer");
 const foreCanvases = document.querySelectorAll(".fore-canvas");
 
 const photoEffectCanvases = document.querySelectorAll(".photo-overlay-inner");
+const photoEffectOuter = document.querySelectorAll(".photo-overlay-outer");
+
+const modeEnabled = document.getElementById("photo-mode");
+let canTakePhotos = false;
+
+modeEnabled.addEventListener('change', () => {
+    
+    canTakePhotos = true;
+});
 
 
 let countTimeout0, countTimeout1;
@@ -61,6 +70,39 @@ const takePhoto = index => {
         photoCtx.fillRect(0, 0, photoCanvas.width, photoCanvas.height);
         photoCtx.drawImage(backingCanvases[index], 0, 0, photoCanvas.width, photoCanvas.height);
 
+        const peo = photoEffectOuter[index];
+
+
+        peo.style.transition = "0s";
+        peo.style.opacity = 0;
+        peo.style.animationName = "none";
+        peo.style.rotate = "0deg";
+        peo.style.scale = "1";
+        peo.style.left = "0";
+        peo.style.top = "0";
+        peo.style.width = "100%";
+
+        setTimeout(() => {
+            peo.style.display = "flex";
+            peo.style.transitionDuration = "0.5s";
+        }, 20);
+        setTimeout(() => {
+            peo.style.opacity = 1;
+            peo.style.rotate = "370deg";
+            peo.style.width = "20%";
+            peo.style.top = "10%";
+            peo.style.left = "10%";
+            peo.style.scale = "1";
+            peo.style.opacity = "1";
+        }, 200);
+
+        setTimeout(() => {
+            peo.style.opacity = 1;
+            peo.style.scale = "1.2";
+            peo.style.opacity = "0";
+        }, 2000);
+
+
         requestAnimationFrame(() => {
             const isLeft = index === 0;
 
@@ -84,16 +126,19 @@ const takePhoto = index => {
 
             const peCanvas = photoEffectCanvases[index];
             const ctx = peCanvas.getContext("2d");
-            
+
             peCanvas.width = photoCanvas.width;
             peCanvas.height = photoCanvas.height;
-            ctx.drawImage(photoCanvas,0, 0, peCanvas.width, peCanvas.height);
+            ctx.drawImage(photoCanvas, 0, 0, peCanvas.width, peCanvas.height);
 
             clearTimeout(retakeTimeouts[index]);
-            retakeTimeouts[index] = setTimeout(() => {
-                showPrepare(+(!index));
-                takePhoto(+(!index));
-            }, 2000);
+            // retakeTimeouts[index] = setTimeout(() => {
+            //     if(posesDetected[+(!index)]){
+            //         showPrepare(+(!index));
+            //         takePhoto(+(!index));
+            //     }
+
+            // }, 2000);
 
         });
 
@@ -109,10 +154,11 @@ eventController.addEventListener("pose-lost", ({ segIndex }) => {
 
     if (posesDetected[segIndex]) {
         posesDetected[segIndex] = false;
-        showCTA(+(!segIndex));
-        clearTimeout(+(!segIndex));
-        hidePrepare(+(!segIndex));
-        clearTimeout(retakeTimeouts[+(!segIndex)]);
+        if (canTakePhotos) {
+            showCTA(+(!segIndex));
+            hidePrepare(+(!segIndex));
+            clearTimeout(retakeTimeouts[segIndex]);
+        }
     }
 
 
@@ -121,10 +167,12 @@ eventController.addEventListener("pose-found", ({ segIndex }) => {
 
     if (!posesDetected[segIndex]) {
         posesDetected[segIndex] = true;
-        hideCTA(+(!segIndex));
-        showPrepare(+(!segIndex));
-        takePhoto(+(!segIndex));
-        clearTimeout(retakeTimeouts[+(!segIndex)]);
+        if (canTakePhotos) {
+            hideCTA(+(!segIndex));
+            showPrepare(+(!segIndex));
+            takePhoto(+(!segIndex));
+            clearTimeout(retakeTimeouts[+(!segIndex)]);
+        }
     }
 
 

@@ -272,11 +272,12 @@ body {
     left: 10%;
     animation-duration: 5s;
     /* animation-name: photo-spin-in; */
-    animation-iteration-count: infinite;
-    animation-timing-function: cubic-bezier(1,-0.28,.76,1.33);
+    animation-iteration-count: 1;
+    /* animation-fill-mode: forwards; */
+    transition-timing-function: cubic-bezier(1,-0.28,.76,1.33);
     display: none;
     width: 100%;
-    opacity: 1;
+    opacity: 0;
     rotate: 0deg;
 }
 
@@ -286,45 +287,7 @@ body {
     background-color: black;
 }
 
-@keyframes photo-spin-in {
-    0% {
-        rotate: 0deg;
-        left: 0;
-        top: 0;
-        width: 100%;
-        opacity: 0;
-    }
-    75% {
-        rotate: 740deg;
-        width: 20%;
-        top: 10%;
-        left: 10%;
-        scale: 1;
-        opacity: 1;
-    }
-    80% {
-        scale: 1.2;
-        rotate: 740deg;
-    }
-    85% {
-        scale: 1.0;
-        rotate: 740deg;
-    }
-    90% {
-        scale: 1.2;
-        rotate: 740deg;
-    }
-    95% {
-        scale: 0.8;
-        rotate: 700deg;
-        opacity: 1;
-    }
-    100% {
-        scale: 2;
-        rotate: 740deg;
-        opacity: 0;
-    }
-}
+
 
 
 .konva-parent {

@@ -2,10 +2,10 @@ import * as THREE from 'three';
 import SpiralShaderMaterial from './spiral-shader.js';
 
 const EXPERIENCE_COLOR = 0xffd100;
-const FORE_SPRITE_COUNT = 100;
+const FORE_SPRITE_COUNT = 0;
 const MAX_LIFE = 1000;
 const PARTICLE_FRICTION = 0.97;
-const STARFIELD_COUNT = 50;
+const STARFIELD_COUNT = 0;
 const CHILI_SCALE = 2;
 const CHILI_GROW = 0.08; // How fast chilis grow in (per frame)
 const HYPER_SPEED = 0.19; // Constant speed for all chilis

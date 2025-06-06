@@ -55,13 +55,13 @@ export function matchCropToVideo() {
     const visibleWidth = videoAspect > elementAspect ? ew : eh * videoAspect;
     const visibleHeight = videoAspect > elementAspect ? ew / videoAspect : eh;
 
-    Object.assign(cropDivOuter.style, {
-        width: `${visibleWidth}px`,
-        height: `${visibleHeight}px`,
-        position: 'absolute',
-        left: `${(ew - visibleWidth) / 2}px`,
-        top: `${(eh - visibleHeight) / 2}px`
-    });
+    // Object.assign(cropDivOuter.style, {
+    //     width: `${visibleWidth}px`,
+    //     height: `${visibleHeight}px`,
+    //     position: 'absolute',
+    //     left: `${(ew - visibleWidth) / 2}px`,
+    //     top: `${(eh - visibleHeight) / 2}px`
+    // });
 
     const boxes = cropDivOuter.querySelectorAll(".video-crop-box");
 

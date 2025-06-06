@@ -3,7 +3,7 @@ import SpiralShaderMaterial from './spiral-shader.js';
 
 const EXPERIENCE_COLOR = 0x5c0f8b;
 const CUBE_COUNT = 10;
-const FORE_SPRITE_COUNT = 100;
+const FORE_SPRITE_COUNT = 0;
 const MAX_LIFE = 1000;
 const PARTICLE_FRICTION = 0.97;
 
