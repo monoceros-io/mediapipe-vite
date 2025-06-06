@@ -25,8 +25,8 @@ const dumpCanvases = document.querySelectorAll(".crop-canvas");
 const finalCanvas = document.querySelector("#final-canvas");
 
 const cdoMasks = [
-    0, 0, 50, 100,
-    50, 0, 50, 100
+    10, 40, 10, 10,
+    40, 80, 10, 10
 ];
 
 

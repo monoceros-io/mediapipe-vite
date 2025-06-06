@@ -7,6 +7,10 @@
     font-display: swap;
 }
 
+canvas {
+    pointer-events: none;
+}
+
 
 body {
     padding: 0;
@@ -94,6 +98,7 @@ body {
     left: 0%;
     width: 50%;
     height: 100%;
+    z-index: 9999999;
 }
 
 .video-crop-box:nth-of-type(2){
@@ -250,8 +255,8 @@ body {
 }
 
 .photo-canvas {
-    background-color: red;
-    /* display: none; */
+    background-color: yellow;
+    display: none;
 }
 
 .photo-overlay-outer {
@@ -269,9 +274,9 @@ body {
     /* animation-name: photo-spin-in; */
     animation-iteration-count: infinite;
     animation-timing-function: cubic-bezier(1,-0.28,.76,1.33);
-    /* display: none; */
+    display: none;
     width: 100%;
-    opacity: 0;
+    opacity: 1;
     rotate: 0deg;
 }
 

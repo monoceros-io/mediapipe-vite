@@ -23,7 +23,7 @@ let gl;
 let lastVideoFrameTime = -1;
 let frameCount = 0;
 
-const SKEL_FRAMES = 5; // Only detect pose every 5 frames (adjust as needed)
+const SKEL_FRAMES = 15; // Only detect pose every 5 frames (adjust as needed)
 let skelFrameCounter = 0;
 
 init();

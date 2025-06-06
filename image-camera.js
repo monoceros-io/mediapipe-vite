@@ -9,6 +9,8 @@ const countdown1 = document.querySelector('#fcount-1');
 const photoElements = document.querySelectorAll(".photo-overlay-outer");
 const foreCanvases = document.querySelectorAll(".fore-canvas");
 
+const photoEffectCanvases = document.querySelectorAll(".photo-overlay-inner");
+
 
 let countTimeout0, countTimeout1;
 
@@ -38,6 +40,8 @@ const photoCtx = photoCanvas.getContext('2d', { antialias: true });
 
 const flashTimeouts = [NaN, NaN];
 
+const retakeTimeouts = [NaN, NaN];
+
 const takePhoto = index => {
 
     clearTimeout(flashTimeouts[index]);
@@ -52,13 +56,9 @@ const takePhoto = index => {
             flash.style.opacity = "0";
         });
 
-        // Composite logic
-        // Clear photo canvas
         photoCtx.clearRect(0, 0, photoCanvas.width, photoCanvas.height);
-        // Fill the canvas with black
         photoCtx.fillStyle = "black";
         photoCtx.fillRect(0, 0, photoCanvas.width, photoCanvas.height);
-        // Draw backing canvas for this side
         photoCtx.drawImage(backingCanvases[index], 0, 0, photoCanvas.width, photoCanvas.height);
 
         requestAnimationFrame(() => {
@@ -80,7 +80,21 @@ const takePhoto = index => {
                 dx, dy, dWidth, dHeight   // destination rectangle
             );
 
-            photoCtx.drawImage(foreCanvases[index], 0, 0, );
+            photoCtx.drawImage(foreCanvases[index], 0, 0);
+
+            const peCanvas = photoEffectCanvases[index];
+            const ctx = peCanvas.getContext("2d");
+            
+            peCanvas.width = photoCanvas.width;
+            peCanvas.height = photoCanvas.height;
+            ctx.drawImage(photoCanvas,0, 0, peCanvas.width, peCanvas.height);
+
+            clearTimeout(retakeTimeouts[index]);
+            retakeTimeouts[index] = setTimeout(() => {
+                showPrepare(+(!index));
+                takePhoto(+(!index));
+            }, 2000);
+
         });
 
     }, 2000);
@@ -96,7 +110,9 @@ eventController.addEventListener("pose-lost", ({ segIndex }) => {
     if (posesDetected[segIndex]) {
         posesDetected[segIndex] = false;
         showCTA(+(!segIndex));
+        clearTimeout(+(!segIndex));
         hidePrepare(+(!segIndex));
+        clearTimeout(retakeTimeouts[+(!segIndex)]);
     }
 
 
@@ -108,6 +124,7 @@ eventController.addEventListener("pose-found", ({ segIndex }) => {
         hideCTA(+(!segIndex));
         showPrepare(+(!segIndex));
         takePhoto(+(!segIndex));
+        clearTimeout(retakeTimeouts[+(!segIndex)]);
     }
 
 

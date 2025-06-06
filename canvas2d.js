@@ -33,5 +33,5 @@ logoSprite.width = 200;
 logoSprite.x = 1080 / 2;
 logoSprite.y = 975 / 2;
 
-container0.addChild(logoSprite);
+// container0.addChild(logoSprite);
 logoSprite.rotation = 45;
