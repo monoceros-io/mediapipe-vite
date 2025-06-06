@@ -152,8 +152,6 @@ const posesDetected = [false, false];
 
 eventController.addEventListener("pose-lost", ({ segIndex }) => {
 
-    console.log("POSE LOST", segIndex);
-
     if (posesDetected[segIndex]) {
         posesDetected[segIndex] = false;
         if (canTakePhotos) {
@@ -166,7 +164,7 @@ eventController.addEventListener("pose-lost", ({ segIndex }) => {
 
 });
 eventController.addEventListener("pose-found", ({ segIndex }) => {
-    console.log("POSE FOUND", segIndex);
+    
 
     if (!posesDetected[segIndex]) {
         posesDetected[segIndex] = true;

@@ -91,6 +91,21 @@ body {
     position: absolute;
 }
 
+.control-panel > span {
+    display: flex;
+    margin: 0.25em;
+    justify-content: center;
+    align-items: center;
+}
+
+.p-label {
+    flex-grow: 1;
+    font-size: 0.75em;
+    justify-content: center;
+    align-items: center;
+}
+
+
 .video-crop-box {
     position: absolute;
     border: 1px solid red;
@@ -395,4 +410,11 @@ body {
     justify-content: center;
     align-items: center;
     overflow: hidden;
+}
+
+.number-input {
+    width: 3em;
+    font-weight: 900;
+    padding: 0.25em;
+    margin-right: 0.5em;
 }

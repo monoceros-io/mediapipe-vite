@@ -49,19 +49,6 @@ vec2 cropSample(vec2 t, vec4 area) {
     );
 }
 
-// 7x7 box blur for mask channel (subtle blur)
-float blurMask(sampler2D mask, vec2 uv, vec2 texel) {
-    float sum = 0.0;
-    for (int dx = -3; dx <= 3; ++dx) {
-        for (int dy = -3; dy <= 3; ++dy) {
-            sum += texture2D(mask, uv + vec2(float(dx), float(dy)) * texel).r;
-        }
-    }
-    return clamp(sum / 49.0, 0.0, 1.0);
-}
-
-// Aspect-ratio fit and center logic for a half
-// Returns: (inCrop, cropUV)
 bool aspectFitHalf(vec2 tex, float halfX0, float halfX1, vec4 area, out vec2 cropUV) {
     float halfW = u_width / 2.0;
     float halfH = u_height * 2.0;
@@ -71,136 +58,139 @@ bool aspectFitHalf(vec2 tex, float halfX0, float halfX1, vec4 area, out vec2 cro
     float halfAspect = halfW / halfH;
     float scale, padX, padY, drawW, drawH;
     if (cropAspect > halfAspect) {
-        // Fit to width
         scale = halfW / cropW;
         drawW = halfW;
         drawH = cropH * scale;
         padX = 0.0;
         padY = (halfH - drawH) / 2.0;
     } else {
-        // Fit to height
         scale = halfH / cropH;
         drawH = halfH;
         drawW = cropW * scale;
         padY = 0.0;
         padX = (halfW - drawW) / 2.0;
     }
-    // Map tex to [0,1] in half
+
     float localX = (tex.x - halfX0) / (halfX1 - halfX0);
     float px = localX * halfW;
     float py = tex.y * halfH;
-    // Check if inside drawn crop
+
     if (px < padX || px > (padX + drawW) || py < padY || py > (padY + drawH)) {
         cropUV = vec2(0.0);
         return false;
     }
-    // Map to cropUV in [0,1]
+
     float u = (px - padX) / drawW;
     float v = (py - padY) / drawH;
     cropUV = vec2(u, v);
     return true;
 }
 
-void main() {
-    // Flip horizontally by reversing x
-    vec2 tex = vec2(1.0 - v_texCoord.x, 1.0 - v_texCoord.y);
+// Soft blur using fixed radius, no int loop
+float blurMask(sampler2D mask, vec2 uv, vec2 texel, float radius) {
+    float total = 0.0;
+    float weight = 0.0;
+    for (float x = -4.0; x <= 4.0; x++) {
+        for (float y = -4.0; y <= 4.0; y++) {
+            float dist = length(vec2(x, y));
+            if (dist > radius) continue;
+            float influence = exp(-dist * dist / (2.0 * radius));
+            total += texture2D(mask, uv + vec2(x, y) * texel).r * influence;
+            weight += influence;
+        }
+    }
+    return weight > 0.0 ? total / weight : 0.0;
+}
 
+void main() {
+    vec2 tex = vec2(1.0 - v_texCoord.x, 1.0 - v_texCoord.y);
     vec3 outputColor = vec3(0.0);
     float a = 1.0;
+
+    float u_blurStrength = 12.0;
 
     if (u_overlayMask) {
         bool inCrop = false;
         vec2 cropUV;
         if (tex.x < 0.5) {
-            // Left half
             inCrop = aspectFitHalf(tex, 0.0, 0.5, u_captureAreas[0], cropUV);
             if (!inCrop) {
-                gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0); // transparent
+                gl_FragColor = vec4(0.0);
                 return;
             }
-            vec2 t = cropUV;
-            vec2 videoTex = cropSample(t, u_captureAreas[0]);
+            vec2 videoTex = cropSample(cropUV, u_captureAreas[0]);
             vec4 videoColor = texture2D(u_video, videoTex);
             vec2 texel = vec2(1.0 / (u_width / 2.0), 1.0 / u_height);
-            float m0 = blurMask(u_mask0, t, texel);
-            float m1 = blurMask(u_mask1, t, texel);
-            float mask0Edge = smoothstep(0.05, 0.35, m0);
-            float mask1Edge = smoothstep(0.05, 0.35, m1);
-            if (mask0Edge > 0.5) {
-                a = 1.0 - mask0Edge;
-                outputColor = vec3(0.0);
-            } else if (mask1Edge > 0.0) {
-                vec3 color = (videoColor.rgb - 0.5) * u_contrast + 0.5 + u_brightness;
-                outputColor = mix(color, color * u_maskColors[1], mask1Edge);
-                a = 1.0;
-            } else {
-                vec3 color = (videoColor.rgb - 0.5) * u_contrast + 0.5 + u_brightness;
-                outputColor = color;
-                a = 1.0;
-            }
+            float m0 = blurMask(u_mask0, cropUV, texel, u_blurStrength);
+            float m1 = blurMask(u_mask1, cropUV, texel, u_blurStrength);
+
+            float fade0 = smoothstep(0.01, 0.4, m0);
+            float fade1 = smoothstep(0.01, 0.4, m1);
+            float maskFade0 = pow(1.0 - fade0, 2.0);
+            float maskFade1 = fade1;
+
+            vec3 color = (videoColor.rgb - 0.5) * u_contrast + 0.5 + u_brightness;
+            outputColor = mix(color, color * u_maskColors[1], maskFade1);
+            outputColor = mix(vec3(0.0), outputColor, maskFade0);
+            a *= maskFade0;
         } else {
-            // Right half
             inCrop = aspectFitHalf(tex, 0.5, 1.0, u_captureAreas[1], cropUV);
             if (!inCrop) {
-                gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0); // transparent
+                gl_FragColor = vec4(0.0);
                 return;
             }
-            vec2 t = cropUV;
-            vec2 videoTex = cropSample(t, u_captureAreas[1]);
+            vec2 videoTex = cropSample(cropUV, u_captureAreas[1]);
             vec4 videoColor = texture2D(u_video, videoTex);
             vec2 texel = vec2(1.0 / (u_width / 2.0), 1.0 / u_height);
-            float m2 = blurMask(u_mask2, t, texel);
-            float m3 = blurMask(u_mask3, t, texel);
-            float mask2Edge = smoothstep(0.05, 0.35, m2);
-            float mask3Edge = smoothstep(0.05, 0.35, m3);
-            if (mask2Edge > 0.5) {
-                a = 1.0 - mask2Edge;
-                outputColor = vec3(0.0);
-            } else if (mask3Edge > 0.0) {
-                vec3 color = (videoColor.rgb - 0.5) * u_contrast + 0.5 + u_brightness;
-                outputColor = mix(color, color * u_maskColors[3], mask3Edge);
-                a = 1.0;
-            } else {
-                vec3 color = (videoColor.rgb - 0.5) * u_contrast + 0.5 + u_brightness;
-                outputColor = color;
-                a = 1.0;
-            }
+            float m2 = blurMask(u_mask2, cropUV, texel, u_blurStrength);
+            float m3 = blurMask(u_mask3, cropUV, texel, u_blurStrength);
+
+            float fade2 = smoothstep(0.01, 0.4, m2);
+            float fade3 = smoothstep(0.01, 0.4, m3);
+            float maskFade2 = pow(1.0 - fade2, 2.0);
+            float maskFade3 = fade3;
+
+            vec3 color = (videoColor.rgb - 0.5) * u_contrast + 0.5 + u_brightness;
+            outputColor = mix(color, color * u_maskColors[3], maskFade3);
+            outputColor = mix(vec3(0.0), outputColor, maskFade2);
+            a *= maskFade2;
         }
     } else {
-        // Default: masks in first/third, videos in second/fourth (quarters)
         if (tex.x < 0.25) {
             vec2 t = vec2(tex.x * 4.0, tex.y);
             vec2 texel = vec2(1.0 / (u_width / 4.0), 1.0 / u_height);
-            float m0 = blurMask(u_mask0, t, texel);
-            float m1 = blurMask(u_mask1, t, texel);
-            vec3 blendA = mix(vec3(0.0), u_maskColors[0], m0); // red mask
-            blendA = mix(blendA, u_maskColors[1], m1); // green mask
+            float m0 = blurMask(u_mask0, t, texel, u_blurStrength);
+            float m1 = blurMask(u_mask1, t, texel, u_blurStrength);
+            vec3 blendA = mix(vec3(0.0), u_maskColors[0], m0);
+            blendA = mix(blendA, u_maskColors[1], m1);
             outputColor = blendA;
-        } else if (tex.x >= 0.25 && tex.x < 0.5) {
+        } else if (tex.x < 0.5) {
             vec2 t = vec2((tex.x - 0.25) * 4.0, tex.y);
             vec2 videoTex = cropSample(t, u_captureAreas[0]);
             vec4 videoColor = texture2D(u_video, videoTex);
-            vec3 color = (videoColor.rgb - 0.5) * u_contrast + 0.5 + u_brightness;
-            outputColor = color;
-        } else if (tex.x >= 0.5 && tex.x < 0.75) {
+            outputColor = (videoColor.rgb - 0.5) * u_contrast + 0.5 + u_brightness;
+        } else if (tex.x < 0.75) {
             vec2 t = vec2((tex.x - 0.5) * 4.0, tex.y);
             vec2 texel = vec2(1.0 / (u_width / 4.0), 1.0 / u_height);
-            float m2 = blurMask(u_mask2, t, texel);
-            float m3 = blurMask(u_mask3, t, texel);
-            vec3 blendB = mix(vec3(0.0), u_maskColors[2], m2); // blue mask
-            blendB = mix(blendB, u_maskColors[3], m3); // yellow mask
+            float m2 = blurMask(u_mask2, t, texel, u_blurStrength);
+            float m3 = blurMask(u_mask3, t, texel, u_blurStrength);
+            vec3 blendB = mix(vec3(0.0), u_maskColors[2], m2);
+            blendB = mix(blendB, u_maskColors[3], m3);
             outputColor = blendB;
-        } else if (tex.x >= 0.75 && tex.x < 1.0) {
+        } else {
             vec2 t = vec2((tex.x - 0.75) * 4.0, tex.y);
             vec2 videoTex = cropSample(t, u_captureAreas[1]);
             vec4 videoColor = texture2D(u_video, videoTex);
-            vec3 color = (videoColor.rgb - 0.5) * u_contrast + 0.5 + u_brightness;
-            outputColor = color;
+            outputColor = (videoColor.rgb - 0.5) * u_contrast + 0.5 + u_brightness;
         }
     }
+
     gl_FragColor = vec4(outputColor, a);
 }
 `;
+
+
+
 
 function createShader(gl, type, source) {
     const shader = gl.createShader(type);

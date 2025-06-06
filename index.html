@@ -153,16 +153,24 @@
             <div>FPS</div>
             <div id="fps">20</div>
         </div> -->
-        <label for="">Brightness</label>
+        <label for="">Brillo</label>
         <input type="range" id="brightness" min="-10" max="10" value="0">
-        <label for="">Contrast</label>
+        <label for="">Contraste</label>
         <input type="range" id="contrast" min="0" max="10" value="1">
         <span>
-            <label for="">Overlay</label>
+            <input value="5" class="number-input" type="number" id="pose-frames">
+            <label class="p-label" for="">cuadros</label>
+        </span>
+        <span>
+            <label class="p-label" for="">Cubrir</label>
             <input type="checkbox" id="overlay-mask">
         </span>
         <span>
-            <label for="">Photo Mode</label>
+            <label class="p-label">RGB pose</label>
+            <input type="checkbox" id="rgb-skeleton">
+        </span>
+        <span>
+            <label class="p-label">Modo foto</label>
             <input type="checkbox" id="photo-mode">
         </span>
         <button id="fullscreen-btn">Toda la pantalla</button>
