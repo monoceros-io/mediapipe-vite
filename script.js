@@ -32,15 +32,15 @@ const cdoMasks = [
 
 const cookieMatch = document.cookie.match(/cdoMaskCache=([^;]+)/);
 if (cookieMatch) {
-    // try {
-    //     const cachedMasks = JSON.parse(cookieMatch[1]);
-    //     if (Array.isArray(cachedMasks) && cachedMasks.length === cdoMasks.length) {
-    //         cdoMasks.splice(0, cdoMasks.length, ...cachedMasks);
-    //         console.log("Loaded cdoMaskCache from cookie:", cdoMasks);
-    //     }
-    // } catch (e) {
-    //     console.error("Failed to parse cdoMaskCache cookie:", e);
-    // }
+    try {
+        const cachedMasks = JSON.parse(cookieMatch[1]);
+        if (Array.isArray(cachedMasks) && cachedMasks.length === cdoMasks.length) {
+            cdoMasks.splice(0, cdoMasks.length, ...cachedMasks);
+            console.log("Loaded cdoMaskCache from cookie:", cdoMasks);
+        }
+    } catch (e) {
+        console.error("Failed to parse cdoMaskCache cookie:", e);
+    }
 }
 
 setupVideoUtils({ videos, cropDivOuters, cdoMasks, dumpCanvases, finalCanvas });

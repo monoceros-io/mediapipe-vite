@@ -11,7 +11,6 @@ const fps = document.getElementById("fps");
 let t = performance.now();
 
 const SEG_DIMENSION = 256;
-const TOP_OFFSET = (1900 - 1200) / 2;
 
 let combinedVideoCanvas = null;
 let combinedCtx = null;
@@ -44,9 +43,6 @@ export function matchCropToVideo() {
     const vw = video.videoWidth, vh = video.videoHeight;
     const ew = video.clientWidth, eh = video.clientHeight;
 
-    console.log("FUCK VIBE CODING", vw, vh, ew, eh);
-
-
     if (!combinedVideoCanvas || combinedVideoCanvas.width !== vw || combinedVideoCanvas.height !== vh) {
         combinedVideoCanvas = new OffscreenCanvas(vw, vh);
         combinedCtx = combinedVideoCanvas.getContext("2d");
@@ -61,7 +57,6 @@ export function matchCropToVideo() {
     Object.assign(cropDivOuter.style, {
         width: `${visibleWidth}px`,
         // height: `${visibleHeight}px`,
-        position: 'absolute',
         // left: `${(ew - visibleWidth) / 2}px`,
         // top: `${(eh - visibleHeight) / 2}px`
     });
