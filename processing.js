@@ -159,12 +159,15 @@ const CHANGE_TIMEOUT = 250;
 let foundChangeTimeouts = [];
 let canChange = [true, true];
 
+let lossCount = 0;
+let findCount = 0;
+
 export function detectPose(bitmap, segIndex) {
 
-    if (poseLandmarker) {
-        poseLandmarker.detect(bitmap, performance.now(), poseResult => {
+    if (poseLandmarker) 
+    {
 
-            console.log("I HATE THIS SHIT NOW", segIndex, poseResult);
+        poseLandmarker.detect(bitmap, performance.now(), poseResult => {
 
             const lastFound = foundPoses[segIndex];
             const found = poseResult.landmarks.length > 0;
