@@ -22,7 +22,7 @@ let gl;
 let lastVideoFrameTime = -1;
 let frameCount = 0;
 
-const SKEL_FRAMES = 15; // Only detect pose every 5 frames (adjust as needed)
+const SKEL_FRAMES = 3; // Only detect pose every 5 frames (adjust as needed)
 let skelFrameCounter = 0;
 
 init();
@@ -132,8 +132,6 @@ function setupCropBoxDragging() {
                 document.body.style.userSelect = '';
             }
 
-            console.log("Drag ended");
-            console.log(_cdoMasks);
             document.cookie = `cdoMaskCache=${JSON.stringify(_cdoMasks)}; path=/; max-age=31536000`;
         });
 

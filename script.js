@@ -260,7 +260,6 @@ cbRows.forEach((row, viewIdx) => {
             // For this demo, both bg and fg switch together
             setExperience(viewIdx, 'bg', expIdx);
             setExperience(viewIdx, 'fg', expIdx);
-            console.log("TOGGO");
         });
     });
 });
