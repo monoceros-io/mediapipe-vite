@@ -40,28 +40,31 @@ export function setupVideoUtils({ videos, cropDivOuters, cdoMasks, finalCanvas }
 }
 
 export function matchCropToVideo() {
+
     const vw = video.videoWidth, vh = video.videoHeight;
     const ew = video.clientWidth, eh = video.clientHeight;
 
-    // (Re)create combinedVideoCanvas if video size changed
+    console.log("FUCK VIBE CODING", vw, vh, ew, eh);
+
+
     if (!combinedVideoCanvas || combinedVideoCanvas.width !== vw || combinedVideoCanvas.height !== vh) {
         combinedVideoCanvas = new OffscreenCanvas(vw, vh);
         combinedCtx = combinedVideoCanvas.getContext("2d");
     }
 
     const videoAspect = vw / vh;
-    const elementAspect = (ew / eh) / 2;
+    const elementAspect = (ew / eh);
 
     const visibleWidth = videoAspect > elementAspect ? ew : eh * videoAspect;
     const visibleHeight = videoAspect > elementAspect ? ew / videoAspect : eh;
 
-    // Object.assign(cropDivOuter.style, {
-    //     width: `${visibleWidth}px`,
-    //     height: `${visibleHeight}px`,
-    //     position: 'absolute',
-    //     left: `${(ew - visibleWidth) / 2}px`,
-    //     top: `${(eh - visibleHeight) / 2}px`
-    // });
+    Object.assign(cropDivOuter.style, {
+        width: `${visibleWidth}px`,
+        // height: `${visibleHeight}px`,
+        position: 'absolute',
+        // left: `${(ew - visibleWidth) / 2}px`,
+        // top: `${(eh - visibleHeight) / 2}px`
+    });
 
     const boxes = cropDivOuter.querySelectorAll(".video-crop-box");
 
