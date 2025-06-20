@@ -90,15 +90,21 @@ bool aspectFitHalf(vec2 tex, float halfX0, float halfX1, vec4 area, out vec2 cro
 float blurMask(sampler2D mask, vec2 uv, vec2 texel, float radius) {
     float total = 0.0;
     float weight = 0.0;
-    for (float x = -4.0; x <= 4.0; x++) {
-        for (float y = -4.0; y <= 4.0; y++) {
-            float dist = length(vec2(x, y));
-            if (dist > radius) continue;
-            float influence = exp(-dist * dist / (2.0 * radius));
-            total += texture2D(mask, uv + vec2(x, y) * texel).r * influence;
-            weight += influence;
+    float maxDist = floor(radius);  // dynamic range of blur
+
+    for (float x = -6.0; x <= 6.0; x++) {
+        for (float y = -6.0; y <= 6.0; y++) {
+            vec2 offset = vec2(x, y);
+            float dist = length(offset);
+
+            if (dist > maxDist) continue;
+
+            float w = exp(-dist * dist / (2.0 * radius * radius)); // Gaussian weight
+            total += texture2D(mask, uv + offset * texel).r * w;
+            weight += w;
         }
     }
+
     return weight > 0.0 ? total / weight : 0.0;
 }
 
@@ -107,7 +113,7 @@ void main() {
     vec3 outputColor = vec3(0.0);
     float a = 1.0;
 
-    float u_blurStrength = 12.0;
+    float u_blurStrength = .0;
 
     if (u_overlayMask) {
         bool inCrop = false;
@@ -326,14 +332,26 @@ const textures = textureUnits.map(i =>
     createAndSetupTexture(i, gl.LUMINANCE, width, height)
 );
 
+const maskUploadBuffers = {};
+
 function uploadMaskToTexture(maskArray, unit, w, h) {
-    const glTex = textures[unit];
-    const u8 = new Uint8Array(maskArray.length);
-    for (let i = 0; i < maskArray.length; i++) u8[i] = Math.round(maskArray[i] * 255);
+
+    let u8 = maskUploadBuffers[unit];
+    if (!u8 || u8.length !== maskArray.length) {
+        u8 = new Uint8Array(maskArray.length);
+        maskUploadBuffers[unit] = u8;
+    }
+    for (let i = 0; i < maskArray.length; i++) {
+        // const val = Math.min(1, Math.max(0, maskArray[i]));
+        // u8[i] = Math.round(val * 255);
+        u8[i] = maskArray[i] * 255;
+    }
+
     gl.activeTexture(gl.TEXTURE0 + unit);
-    gl.bindTexture(gl.TEXTURE_2D, glTex);
+    gl.bindTexture(gl.TEXTURE_2D, textures[unit]);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, w, h, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, u8);
 }
+
 
 function clearMaskTexture(unit, w, h) {
     const zero = new Uint8Array(w * h);

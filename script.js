@@ -29,6 +29,9 @@ const cdoMasks = [
     40, 80, 10, 10
 ];
 
+document.getElementById("save-btn").addEventListener("click", ()=>{
+    document.cookie = `cdoMaskCache=${JSON.stringify(cdoMasks)}; path=/; max-age=31536000`;
+});
 
 const cookieMatch = document.cookie.match(/cdoMaskCache=([^;]+)/);
 if (cookieMatch) {
@@ -61,7 +64,7 @@ const cameraChange = async (id) => {
             width: { ideal: 4096 },
             height: { ideal: 1920 },
             aspectRatio: { ideal: 16 / 9 },
-            deviceId: { exact: id },
+            deviceId: { ideal: id },
         }
     });
 
@@ -113,14 +116,14 @@ const contrastInput = document.getElementById('contrast');
 const detectedReadouts = document.querySelectorAll('.cb-det-sta');
 
 eventController.addEventListener("pose-found", ({ segIndex }) => {
-    detectedReadouts[segIndex].innerHTML = "Persona detectada";
-    detectedReadouts[segIndex].style.color = "green";
+    detectedReadouts[1 - segIndex].innerHTML = "Persona detectada";
+    detectedReadouts[1 - segIndex].style.color = "green";
 });
 
 
 eventController.addEventListener("pose-lost", ({ segIndex }) => {
-    detectedReadouts[segIndex].innerHTML = "Nadie detectado";
-    detectedReadouts[segIndex].style.color = "red";
+    detectedReadouts[1 - segIndex].innerHTML = "Nadie detectado";
+    detectedReadouts[1 - segIndex].style.color = "red";
 });
 
 function updateShaderBC() {

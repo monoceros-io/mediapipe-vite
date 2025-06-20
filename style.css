@@ -229,7 +229,7 @@ body {
     height: 100%;
     display: flex;
 
-    display: none;
+    /* display: none; */
     /* ARGH CLUB */
 
 }
@@ -366,7 +366,7 @@ body {
 
 }
 
-.cta-inner {
+.-inner {
     width: 100%;
     height: 20%;
     background-image: url("./src/images/cta1.png");
@@ -399,7 +399,6 @@ body {
     left: 0;
     display: flex;
 
-    display: none;
     /* ARGH CLUB */
 }
 

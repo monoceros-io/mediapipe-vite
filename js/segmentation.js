@@ -47,15 +47,12 @@ export async function initializeSegmentation(canvas) {
     return ctx;
 }
 
-export async function startSegmentation(video, canvas) {
+export async function startSegmentation(video, canvas) {}
     if (!video || !canvas) {
         throw new Error("Video or canvas element is undefined. Ensure both are passed correctly.");
     }
-    console.log("Video passed to startSegmentation:", video);
-    console.log("Canvas passed to startSegmentation:", canvas);
 
     try {
-        console.log("Starting segmentation...");
         await setupCamera(video);
         video.play();
         canvas.width = video.videoWidth;
@@ -75,10 +72,7 @@ export async function startSegmentation(video, canvas) {
                         ctx.globalCompositeOperation = 'destination-in';
                         ctx.drawImage(mask, 0, 0, canvas.width, canvas.height);
 
-                        // Apply a semi-transparent green overlay
-                        ctx.globalCompositeOperation = 'destination-over';
-                        ctx.fillStyle = 'rgba(0, 255, 0, 0.5)';
-                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+                       
                     }
 
                     ctx.restore();

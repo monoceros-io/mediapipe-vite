@@ -22,7 +22,12 @@ let gl;
 let lastVideoFrameTime = -1;
 let frameCount = 0;
 
-const SKEL_FRAMES = 3; // Only detect pose every 5 frames (adjust as needed)
+document.getElementById("pose-frames").addEventListener("change", e=>{
+    
+    SKEL_FRAMES = Math.max(2, e.target.value);
+});
+
+let SKEL_FRAMES = 20; // Only detect pose every 5 frames (adjust as needed)
 let skelFrameCounter = 0;
 
 init();
@@ -132,7 +137,7 @@ function setupCropBoxDragging() {
                 document.body.style.userSelect = '';
             }
 
-            document.cookie = `cdoMaskCache=${JSON.stringify(_cdoMasks)}; path=/; max-age=31536000`;
+            // document.cookie = `cdoMaskCache=${JSON.stringify(_cdoMasks)}; path=/; max-age=31536000`;
         });
 
         // --- Resize logic for video-scaler-box ---
@@ -215,7 +220,7 @@ async function processStreams() {
             });
 
             // Only detect pose every SKEL_FRAMES frames
-            if (skelFrameCounter == 0) {
+            if (skelFrameCounter == i) {
                 detectPose(cropBitmap, i);
             }
 

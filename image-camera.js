@@ -16,24 +16,33 @@ const modeEnabled = document.getElementById("photo-mode");
 let canTakePhotos = false;
 
 modeEnabled.addEventListener('change', () => {
-    
-    canTakePhotos = true;
+    canTakePhotos = modeEnabled.checked;
 });
 
-
-let countTimeout0, countTimeout1;
-
-const killCount0 = () => {
-    messageElements0[0].innerHTML = messageElements0[1].innerHTML = "Buscando a una persona...";
-    countdown0.innerHTML = "";
-    clearTimeout(countTimeout0);
+const startPhoto0 = () => {
+    hideCTA(0);
+    showPrepare(0);
+    takePhoto(0);
+    clearTimeout(0);
+    console.log("GARY WANNO");
 }
 
-const killCount1 = () => {
-    messageElements1[0].innerHTML = messageElements1[1].innerHTML = "Buscando a una persona...";
-    countdown1.innerHTML = "";
-    clearTimeout(countTimeout1);
+const startPhoto1 = () => {
+    console.log("START PHOTO ONE");
 }
+
+
+
+document.getElementById("btn-cap-0").addEventListener("click", () => {
+    startPhoto0();
+    takePhoto(0);
+});
+
+document.getElementById("btn-cap-1").addEventListener("click", () => {
+    startPhoto1();
+    takePhoto(1);
+});
+
 
 const flashElements = document.querySelectorAll('.flash-white');
 
@@ -132,13 +141,29 @@ const takePhoto = index => {
             ctx.drawImage(photoCanvas, 0, 0, peCanvas.width, peCanvas.height);
 
             clearTimeout(retakeTimeouts[index]);
-            // retakeTimeouts[index] = setTimeout(() => {
-            //     if(posesDetected[+(!index)]){
-            //         showPrepare(+(!index));
-            //         takePhoto(+(!index));
-            //     }
 
-            // }, 2000);
+            const canvas = peCanvas; // Your canvas element
+            const id = "12345"; // Replace with your actual ID
+
+            canvas.toBlob((blob) => {
+                const formData = new FormData();
+                formData.append("id", id);
+                formData.append("image", blob, `upload.png`);
+
+                fetch("http://localhost:3000/upload", {
+                    method: "POST",
+                    body: formData,
+                })
+                    .then((res) => res.json())
+                    .then((data) => {
+                        console.log("Upload success:", data);
+                    })
+                    .catch((err) => {
+                        console.error("Upload error:", err);
+                    });
+            }, "image/png");
+
+
 
         });
 
@@ -164,7 +189,7 @@ eventController.addEventListener("pose-lost", ({ segIndex }) => {
 
 });
 eventController.addEventListener("pose-found", ({ segIndex }) => {
-    
+
 
     if (!posesDetected[segIndex]) {
         posesDetected[segIndex] = true;
@@ -224,17 +249,13 @@ const ctaLoop = index => {
 }
 
 const showCTA = index => {
-
     if (ctasVisible[index])
         return;
     ctasVisible[index] = true;
-
     ctaLoop(index);
-
 }
 
 const hideCTA = index => {
-
     ctasVisible[index] = false;
     const cta = ctas[index];
     cta.style.transform = "scale(3) rotate(180deg)";
