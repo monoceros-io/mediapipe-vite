@@ -1,6 +1,7 @@
 import eventController from "./EventController";
 import { ImageSegmenter, FilesetResolver, PoseLandmarker, DrawingUtils } from "./node_modules/@mediapipe/tasks-vision";
 
+
 const runningMode = "VIDEO";
 
 
@@ -78,11 +79,13 @@ export { velocities, bodies };
 
 let segmenter, poseLandmarker;
 
+
+
 let cameraSourceActive = [false, false];
 
 export async function loadModels() {
 
-    const vision = await FilesetResolver.forVisionTasks("./node_modules/@mediapipe/tasks-vision/wasm");
+    const vision = await FilesetResolver.forVisionTasks("./tasks-vision/wasm");
 
     segmenter = await ImageSegmenter.createFromOptions(vision, {
         baseOptions: {
