@@ -5,16 +5,8 @@ import { bodies } from './processing';
 
 // Import experience modules
 
-import experience0 from './experience0.js';
-import experience1 from './experience1.js';
-import experience2 from './experience2.js';
-import experience3 from './experience3.js';
-
-const experiences = [experience0, experience1, experience2, experience3];
-
 const spriteTexture = new THREE.TextureLoader().load(BASE_PART_IMG);
 
-let canvases = [];
 let running = false;
 
 const CUBE_COUNT = 100;
@@ -37,22 +29,6 @@ for (let i = 0; i < 4; i++) {
     ];
 }
 
-
-export function init() {
-    canvases = [
-        document.getElementById('backing-canvas-0'),
-        document.getElementById('backing-canvas-1'),
-        document.getElementById('fore-canvas-0'),
-        document.getElementById('fore-canvas-1')
-    ];
-
-    for (let i = 0; i < 4; i++) {
-        // Background
-        experiences[i].initBackground(canvases[0]);
-        // Foreground
-        experiences[i].initForeground(canvases[2], spriteTexture);
-    }
-}
 
 const X_MULT = 3.0;
 const Y_MULT = 3.0;
@@ -83,25 +59,7 @@ export function run() {
             
         }
 
-        // Only update/render active experiences
-        
-        for (let view = 0; view < 2; view++) {
-            // Background
-            const bgIdx = activeBackground[view];
-            experiences[bgIdx].updateBackground({
-                canvas: canvases[view],
-                time: performance.now(),
-                view,
-            });
-            // Foreground
-            const fgIdx = activeForeground[view];
-            experiences[fgIdx].updateForeground({
-                canvas: canvases[view + 2],
-                gravityPoints: fgGravityPoints[fgIdx][view],
-                time: performance.now(),
-                view,
-            });
-        }
+     
         requestAnimationFrame(animate);
     }
     animate();

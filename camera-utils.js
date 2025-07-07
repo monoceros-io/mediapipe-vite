@@ -1,6 +1,6 @@
 import { detectPose, loadModels } from "./processing";
 import { setCaptureAreas, setBrightnessContrast, setOverlayMask, uploadMaskToTexture, clearMaskTexture, blendCanvasesToOutCanvas, videoTexture } from './shader-program.js';
-import { init, run } from "./threeview.js";
+import { run } from "./threeview.js";
 
 let video, cropDivOuter;
 let _videos, _cropDivOuters, _cdoMasks, _finalCanvas;
@@ -25,7 +25,6 @@ let frameCount = 0;
 const SKEL_FRAMES = 3; // Only detect pose every 5 frames (adjust as needed)
 let skelFrameCounter = 0;
 
-init();
 
 export function setupVideoUtils({ videos, cropDivOuters, cdoMasks, finalCanvas }) {
     _videos = videos;

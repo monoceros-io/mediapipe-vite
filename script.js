@@ -2,17 +2,10 @@ import { setupVideoUtils, matchCropToVideo } from "./camera-utils";
 import { loadModels } from "./processing";
 import { setBrightnessContrast, setOverlayMask, setMaskColors } from './shader-program.js';
 import { activeBackground, activeForeground } from './threeview.js';
-import "./image-camera";
+// import "./image-camera";
 
-import experience0 from './experience0.js';
-import experience1 from './experience1.js';
-import experience2 from './experience2.js';
-import experience3 from './experience3.js';
 import eventController from "./EventController.js";
 import "./canvas2d.js";
-
-
-const experiences = [experience0, experience1, experience2, experience3];
 
 const foreCanvasArray = document.querySelectorAll('.fore-canvas');
 
@@ -141,6 +134,7 @@ const foreCanvases = document.querySelector('.fore-canvases');
 if (overlayMaskInput) {
     setOverlayMask(overlayMaskInput.checked);
     overlayMaskInput.addEventListener('change', () => {
+        
         setOverlayMask(overlayMaskInput.checked);
         if (foreCanvases) {
             foreCanvases.style.display = overlayMaskInput.checked ? 'flex' : 'none';
@@ -235,20 +229,6 @@ rightButtons.forEach((btn, idx) => {
 // Set initial mask colors
 updateMaskColors();
 
-// Helper to update experience for a view
-function setExperience(view, type, idx) {
-
-
-    if (type === 'bg') {
-        activeBackground[view] = idx;
-    } else {
-        const canvas = foreCanvasArray[view];
-        // const mode = experiences[idx].foreBlendMode;
-        // canvas.style.mixBlendMode = mode;
-        activeForeground[view] = idx;
-    }
-}
-
 // Wire up control-panel buttons
 const controlPanel = document.querySelector('.control-panel');
 const cbRows = controlPanel.querySelectorAll('.cb-row');
@@ -257,9 +237,7 @@ cbRows.forEach((row, viewIdx) => {
     const buttons = row.querySelectorAll('button');
     buttons.forEach((btn, expIdx) => {
         btn.addEventListener('click', () => {
-            // For this demo, both bg and fg switch together
-            setExperience(viewIdx, 'bg', expIdx);
-            setExperience(viewIdx, 'fg', expIdx);
+            
         });
     });
 });

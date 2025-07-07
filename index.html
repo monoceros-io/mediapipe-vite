@@ -45,82 +45,8 @@
 
         <div class="qc qc-2" id="qc-full">
             <div class="canvas-container">
-                <canvas width="975" height="1920" class="backing-canvas" id="backing-canvas-0"></canvas>
-                <canvas width="975" height="1920" class="backing-canvas" id="backing-canvas-1"></canvas>
                 <canvas width="975" height="1920" class="final-canvas" id="final-canvas"></canvas>
 
-                <div id="rgb-outputs" class="rgb-outputs">
-                    <div><div>HEAD</div><div id="head-0"></div></div>
-                    <div><div>L SHOULDER</div><div id="sl-0"></div></div>
-                    <div><div>R SHOULDER</div><div id="sr-0"></div></div>
-                    <div><div>L HAND</div><div id="hl-0"></div></div>
-                    <div><div>R HAND</div><div id="hr-0"></div></div>
-                    <div><div>L FOOT</div><div id="fl-0"></div></div>
-                    <div><div>R FOOT</div><div id="fr-0"></div></div>
-                </div>
-
-                <div class="fore-canvases">
-                    <canvas width="975" height="1920" class="backing-canvas fore-canvas" id="fore-canvas-0"></canvas>
-                    <canvas width="975" height="1920" class="backing-canvas fore-canvas" id="fore-canvas-1"></canvas>
-
-                    <div class="fore-canvas-text-outer">
-                        <div class="fore-canvas-text">
-                            <div id="fcount-0" class="fore-big"></div>
-
-                            <div class="flash-white"></div>
-                            <div class="photo-overlay-outer">
-                                <canvas class="photo-overlay-inner"></canvas>
-                            </div>
-
-                        </div>
-                        <div class="fore-canvas-text">
-                            <div id="fcount-1" class="fore-big"></div>
-
-                            <div class="flash-white"></div>
-                            <div class="photo-overlay-outer">
-                                <canvas class="photo-overlay-inner"></canvas>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="fore-canvas-prep-text">
-
-                        <div class="prep-overlay">
-                            <div id="prep-inner-0" class="prep-inner"></div>
-                        </div>
-                        <div class="prep-overlay">
-                            <div id="prep-inner-1" class="prep-inner"></div>
-                        </div>
-
-                    </div>
-
-
-                    <div class="fore-canvas-prep-text">
-                        <div class="cta-overlay">
-                            <div id="cta-inner-0" class="cta-inner"></div>
-                        </div>
-                        <div class="cta-overlay">
-                            <div id="prep-inner-0" class="cta-inner"></div>
-                        </div>
-                    </div>
-
-
-
-
-                </div>
-                <div id="rgb-outputs" class="rgb-outputs">
-                    <div><div>HEAD</div><div id="head-1"></div></div>
-                    <div><div>L SHOULDER</div><div id="sl-1"></div></div>
-                    <div><div>R SHOULDER</div><div id="sr-1"></div></div>
-                    <div><div>L HAND</div><div id="hl-1"></div></div>
-                    <div><div>R HAND</div><div id="hr-1"></div></div>
-                    <div><div>L FOOT</div><div id="fl-1"></div></div>
-                    <div><div>R FOOT</div><div id="fr-1"></div></div>
-                </div>
-                <canvas id="photo-canvas" class="photo-canvas" width="975" height="1920">
-                </canvas>
-                <div class="konva-parent" id="fore-2d-0"></div>
-                <div class="konva-parent" id="fore-2d-1"></div>
 
             </div>
         </div>
@@ -136,6 +62,8 @@
             <button>4</button>
         </div>
 
+        <input id="colour-pick-0" type="color">
+
         <div class="cb-det-sta">Nadie detectado</div>
 
         <label>Right</label>
@@ -145,6 +73,8 @@
             <button>3</button>
             <button>4</button>
         </div>
+
+        <input id="colour-pick-1" type="color">
 
         <div class="cb-det-sta">Nadie detectado</div>
 
@@ -176,6 +106,31 @@
         <button id="fullscreen-btn">Toda la pantalla</button>
 
     </div>
+
+        <div class="rgb-container">
+
+                <div id="rgb-outputs" class="rgb-outputs">
+                    <div><div>HEAD</div><div id="head-0"></div></div>
+                    <div><div>L SHOULDER</div><div id="sl-0"></div></div>
+                    <div><div>R SHOULDER</div><div id="sr-0"></div></div>
+                    <div><div>L HAND</div><div id="hl-0"></div></div>
+                    <div><div>R HAND</div><div id="hr-0"></div></div>
+                    <div><div>L FOOT</div><div id="fl-0"></div></div>
+                    <div><div>R FOOT</div><div id="fr-0"></div></div>
+                </div>
+
+                <div id="rgb-outputs" class="rgb-outputs">
+                    <div><div>HEAD</div><div id="head-1"></div></div>
+                    <div><div>L SHOULDER</div><div id="sl-1"></div></div>
+                    <div><div>R SHOULDER</div><div id="sr-1"></div></div>
+                    <div><div>L HAND</div><div id="hl-1"></div></div>
+                    <div><div>R HAND</div><div id="hr-1"></div></div>
+                    <div><div>L FOOT</div><div id="fl-1"></div></div>
+                    <div><div>R FOOT</div><div id="fr-1"></div></div>
+                </div>
+
+        </div>
+
 
     <script type="module" src="script.js"></script>
 

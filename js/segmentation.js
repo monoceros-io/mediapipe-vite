@@ -62,31 +62,6 @@ export async function startSegmentation(video, canvas) {
         canvas.height = video.videoHeight;
         const ctx = await initializeSegmentation(canvas);
 
-        function processFrame() {
-            imageSegmenter.segmentForVideo(video, performance.now())
-                .then(results => {
-                    ctx.save();
-                    ctx.clearRect(0, 0, canvas.width, canvas.height);
-                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height); // Draw the original video frame
-
-                    if (results.categoryMask) {
-                        // Draw the segmentation mask
-                        const mask = results.categoryMask;
-                        ctx.globalCompositeOperation = 'destination-in';
-                        ctx.drawImage(mask, 0, 0, canvas.width, canvas.height);
-
-                        // Apply a semi-transparent green overlay
-                        ctx.globalCompositeOperation = 'destination-over';
-                        ctx.fillStyle = 'rgba(0, 255, 0, 0.5)';
-                        ctx.fillRect(0, 0, canvas.width, canvas.height);
-                    }
-
-                    ctx.restore();
-                    requestAnimationFrame(processFrame);
-                })
-                .catch(err => console.error("Error processing frame:", err));
-        }
-        processFrame();
     } catch (error) {
         console.error("Error starting segmentation:", error);
     }
