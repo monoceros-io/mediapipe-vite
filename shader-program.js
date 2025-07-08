@@ -316,6 +316,8 @@ function setOverlayMask(enabled) {
     gl.uniform1i(u_overlayMask, enabled ? 1 : 0);
 }
 
+
+
 // Helper to set mask colors dynamically
 function setMaskColors(maskColors) {
     // maskColors: [[r,g,b], [r,g,b], [r,g,b], [r,g,b]]

@@ -190,6 +190,17 @@ document.addEventListener('fullscreenchange', () => {
 
 // --- Experience switching logic ---
 
+function hexToRgbDecimals(hex) {
+    if (hex.startsWith('#')) hex = hex.slice(1);
+    if (hex.length !== 6) throw new Error('Hex must be 6 characters');
+
+    const r = parseInt(hex.slice(0, 2), 16) / 255;
+    const g = parseInt(hex.slice(2, 4), 16) / 255;
+    const b = parseInt(hex.slice(4, 6), 16) / 255;
+
+    return [r, g, b];
+}
+
 const EXPERIENCE_COLORS = [
     [0.3, 0.2, 0],  // Yellow
     [0.2, 1.0, 0.1],  // Yellow
@@ -197,13 +208,57 @@ const EXPERIENCE_COLORS = [
     [1.0, 0.5, 0]  // Yellow
 ];
 
+const cPick0 = document.getElementById("colour-pick-0");
+const cPick1 = document.getElementById("colour-pick-1");
+
+
+function setColorCookie(key, hex, days = 365) {
+    const expires = new Date(Date.now() + days * 864e5).toUTCString();
+    document.cookie = `${key}=${encodeURIComponent(hex)}; expires=${expires}; path=/`;
+}
+
+function getColorCookie(key) {
+    const match = document.cookie.match(new RegExp(`(?:^|; )${key}=([^;]*)`));
+    return match ? decodeURIComponent(match[1]) : null;
+}
+
+const colorInput1 = document.getElementById('colour-pick-0');
+const colorInput2 = document.getElementById('colour-pick-1');
+
+// Load saved colors
+const savedColor1 = getColorCookie('color1');
+const savedColor2 = getColorCookie('color2');
+
+if (savedColor1) 
+    colorInput1.value = savedColor1;
+else 
+    colorInput1.value = "#000000";
+if (savedColor2) 
+    colorInput2.value = savedColor2;
+else 
+    colorInput1.value = "#000000";
+
+EXPERIENCE_COLORS[1] = hexToRgbDecimals(cPick0.value);
+EXPERIENCE_COLORS[3] = hexToRgbDecimals(cPick1.value);
+
+updateMaskColors();
+
+
+
+cPick0.addEventListener("input", e=>{
+    EXPERIENCE_COLORS[1] = hexToRgbDecimals(cPick0.value);
+    updateMaskColors();
+    setColorCookie('color1', colorInput1.value);
+});
+
+cPick1.addEventListener("input", e=>{
+    EXPERIENCE_COLORS[3] = hexToRgbDecimals(cPick1.value);
+    updateMaskColors();
+    setColorCookie('color2', colorInput2.value);
+});
+
 function updateMaskColors() {
-    setMaskColors([
-        EXPERIENCE_COLORS[activeForeground[1]], // left view (flipped: use right)
-        EXPERIENCE_COLORS[activeForeground[1]], // left mask (for both left masks)
-        EXPERIENCE_COLORS[activeForeground[0]], // right view (flipped: use left)
-        EXPERIENCE_COLORS[activeForeground[0]]  // right mask (for both right masks)
-    ]);
+    setMaskColors(EXPERIENCE_COLORS);
 }
 
 // Wire up control-panel buttons for experience switching
