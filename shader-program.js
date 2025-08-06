@@ -50,7 +50,7 @@ vec2 cropSample(vec2 t, vec4 area) {
 
 bool aspectFitHalf(vec2 tex, float halfX0, float halfX1, vec4 area, out vec2 cropUV) {
     float halfW = u_width / 2.0;
-    float halfH = u_height * 2.0;
+    float halfH = u_height;
     float cropW = area.z * u_width;
     float cropH = area.w * u_height;
     float cropAspect = cropW / cropH;
