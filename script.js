@@ -1,6 +1,6 @@
 import { setupVideoUtils, matchCropToVideo } from "./camera-utils";
 import { loadModels } from "./processing";
-import { setBrightnessContrast, setMaskColors } from './shader-program.js';
+import { setBrightnessContrast, setMaskColors, setAlphaThresholds } from './shader-program.js';
 import { activeBackground, activeForeground } from './threeview.js';
 import "./image-camera";
 
@@ -259,4 +259,25 @@ cbRows.forEach((row, viewIdx) => {
 
 // Set initial values
 updateShaderBC();
+
+// === Alpha Threshold Sliders wiring ===
+const alphaMinInput = document.getElementById('alpha-min');
+const alphaMaxInput = document.getElementById('alpha-max');
+const alphaMinValue = document.getElementById('alpha-min-value');
+const alphaMaxValue = document.getElementById('alpha-max-value');
+
+function updateAlphaThresholds() {
+    const min = parseFloat(alphaMinInput.value);
+    const max = parseFloat(alphaMaxInput.value);
+    setAlphaThresholds(min, max);
+    alphaMinValue.textContent = min.toFixed(2);
+    alphaMaxValue.textContent = max.toFixed(2);
+}
+if (alphaMinInput && alphaMaxInput) {
+    alphaMinInput.addEventListener('input', updateAlphaThresholds);
+    alphaMaxInput.addEventListener('input', updateAlphaThresholds);
+    // Set initial values
+    updateAlphaThresholds();
+}
+// ===============================
 

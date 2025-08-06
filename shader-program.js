@@ -87,11 +87,10 @@ bool aspectFitHalf(vec2 tex, float halfX0, float halfX1, vec4 area, out vec2 cro
     return true;
 }
 
-// Soft blur using fixed radius, no int loop
 float blurMask(sampler2D mask, vec2 uv, vec2 texel, float radius) {
     float total = 0.0;
     float weight = 0.0;
-    float maxDist = floor(radius);  // dynamic range of blur
+    float maxDist = floor(radius);
 
     for (float x = -6.0; x <= 6.0; x++) {
         for (float y = -6.0; y <= 6.0; y++) {
@@ -100,7 +99,7 @@ float blurMask(sampler2D mask, vec2 uv, vec2 texel, float radius) {
 
             if (dist > maxDist) continue;
 
-            float w = exp(-dist * dist / (2.0 * radius * radius)); // Gaussian weight
+            float w = exp(-dist * dist / (2.0 * radius * radius));
             total += texture2D(mask, uv + offset * texel).r * w;
             weight += w;
         }
@@ -164,9 +163,6 @@ void main() {
 }
 `;
 
-
-
-
 function createShader(gl, type, source) {
     const shader = gl.createShader(type);
     gl.shaderSource(shader, source);
@@ -196,7 +192,6 @@ function createProgram(gl, vertSrc, fragSrc) {
 const program = createProgram(gl, vertSrc, fragSrc);
 gl.useProgram(program);
 
-// Setup buffer and attributes
 const positionBuffer = gl.createBuffer();
 gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
 gl.bufferData(
@@ -220,8 +215,7 @@ attribs.forEach(attr => {
     gl.vertexAttribPointer(loc, attr.size, gl.FLOAT, false, 16, attr.offset);
 });
 
-// Setup textures and uniforms
-const textureUnits = [0, 1, 2, 3, 4]; // 4 masks, 1 video
+const textureUnits = [0, 1, 2, 3, 4];
 const uniforms = ['u_mask0', 'u_mask1', 'u_mask2', 'u_mask3', 'u_video'];
 uniforms.forEach((name, i) => {
     gl.uniform1i(gl.getUniformLocation(program, name), textureUnits[i]);
@@ -236,48 +230,40 @@ const u_maskColors = gl.getUniformLocation(program, 'u_maskColors');
 const u_alphaMin = gl.getUniformLocation(program, 'u_alphaMin');
 const u_alphaMax = gl.getUniformLocation(program, 'u_alphaMax');
 
-// Set default values
 gl.uniform1f(u_brightness, 0.0);
 gl.uniform1f(u_contrast, 1.5);
 gl.uniform3fv(u_maskColors, new Float32Array([
-    1.0, 1.0, 0.0, // Red
-    0.0, 1.0, 0.0, // Green
-    0.0, 0.0, 1.0, // Blue
-    1.0, 1.0, 0.0  // Yellow
+    1.0, 1.0, 0.0,
+    0.0, 1.0, 0.0,
+    0.0, 0.0, 1.0,
+    1.0, 1.0, 0.0
 ]));
-gl.uniform1f(u_alphaMin, 0.02); // default lower threshold
-gl.uniform1f(u_alphaMax, 0.6);  // default upper threshold
+gl.uniform1f(u_alphaMin, 0.2);
+gl.uniform1f(u_alphaMax, 0.7);
 
-// Helper to set capture areas (expects array of 2 crops: [x, y, w, h] normalized to video texture)
 function setCaptureAreas(captureAreas) {
-    // captureAreas: [[x0, y0, w0, h0], [x1, y1, w1, h1]] in normalized (0..1) coordinates
     const flat = new Float32Array(8);
     for (let i = 0; i < 2; ++i) flat.set(captureAreas[i], i * 4);
     gl.uniform4fv(u_captureAreas, flat);
 }
 
-// Helper to set brightness/contrast
 function setBrightnessContrast(brightness, contrast) {
     gl.useProgram(program);
     gl.uniform1f(u_brightness, brightness);
     gl.uniform1f(u_contrast, contrast);
 }
 
-// Helper to set mask colors dynamically
 function setMaskColors(maskColors) {
-    // maskColors: [[r,g,b], [r,g,b], [r,g,b], [r,g,b]]
     gl.useProgram(program);
     gl.uniform3fv(u_maskColors, new Float32Array(maskColors.flat()));
 }
 
-// Helper to set alpha thresholds dynamically
 function setAlphaThresholds(alphaMin, alphaMax) {
     gl.useProgram(program);
     gl.uniform1f(u_alphaMin, alphaMin);
     gl.uniform1f(u_alphaMax, alphaMax);
 }
 
-// Texture creation helper
 function createAndSetupTexture(unit, format, w, h) {
     const tex = gl.createTexture();
     gl.activeTexture(gl.TEXTURE0 + unit);
@@ -286,17 +272,7 @@ function createAndSetupTexture(unit, format, w, h) {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.texImage2D(
-        gl.TEXTURE_2D,
-        0,
-        format,
-        w,
-        h,
-        0,
-        format,
-        gl.UNSIGNED_BYTE,
-        null
-    );
+    gl.texImage2D(gl.TEXTURE_2D, 0, format, w, h, 0, format, gl.UNSIGNED_BYTE, null);
     return tex;
 }
 
@@ -307,15 +283,12 @@ const textures = textureUnits.map(i =>
 const maskUploadBuffers = {};
 
 function uploadMaskToTexture(maskArray, unit, w, h) {
-
     let u8 = maskUploadBuffers[unit];
     if (!u8 || u8.length !== maskArray.length) {
         u8 = new Uint8Array(maskArray.length);
         maskUploadBuffers[unit] = u8;
     }
     for (let i = 0; i < maskArray.length; i++) {
-        // const val = Math.min(1, Math.max(0, maskArray[i]));
-        // u8[i] = Math.round(val * 255);
         u8[i] = maskArray[i] * 255;
     }
 
@@ -323,7 +296,6 @@ function uploadMaskToTexture(maskArray, unit, w, h) {
     gl.bindTexture(gl.TEXTURE_2D, textures[unit]);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, w, h, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, u8);
 }
-
 
 function clearMaskTexture(unit, w, h) {
     const zero = new Uint8Array(w * h);
@@ -334,7 +306,6 @@ function clearMaskTexture(unit, w, h) {
 }
 
 function blendCanvasesToOutCanvas(destCanvas, index) {
-    // updateGLSize();
     gl.clear(gl.COLOR_BUFFER_BIT);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 }
