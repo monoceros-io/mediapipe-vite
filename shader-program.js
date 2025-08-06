@@ -245,8 +245,8 @@ gl.uniform3fv(u_maskColors, new Float32Array([
     0.0, 0.0, 1.0, // Blue
     1.0, 1.0, 0.0  // Yellow
 ]));
-gl.uniform1f(u_alphaMin, 0.01); // default lower threshold
-gl.uniform1f(u_alphaMax, 0.4);  // default upper threshold
+gl.uniform1f(u_alphaMin, 0.02); // default lower threshold
+gl.uniform1f(u_alphaMax, 0.6);  // default upper threshold
 
 // Helper to set capture areas (expects array of 2 crops: [x, y, w, h] normalized to video texture)
 function setCaptureAreas(captureAreas) {
