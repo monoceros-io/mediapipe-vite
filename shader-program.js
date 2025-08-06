@@ -40,6 +40,8 @@ uniform float u_contrast;
 uniform float u_width;
 uniform float u_height;
 uniform vec3 u_maskColors[4];
+uniform float u_alphaMin;
+uniform float u_alphaMax;
 
 vec2 cropSample(vec2 t, vec4 area) {
     return vec2(
@@ -126,8 +128,8 @@ void main() {
         float m0 = blurMask(u_mask0, cropUV, texel, 0.0);
         float m1 = blurMask(u_mask1, cropUV, texel, 0.0);
 
-        float fade0 = smoothstep(0.01, 0.4, m0);
-        float fade1 = smoothstep(0.01, 0.4, m1);
+        float fade0 = smoothstep(u_alphaMin, u_alphaMax, m0);
+        float fade1 = smoothstep(u_alphaMin, u_alphaMax, m1);
         float maskFade0 = pow(1.0 - fade0, 2.0);
         float maskFade1 = fade1;
 
@@ -147,8 +149,8 @@ void main() {
         float m2 = blurMask(u_mask2, cropUV, texel, 0.0);
         float m3 = blurMask(u_mask3, cropUV, texel, 0.0);
 
-        float fade2 = smoothstep(0.01, 0.4, m2);
-        float fade3 = smoothstep(0.01, 0.4, m3);
+        float fade2 = smoothstep(u_alphaMin, u_alphaMax, m2);
+        float fade3 = smoothstep(u_alphaMin, u_alphaMax, m3);
         float maskFade2 = pow(1.0 - fade2, 2.0);
         float maskFade3 = fade3;
 
@@ -231,6 +233,8 @@ const u_contrast = gl.getUniformLocation(program, 'u_contrast');
 const u_width = gl.getUniformLocation(program, 'u_width');
 const u_height = gl.getUniformLocation(program, 'u_height');
 const u_maskColors = gl.getUniformLocation(program, 'u_maskColors');
+const u_alphaMin = gl.getUniformLocation(program, 'u_alphaMin');
+const u_alphaMax = gl.getUniformLocation(program, 'u_alphaMax');
 
 // Set default values
 gl.uniform1f(u_brightness, 0.0);
@@ -241,6 +245,8 @@ gl.uniform3fv(u_maskColors, new Float32Array([
     0.0, 0.0, 1.0, // Blue
     1.0, 1.0, 0.0  // Yellow
 ]));
+gl.uniform1f(u_alphaMin, 0.01); // default lower threshold
+gl.uniform1f(u_alphaMax, 0.4);  // default upper threshold
 
 // Helper to set capture areas (expects array of 2 crops: [x, y, w, h] normalized to video texture)
 function setCaptureAreas(captureAreas) {
@@ -262,6 +268,13 @@ function setMaskColors(maskColors) {
     // maskColors: [[r,g,b], [r,g,b], [r,g,b], [r,g,b]]
     gl.useProgram(program);
     gl.uniform3fv(u_maskColors, new Float32Array(maskColors.flat()));
+}
+
+// Helper to set alpha thresholds dynamically
+function setAlphaThresholds(alphaMin, alphaMax) {
+    gl.useProgram(program);
+    gl.uniform1f(u_alphaMin, alphaMin);
+    gl.uniform1f(u_alphaMax, alphaMax);
 }
 
 // Texture creation helper
@@ -337,5 +350,6 @@ export {
     clearMaskTexture,
     blendCanvasesToOutCanvas,
     videoTexture,
-    setMaskColors
+    setMaskColors,
+    setAlphaThresholds
 };
