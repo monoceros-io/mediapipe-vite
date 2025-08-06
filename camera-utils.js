@@ -1,5 +1,5 @@
 import { detectPose, loadModels } from "./processing";
-import { setCaptureAreas, setBrightnessContrast, setOverlayMask, uploadMaskToTexture, clearMaskTexture, blendCanvasesToOutCanvas, videoTexture } from './shader-program.js';
+import { setCaptureAreas, setBrightnessContrast, uploadMaskToTexture, clearMaskTexture, blendCanvasesToOutCanvas, videoTexture } from './shader-program.js';
 import { init, run } from "./threeview.js";
 
 let video, cropDivOuter;

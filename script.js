@@ -1,6 +1,6 @@
 import { setupVideoUtils, matchCropToVideo } from "./camera-utils";
 import { loadModels } from "./processing";
-import { setBrightnessContrast, setOverlayMask, setMaskColors } from './shader-program.js';
+import { setBrightnessContrast, setMaskColors } from './shader-program.js';
 import { activeBackground, activeForeground } from './threeview.js';
 import "./image-camera";
 
@@ -139,21 +139,11 @@ brightnessInput.addEventListener('input', updateShaderBC);
 contrastInput.addEventListener('input', updateShaderBC);
 
 // Wire up overlay-mask checkbox
+
 const overlayMaskInput = document.getElementById('overlay-mask');
 const foreCanvases = document.querySelector('.fore-canvases');
-if (overlayMaskInput) {
-    setOverlayMask(overlayMaskInput.checked);
-    overlayMaskInput.addEventListener('change', () => {
-        setOverlayMask(overlayMaskInput.checked);
-        if (foreCanvases) {
-            foreCanvases.style.display = overlayMaskInput.checked ? 'flex' : 'none';
-        }
-    });
-    // Set initial visibility on load
-    if (foreCanvases) {
-        foreCanvases.style.display = overlayMaskInput.checked ? 'flex' : 'none';
-    }
-}
+
+
 
 // Fullscreen button logic for qc-0
 const fullscreenBtn = document.getElementById('fullscreen-btn');

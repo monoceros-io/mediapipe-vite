@@ -50,7 +50,6 @@ body {
 .final-canvas {
     position: absolute;
     height: 100%;
-    aspect-ratio: 1.015625;
 
 }
 
@@ -58,7 +57,6 @@ body {
     top: 0;
     left: 0;
     height: 100%;
-    aspect-ratio: 0.5078125;
     /* mix-blend-mode: plus-lighter; */
 }
 
@@ -66,7 +64,6 @@ body {
     top: 0;
     left: 50%;
     height: 100%;
-    aspect-ratio: 0.5078125;
 }
 
 
@@ -179,13 +176,22 @@ body {
 
 .canvas-container {
     position: absolute;
-    /* top: 0;
-    left: 0; */
-    /* width: 100%; */
+    width: 100%;
     height: 100%;
     display: flex;
     flex-direction: row;
 }
+
+.centred-canvases {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+}
+
 
 .fore-canvases {
     position: absolute;
@@ -285,6 +291,7 @@ body {
     color: white;
     font-family: sans-serif;
     font-size: 0.5em;
+    display: none;
 }
 
 .rgb-outputs > div {
@@ -327,7 +334,7 @@ body {
 }
 
 .photo-overlay-inner {
-    aspect-ratio: 975 / 1920;
+    aspect-ratio: 960 / 1080;
     width: 100%;
     background-color: black;
 }

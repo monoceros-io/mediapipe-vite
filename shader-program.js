@@ -37,7 +37,6 @@ uniform sampler2D u_video;
 uniform vec4 u_captureAreas[2];
 uniform float u_brightness;
 uniform float u_contrast;
-uniform bool u_overlayMask;
 uniform float u_width;
 uniform float u_height;
 uniform vec3 u_maskColors[4];
@@ -113,82 +112,50 @@ void main() {
     vec3 outputColor = vec3(0.0);
     float a = 1.0;
 
-    float u_blurStrength = .0;
-
-    if (u_overlayMask) {
-        bool inCrop = false;
-        vec2 cropUV;
-        if (tex.x < 0.5) {
-            inCrop = aspectFitHalf(tex, 0.0, 0.5, u_captureAreas[0], cropUV);
-            if (!inCrop) {
-                gl_FragColor = vec4(0.0);
-                return;
-            }
-            vec2 videoTex = cropSample(cropUV, u_captureAreas[0]);
-            vec4 videoColor = texture2D(u_video, videoTex);
-            vec2 texel = vec2(1.0 / (u_width / 2.0), 1.0 / u_height);
-            float m0 = blurMask(u_mask0, cropUV, texel, u_blurStrength);
-            float m1 = blurMask(u_mask1, cropUV, texel, u_blurStrength);
-
-            float fade0 = smoothstep(0.01, 0.4, m0);
-            float fade1 = smoothstep(0.01, 0.4, m1);
-            float maskFade0 = pow(1.0 - fade0, 2.0);
-            float maskFade1 = fade1;
-
-            vec3 color = (videoColor.rgb - 0.5) * u_contrast + 0.5 + u_brightness;
-            outputColor = mix(color, color * u_maskColors[1], maskFade1);
-            outputColor = mix(vec3(0.0), outputColor, maskFade0);
-            a *= maskFade0;
-        } else {
-            inCrop = aspectFitHalf(tex, 0.5, 1.0, u_captureAreas[1], cropUV);
-            if (!inCrop) {
-                gl_FragColor = vec4(0.0);
-                return;
-            }
-            vec2 videoTex = cropSample(cropUV, u_captureAreas[1]);
-            vec4 videoColor = texture2D(u_video, videoTex);
-            vec2 texel = vec2(1.0 / (u_width / 2.0), 1.0 / u_height);
-            float m2 = blurMask(u_mask2, cropUV, texel, u_blurStrength);
-            float m3 = blurMask(u_mask3, cropUV, texel, u_blurStrength);
-
-            float fade2 = smoothstep(0.01, 0.4, m2);
-            float fade3 = smoothstep(0.01, 0.4, m3);
-            float maskFade2 = pow(1.0 - fade2, 2.0);
-            float maskFade3 = fade3;
-
-            vec3 color = (videoColor.rgb - 0.5) * u_contrast + 0.5 + u_brightness;
-            outputColor = mix(color, color * u_maskColors[3], maskFade3);
-            outputColor = mix(vec3(0.0), outputColor, maskFade2);
-            a *= maskFade2;
+    bool inCrop = false;
+    vec2 cropUV;
+    if (tex.x < 0.5) {
+        inCrop = aspectFitHalf(tex, 0.0, 0.5, u_captureAreas[0], cropUV);
+        if (!inCrop) {
+            gl_FragColor = vec4(0.0);
+            return;
         }
+        vec2 videoTex = cropSample(cropUV, u_captureAreas[0]);
+        vec4 videoColor = texture2D(u_video, videoTex);
+        vec2 texel = vec2(1.0 / (u_width / 2.0), 1.0 / u_height);
+        float m0 = blurMask(u_mask0, cropUV, texel, 0.0);
+        float m1 = blurMask(u_mask1, cropUV, texel, 0.0);
+
+        float fade0 = smoothstep(0.01, 0.4, m0);
+        float fade1 = smoothstep(0.01, 0.4, m1);
+        float maskFade0 = pow(1.0 - fade0, 2.0);
+        float maskFade1 = fade1;
+
+        vec3 color = (videoColor.rgb - 0.5) * u_contrast + 0.5 + u_brightness;
+        outputColor = mix(color, color * u_maskColors[1], maskFade1);
+        outputColor = mix(vec3(0.0), outputColor, maskFade0);
+        a *= maskFade0;
     } else {
-        if (tex.x < 0.25) {
-            vec2 t = vec2(tex.x * 4.0, tex.y);
-            vec2 texel = vec2(1.0 / (u_width / 4.0), 1.0 / u_height);
-            float m0 = blurMask(u_mask0, t, texel, u_blurStrength);
-            float m1 = blurMask(u_mask1, t, texel, u_blurStrength);
-            vec3 blendA = mix(vec3(0.0), u_maskColors[0], m0);
-            blendA = mix(blendA, u_maskColors[1], m1);
-            outputColor = blendA;
-        } else if (tex.x < 0.5) {
-            vec2 t = vec2((tex.x - 0.25) * 4.0, tex.y);
-            vec2 videoTex = cropSample(t, u_captureAreas[0]);
-            vec4 videoColor = texture2D(u_video, videoTex);
-            outputColor = (videoColor.rgb - 0.5) * u_contrast + 0.5 + u_brightness;
-        } else if (tex.x < 0.75) {
-            vec2 t = vec2((tex.x - 0.5) * 4.0, tex.y);
-            vec2 texel = vec2(1.0 / (u_width / 4.0), 1.0 / u_height);
-            float m2 = blurMask(u_mask2, t, texel, u_blurStrength);
-            float m3 = blurMask(u_mask3, t, texel, u_blurStrength);
-            vec3 blendB = mix(vec3(0.0), u_maskColors[2], m2);
-            blendB = mix(blendB, u_maskColors[3], m3);
-            outputColor = blendB;
-        } else {
-            vec2 t = vec2((tex.x - 0.75) * 4.0, tex.y);
-            vec2 videoTex = cropSample(t, u_captureAreas[1]);
-            vec4 videoColor = texture2D(u_video, videoTex);
-            outputColor = (videoColor.rgb - 0.5) * u_contrast + 0.5 + u_brightness;
+        inCrop = aspectFitHalf(tex, 0.5, 1.0, u_captureAreas[1], cropUV);
+        if (!inCrop) {
+            gl_FragColor = vec4(0.0);
+            return;
         }
+        vec2 videoTex = cropSample(cropUV, u_captureAreas[1]);
+        vec4 videoColor = texture2D(u_video, videoTex);
+        vec2 texel = vec2(1.0 / (u_width / 2.0), 1.0 / u_height);
+        float m2 = blurMask(u_mask2, cropUV, texel, 0.0);
+        float m3 = blurMask(u_mask3, cropUV, texel, 0.0);
+
+        float fade2 = smoothstep(0.01, 0.4, m2);
+        float fade3 = smoothstep(0.01, 0.4, m3);
+        float maskFade2 = pow(1.0 - fade2, 2.0);
+        float maskFade3 = fade3;
+
+        vec3 color = (videoColor.rgb - 0.5) * u_contrast + 0.5 + u_brightness;
+        outputColor = mix(color, color * u_maskColors[3], maskFade3);
+        outputColor = mix(vec3(0.0), outputColor, maskFade2);
+        a *= maskFade2;
     }
 
     gl_FragColor = vec4(outputColor, a);
@@ -261,7 +228,6 @@ uniforms.forEach((name, i) => {
 const u_captureAreas = gl.getUniformLocation(program, 'u_captureAreas');
 const u_brightness = gl.getUniformLocation(program, 'u_brightness');
 const u_contrast = gl.getUniformLocation(program, 'u_contrast');
-const u_overlayMask = gl.getUniformLocation(program, 'u_overlayMask');
 const u_width = gl.getUniformLocation(program, 'u_width');
 const u_height = gl.getUniformLocation(program, 'u_height');
 const u_maskColors = gl.getUniformLocation(program, 'u_maskColors');
@@ -269,7 +235,6 @@ const u_maskColors = gl.getUniformLocation(program, 'u_maskColors');
 // Set default values
 gl.uniform1f(u_brightness, 0.0);
 gl.uniform1f(u_contrast, 1.5);
-gl.uniform1i(u_overlayMask, 0);
 gl.uniform3fv(u_maskColors, new Float32Array([
     1.0, 1.0, 0.0, // Red
     0.0, 1.0, 0.0, // Green
@@ -290,12 +255,6 @@ function setBrightnessContrast(brightness, contrast) {
     gl.useProgram(program);
     gl.uniform1f(u_brightness, brightness);
     gl.uniform1f(u_contrast, contrast);
-}
-
-// Helper to set overlay mask mode
-function setOverlayMask(enabled) {
-    gl.useProgram(program);
-    gl.uniform1i(u_overlayMask, enabled ? 1 : 0);
 }
 
 // Helper to set mask colors dynamically
@@ -374,7 +333,6 @@ updateGLSize();
 export {
     setCaptureAreas,
     setBrightnessContrast,
-    setOverlayMask,
     uploadMaskToTexture,
     clearMaskTexture,
     blendCanvasesToOutCanvas,

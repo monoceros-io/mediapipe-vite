@@ -12,13 +12,6 @@ const foreCanvases = document.querySelectorAll(".fore-canvas");
 const photoEffectCanvases = document.querySelectorAll(".photo-overlay-inner");
 const photoEffectOuter = document.querySelectorAll(".photo-overlay-outer");
 
-const modeEnabled = document.getElementById("photo-mode");
-let canTakePhotos = false;
-
-modeEnabled.addEventListener('change', () => {
-    canTakePhotos = modeEnabled.checked;
-});
-
 const startPhoto0 = () => {
     hideCTA(0);
     showPrepare(0);
@@ -30,18 +23,6 @@ const startPhoto0 = () => {
 const startPhoto1 = () => {
     console.log("START PHOTO ONE");
 }
-
-
-
-document.getElementById("btn-cap-0").addEventListener("click", () => {
-    startPhoto0();
-    takePhoto(0);
-});
-
-document.getElementById("btn-cap-1").addEventListener("click", () => {
-    startPhoto1();
-    takePhoto(1);
-});
 
 
 const flashElements = document.querySelectorAll('.flash-white');
@@ -179,11 +160,6 @@ eventController.addEventListener("pose-lost", ({ segIndex }) => {
 
     if (posesDetected[segIndex]) {
         posesDetected[segIndex] = false;
-        if (canTakePhotos) {
-            showCTA(+(!segIndex));
-            hidePrepare(+(!segIndex));
-            clearTimeout(retakeTimeouts[segIndex]);
-        }
     }
 
 
@@ -193,12 +169,7 @@ eventController.addEventListener("pose-found", ({ segIndex }) => {
 
     if (!posesDetected[segIndex]) {
         posesDetected[segIndex] = true;
-        if (canTakePhotos) {
-            hideCTA(+(!segIndex));
-            showPrepare(+(!segIndex));
-            takePhoto(+(!segIndex));
-            clearTimeout(retakeTimeouts[+(!segIndex)]);
-        }
+        
     }
 
 

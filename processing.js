@@ -1,5 +1,5 @@
 import eventController from "./EventController";
-import { ImageSegmenter, FilesetResolver, PoseLandmarker, DrawingUtils } from "./node_modules/@mediapipe/tasks-vision";
+import { ImageSegmenter, FilesetResolver, PoseLandmarker, DrawingUtils } from "@mediapipe/tasks-vision";
 
 
 const runningMode = "VIDEO";
@@ -33,6 +33,8 @@ const getHexForDec = dec => {
 }
 
 const drawColoursFromSkeleton = () => {
+
+    return;
 
     for (let b = 0; b < 2; ++b) {
         const body = bodies[b];
