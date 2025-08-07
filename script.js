@@ -6,13 +6,11 @@ import "./image-camera";
 
 import experience0 from './experience0.js';
 import experience1 from './experience1.js';
-import experience2 from './experience2.js';
-import experience3 from './experience3.js';
 import eventController from "./EventController.js";
 import "./canvas2d.js";
 
 
-const experiences = [experience0, experience1, experience2, experience3];
+const experiences = [experience0, experience1];
 
 const foreCanvasArray = document.querySelectorAll('.fore-canvas');
 
@@ -59,22 +57,46 @@ let firstSet = false;
 const cameraChange = async (id) => {
     cameraSourceActive[0] = false;
     const video = document.getElementById(`vid-0`);
+
+    // Try to get supported constraints (not per device, but global)
+    const supportedConstraints = navigator.mediaDevices.getSupportedConstraints();
+    console.log("Supported constraints:", supportedConstraints);
+
+    // Try to get camera capabilities via enumerateDevices (labels may hint at resolution, but not guaranteed)
+    // There is no direct way to get max resolution before opening the stream.
+    // Some browsers support getCapabilities() on MediaStreamTrack after getUserMedia.
+
+    // Request 4K resolution (3840x2160)
     const stream = await navigator.mediaDevices.getUserMedia({
         video: {
-            width: { ideal: 4096 },
-            height: { ideal: 1920 },
+            width: { ideal: 3840, max: 3840 },
+            height: { ideal: 2160, max: 2160 },
             aspectRatio: { ideal: 16 / 9 },
-            deviceId: { ideal: id },
+            deviceId: { exact: id },
+            frameRate: { ideal: 60, max: 60 },
         }
     });
+
+    console.log("Camera stream started");
+    console.log(stream);
+
+    // After stream is started, you can check actual capabilities
+    const videoTrack = stream.getVideoTracks()[0];
+    if (videoTrack.getCapabilities) {
+        const caps = videoTrack.getCapabilities();
+        console.log("Video track capabilities:", caps);
+    }
+    if (videoTrack.getSettings) {
+        const settings = videoTrack.getSettings();
+        console.log("Video track settings:", settings);
+    }
 
     const streamStart = () => {
         video.removeEventListener('loadeddata', streamStart);
         cameraSourceActive[0] = true;
-        
+        console.log('Camera videoWidth:', video.videoWidth, 'videoHeight:', video.videoHeight);
         matchCropToVideo();
     }
-
 
     video.addEventListener('loadeddata', streamStart);
     video.srcObject = stream;
@@ -190,8 +212,8 @@ document.addEventListener('fullscreenchange', () => {
 // --- Experience switching logic ---
 
 const EXPERIENCE_COLORS = [
-    [0.3, 0.2, 0],  // Yellow
     [0.2, 1.0, 0.1],  // Yellow
+    [1.0, 0.7, 0.0],  // Yellow
     [1, 1, 0], // Blue
     [1.0, 0.5, 0]  // Yellow
 ];

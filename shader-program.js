@@ -123,9 +123,9 @@ void main() {
         }
         vec2 videoTex = cropSample(cropUV, u_captureAreas[0]);
         vec4 videoColor = texture2D(u_video, videoTex);
-        vec2 texel = vec2(1.0 / (u_width / 2.0), 1.0 / u_height);
-        float m0 = blurMask(u_mask0, cropUV, texel, 0.0);
-        float m1 = blurMask(u_mask1, cropUV, texel, 0.0);
+        vec2 texel = vec2(1.0 / (u_width / 2.0), 1.0 / u_height) * 2.0;
+        float m0 = blurMask(u_mask0, cropUV, texel, 6.0);
+        float m1 = blurMask(u_mask1, cropUV, texel, 6.0);
 
         float fade0 = smoothstep(u_alphaMin, u_alphaMax, m0);
         float fade1 = smoothstep(u_alphaMin, u_alphaMax, m1);
@@ -144,9 +144,9 @@ void main() {
         }
         vec2 videoTex = cropSample(cropUV, u_captureAreas[1]);
         vec4 videoColor = texture2D(u_video, videoTex);
-        vec2 texel = vec2(1.0 / (u_width / 2.0), 1.0 / u_height);
-        float m2 = blurMask(u_mask2, cropUV, texel, 0.0);
-        float m3 = blurMask(u_mask3, cropUV, texel, 0.0);
+        vec2 texel = vec2(1.0 / (u_width / 2.0), 1.0 / u_height) * 2.0;
+        float m2 = blurMask(u_mask2, cropUV, texel, 6.0);
+        float m3 = blurMask(u_mask3, cropUV, texel, 6.0);
 
         float fade2 = smoothstep(u_alphaMin, u_alphaMax, m2);
         float fade3 = smoothstep(u_alphaMin, u_alphaMax, m3);

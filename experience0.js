@@ -1,11 +1,11 @@
 import * as THREE from 'three';
-import SpiralShaderMaterial from './spiral-shader.js';
+import { InstancedParticleSystem } from './InstancedParticleSystem.js';
 
-const EXPERIENCE_COLOR = 0xffd100;
+const EXPERIENCE_COLOR = 0xffff00;
 const FORE_SPRITE_COUNT = 0;
 const MAX_LIFE = 1000;
 const PARTICLE_FRICTION = 0.97;
-const STARFIELD_COUNT = 50;
+const STARFIELD_COUNT = 0;
 const CHILI_SCALE = 2;
 const CHILI_GROW = 0.08; // How fast chilis grow in (per frame)
 const HYPER_SPEED = 0.19; // Constant speed for all chilis
@@ -19,26 +19,27 @@ let starTexture = null;
 let sprites = [], velocities = [], life = [];
 
 // Add these to hold internal state
-let background = { renderer: null, scene: null, camera: null, spiralMaterial: null };
+let background = { renderer: null, scene: null, camera: null };
 let foreground = { renderer: null, scene: null, camera: null };
 
 let scene, camera;
+let chiliParticles = null; // reference to InstancedParticleSystem
 
 export default {
     foreBlendMode: "plus-lighter",
+
     async initBackground(canvas) {
         // Load chili texture
         const loader = new THREE.TextureLoader();
         starTexture = await new Promise((resolve, reject) => {
-            loader.load('chip0.png', resolve, undefined, reject);
+            loader.load('jalapeno.png', resolve, undefined, reject);
         });
-        // Ensure correct color space for texture
         starTexture.encoding = THREE.sRGBEncoding;
 
         const renderer = new THREE.WebGLRenderer({ alpha: true });
         renderer.setSize(canvas.width, canvas.height, false);
-        // Ensure renderer outputs sRGB
         renderer.outputEncoding = THREE.sRGBEncoding;
+
         scene = new THREE.Scene();
         camera = new THREE.PerspectiveCamera(45, canvas.width / canvas.height, 0.1, 100);
         camera.position.set(0, 0, 5);
@@ -63,71 +64,56 @@ export default {
             );
             scene.add(mesh);
             starPlanes.push(mesh);
-            // Start with full scale
             starScales.push(1);
-            // Assign random rotation speed between -MAX_ROT and MAX_ROT
             starRotations.push((Math.random() * 2 - 1) * MAX_ROT);
         }
 
-        // Add spiral-shader plane to background
-        const spiralGeometry = new THREE.PlaneGeometry(3, 3);
-        const spiralMaterial = SpiralShaderMaterial([0.996, 0.8196, 0.0118]); // RED
-        spiralMaterial.uniforms.rot_points.value = Float32Array.from({length: 100}, (_, i) => {
-            const idx = i % 5;
-            if (idx === 0) return Math.random() * Math.PI * 2; // angle
-            if (idx === 1) return 0.2 + Math.random() * 0.2;   // range
-            if (idx === 2) return Math.random() * 0.2;         // start
-            if (idx === 3) return 0.5 + Math.random() * 0.5;   // alpha
-            if (idx === 4) return 0.01 + Math.random() * 0.03; // speed
-        });
-        const spiralPlane = new THREE.Mesh(spiralGeometry, spiralMaterial);
-        spiralPlane.position.set(0, 0, -20);
-        spiralPlane.scale.set(10, 10, 1);
-        scene.add(spiralPlane);
-        background.spiralMaterial = spiralMaterial;
+        // Instanced particle system — large & in front
+        chiliParticles = new InstancedParticleSystem('jalapeno.png', 100, 100, 0.1);
+        chiliParticles.position.z = -50; // in front of most stars
+        chiliParticles.scale.set(5, 5, 5); // big enough to see
+        chiliParticles.renderOrder = 1; // render after stars
+        scene.add(chiliParticles);
 
-        // No lighting needed for unlit material
         background.renderer = renderer;
         background.scene = scene;
         background.camera = camera;
     },
+
     updateBackground({ canvas, time }) {
         if (!background.renderer) return;
-        const { renderer, spiralMaterial } = background;
+        const { renderer } = background;
 
-        // Animate spiral points: angle += speed
-        if (spiralMaterial) {
-            const arr = spiralMaterial.uniforms.rot_points.value;
-            for (let i = 0; i < 100; i += 5) {
-                arr[i] += arr[i + 4];
-                if (arr[i] > Math.PI * 2) arr[i] -= Math.PI * 2;
-            }
-        }
+        chiliParticles.update();
+        console.log("FONKO");
+
 
         for (let j = 0; j < starPlanes.length; j++) {
             const plane = starPlanes[j];
             // Move towards camera
             plane.position.z += HYPER_SPEED;
-            // Rotate through Y
+            // Rotate
             plane.rotation.z += starRotations[j];
             // Respawn if passed camera
             if (plane.position.z > camera.position.z) {
                 plane.position.x = Math.random() * 10 - 5;
                 plane.position.y = Math.random() * 10 - 5;
                 plane.position.z = Math.random() * -30 - 5;
-                // Set scale scalar to 0 for grow-in effect
                 starScales[j] = 0;
-                // Assign new random rotation speed
                 starRotations[j] = (Math.random() * 2 - 1) * MAX_ROT;
             }
-            // Grow scale if not yet 1
+            // Grow scale if not yet at target
             if (starScales[j] < CHILI_SCALE) {
                 starScales[j] = Math.min(1, starScales[j] + CHILI_GROW);
             }
             plane.scale.setScalar(starScales[j]);
-            // Always face the camera
-            // plane.lookAt(camera.position);
         }
+
+        // Animate chili particle system
+        if (chiliParticles) {
+            chiliParticles.rotation.z += 0.001;
+        }
+
         if (renderer.domElement.width !== canvas.width || renderer.domElement.height !== canvas.height) {
             renderer.setSize(canvas.width, canvas.height, false);
         }
@@ -138,6 +124,7 @@ export default {
             ctx.drawImage(renderer.domElement, 0, 0);
         }
     },
+
     initForeground(canvas, spriteTexture) {
         const renderer = new THREE.WebGLRenderer({ alpha: true });
         renderer.setSize(canvas.width, canvas.height, false);
@@ -148,8 +135,8 @@ export default {
         velocities = [];
         life = [];
         for (let j = 0; j < FORE_SPRITE_COUNT; j++) {
-            const material = new THREE.SpriteMaterial({ 
-                map: spriteTexture, 
+            const material = new THREE.SpriteMaterial({
+                map: spriteTexture,
                 color: EXPERIENCE_COLOR,
                 transparent: true
             });
@@ -173,6 +160,7 @@ export default {
         foreground.scene = scene;
         foreground.camera = camera;
     },
+
     updateForeground({ canvas, gravityPoints, time }) {
         const { renderer, scene, camera } = foreground;
 
@@ -185,7 +173,7 @@ export default {
                 const dx = pt.x - sprite.position.x;
                 const dy = pt.y - sprite.position.y;
                 const dz = pt.z - sprite.position.z;
-                const distSq = dx*dx + dy*dy + dz*dz + 0.0001;
+                const distSq = dx * dx + dy * dy + dz * dz + 0.0001;
                 const force = pt.g / (distSq / 3);
                 v[0] += force * dx;
                 v[1] += force * dy;

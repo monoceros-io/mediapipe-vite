@@ -7,10 +7,8 @@ import { bodies } from './processing';
 
 import experience0 from './experience0.js';
 import experience1 from './experience1.js';
-import experience2 from './experience2.js';
-import experience3 from './experience3.js';
 
-const experiences = [experience0, experience1, experience2, experience3];
+const experiences = [experience0, experience1];
 
 const spriteTexture = new THREE.TextureLoader().load(BASE_PART_IMG);
 
@@ -46,7 +44,7 @@ export function init() {
         document.getElementById('fore-canvas-1')
     ];
 
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 2; i++) {
         // Background
         experiences[i].initBackground(canvases[0]);
         // Foreground
@@ -91,7 +89,7 @@ export function run() {
             experiences[bgIdx].updateBackground({
                 canvas: canvases[view],
                 time: performance.now(),
-                view,
+                view, 
             });
             // Foreground
             const fgIdx = activeForeground[view];
