@@ -51,6 +51,8 @@ export class InstancedParticleSystem extends THREE.Mesh {
 
         // Shader material
         const material = new THREE.ShaderMaterial({
+            depthTest: false,
+            depthWrite: false,
             uniforms: {
                 map: { value: new THREE.TextureLoader().load(textureURL) }
             },

@@ -109,7 +109,7 @@ devices.filter(device => device.kind === 'videoinput').forEach((device, index) =
 
         if(!firstSet){
             firstSet = true;
-            cameraChange(device.deviceId);
+            // cameraChange(device.deviceId);
         }
         
         const option = document.createElement('option');

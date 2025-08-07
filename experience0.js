@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { InstancedParticleSystem } from './InstancedParticleSystem.js';
+import SmokeSystem from './SmokeSystem.js';
 
 const EXPERIENCE_COLOR = 0xffff00;
 const FORE_SPRITE_COUNT = 0;
@@ -24,6 +25,7 @@ let foreground = { renderer: null, scene: null, camera: null };
 
 let scene, camera;
 let chiliParticles = null; // reference to InstancedParticleSystem
+let smokeSystem = null; // reference to SmokeSystem
 
 export default {
     foreBlendMode: "plus-lighter",
@@ -32,7 +34,7 @@ export default {
         // Load chili texture
         const loader = new THREE.TextureLoader();
         starTexture = await new Promise((resolve, reject) => {
-            loader.load('jalapeno.png', resolve, undefined, reject);
+            loader.load('jala/six-chili.png', resolve, undefined, reject);
         });
         starTexture.encoding = THREE.sRGBEncoding;
 
@@ -69,11 +71,18 @@ export default {
         }
 
         // Instanced particle system — large & in front
-        chiliParticles = new InstancedParticleSystem('jalapeno.png', 100, 100, 0.1);
+        chiliParticles = new InstancedParticleSystem('jala/six-chili.png', 100, 100, 0.1);
         chiliParticles.position.z = -50; // in front of most stars
         chiliParticles.scale.set(5, 5, 5); // big enough to see
         chiliParticles.renderOrder = 1; // render after stars
         scene.add(chiliParticles);
+
+        // Add smoke system
+        smokeSystem = new SmokeSystem(500, 8);
+        smokeSystem.position.set(0, 0, -10);
+        smokeSystem.scale.set(2, 2, 2);
+        scene.add(smokeSystem);
+
 
         background.renderer = renderer;
         background.scene = scene;
@@ -85,8 +94,8 @@ export default {
         const { renderer } = background;
 
         chiliParticles.update();
+        smokeSystem.update(time * 0.001); // Convert time to seconds
         console.log("FONKO");
-
 
         for (let j = 0; j < starPlanes.length; j++) {
             const plane = starPlanes[j];
