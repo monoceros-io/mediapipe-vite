@@ -122,7 +122,7 @@ chiliRenderCamera.position.set(0, 0, 20);
 chiliRenderScene.add(chiliGroup);
 
 // Create a render target for the chili scene
-const chiliRenderTarget = new THREE.WebGLRenderTarget(256, 256, {
+const chiliRenderTarget = new THREE.WebGLRenderTarget(2048, 2048, {
     minFilter: THREE.LinearFilter,
     magFilter: THREE.LinearFilter,
     format: THREE.RGBAFormat
@@ -184,11 +184,16 @@ export default {
         }
 
         // Instanced particle system — large & in front
-        chiliParticles = new InstancedParticleSystem('jala/six-chili.png', 100, 100, 0.1);
-        chiliParticles.position.z = -50; // in front of most stars
-        chiliParticles.scale.set(5, 5, 5); // big enough to see
+        // First render the chili scene to get the texture
+        renderer.setRenderTarget(chiliRenderTarget);
+        renderer.render(chiliRenderScene, chiliRenderCamera);
+        renderer.setRenderTarget(null);
+        
+        chiliParticles = new InstancedParticleSystem(chiliRenderTarget.texture, 100, 100, 0.1);
+        chiliParticles.position.z = 0; // in front of most stars
+        chiliParticles.scale.set(1, 1, 1); // big enough to see
         chiliParticles.renderOrder = 1; // render after stars
-        // scene.add(chiliParticles);
+        scene.add(chiliParticles);
 
         // Add smoke system
         smokeSystem = new SmokeSystem(500, 8, dummies);
@@ -197,7 +202,7 @@ export default {
         scene.add(smokeSystem);
 
         // Add spark system
-        sparkSystem = new SparkSystem(3000, 6, dummies);
+        sparkSystem = new SparkSystem(8000, 6, dummies);
         sparkSystem.position.set(0, 0, 0);
         sparkSystem.scale.set(1, 1, 1);
         scene.add(sparkSystem);
@@ -265,7 +270,16 @@ export default {
             let d = i / singleChiliMeshes.length * 2 * Math.PI; // Spread out over circle
 
             mesh.position.z = Math.sin(smallChiliSin + d) * Math.sin(bigChiliSin) * 10;
-            
+        }
+
+        // Render the chili scene to texture for the instanced particle system
+        renderer.setRenderTarget(chiliRenderTarget);
+        renderer.render(chiliRenderScene, chiliRenderCamera);
+        renderer.setRenderTarget(null);
+        
+        // Update the instanced particle system texture
+        if (chiliParticles) {
+            chiliParticles.setTexture(chiliRenderTarget.texture);
         }
 
 

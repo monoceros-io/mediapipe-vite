@@ -3,20 +3,24 @@ import * as THREE from 'three';
 export class InstancedParticleSystem extends THREE.Mesh {
 
     update(){
-        // Rotate each instance by a small amount
-        const attr = this.geometry.getAttribute('instanceRot');
+        // Animate Z position with sine wave, staggered by instance index
+        const attr = this.geometry.getAttribute('instancePos');
+        const time = performance.now() * 0.001;
         for (let i = 0; i < this.total; i++) {
-            let rot = attr.getX(i);
-            rot += 0.05; // Rotation speed (radians per frame)
-            attr.setX(i, rot);
+            const phase = i * 0.2; // Stagger factor
+            const z = Math.sin(time + phase); // Range [-1,1]
+            // Keep X and Y unchanged, animate Z
+            const x = attr.getX(i);
+            const y = attr.getY(i);
+            attr.setXYZ(i, x, y, z);
         }
         attr.needsUpdate = true;
     }
 
-    constructor(textureURL, gridX, gridY, quadSize = 1) {
+    constructor(texture, gridX, gridY, quadSize = 1) {
         // Build geometry
         const total = gridX * gridY;
-        const base = new THREE.PlaneGeometry(quadSize, quadSize);
+        const base = new THREE.BoxGeometry(quadSize, quadSize, quadSize);
         const geometry = new THREE.InstancedBufferGeometry().copy(base);
         geometry.instanceCount = total;
 
@@ -54,7 +58,7 @@ export class InstancedParticleSystem extends THREE.Mesh {
             depthTest: false,
             depthWrite: false,
             uniforms: {
-                map: { value: new THREE.TextureLoader().load(textureURL) }
+                map: { value: texture }
             },
             vertexShader: `
                 attribute vec3 instancePos;
@@ -95,9 +99,9 @@ export class InstancedParticleSystem extends THREE.Mesh {
         this.total = total;
     }
 
-    // Example method to change texture at runtime
-    setTexture(url) {
-        this.material.uniforms.map.value = new THREE.TextureLoader().load(url);
+    // Method to update texture at runtime
+    setTexture(texture) {
+        this.material.uniforms.map.value = texture;
     }
 
     // Example method to update positions

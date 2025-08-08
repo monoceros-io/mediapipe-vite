@@ -2,8 +2,8 @@ import * as THREE from 'three';
 
 const MAX_LIFE = 400;
 const MIN_LIFE = 100;
-const ATT_FORCE = 0.04; // Attraction force strength
-const AIR_FRICTION = 0.9999; // Air resistance coefficient
+const ATT_FORCE = 0.08; // Attraction force strength
+const AIR_FRICTION = 0.999; // Air resistance coefficient
 const MAX_SPEED = 0.1; // Maximum particle speed
 const TELEPORT_PROBABILITY = 0.1; // Probability per frame to teleport 20% of particles
 
