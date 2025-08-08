@@ -29,15 +29,17 @@ let chiliParticles = null; // reference to InstancedParticleSystem
 let smokeSystem = null; // reference to SmokeSystem
 let sparkSystem = null; // reference to SparkSystem
 
-const dummyGeometry = new THREE.SphereGeometry(0.1, 8, 8); // Dummy geometry for instancing
-const dummyMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.5 });
+const dummyGeometry = new THREE.SphereGeometry(0.5, 8, 8); // Dummy geometry for instancing
+const dummyMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: false, opacity: 0.5 });
 
 const dummyLH = new THREE.Mesh(dummyGeometry, dummyMaterial);
-dummyLH.position.set(-1, -0.5, 0);
+dummyLH.position.set(-5, 4.5, 0);
 const dummyRH = new THREE.Mesh(dummyGeometry, dummyMaterial);
-dummyRH.position.set(1, 1, 0);
+dummyRH.position.set(5, -2, 0);
 const dummyHH = new THREE.Mesh(dummyGeometry, dummyMaterial);
-dummyHH.position.set(0, 1.2, 1);
+dummyHH.position.set(0, 6, 0);
+
+const dummies = [dummyLH, dummyRH, dummyHH];
 
 export default {
     foreBlendMode: "plus-lighter",
@@ -56,7 +58,7 @@ export default {
 
         scene = new THREE.Scene();
         camera = new THREE.PerspectiveCamera(45, canvas.width / canvas.height, 0.1, 100);
-        camera.position.set(0, 0, 5);
+        camera.position.set(0, 0, 20);
 
 
         scene.add(dummyLH);
@@ -95,15 +97,15 @@ export default {
         scene.add(chiliParticles);
 
         // Add smoke system
-        smokeSystem = new SmokeSystem(500, 8);
-        smokeSystem.position.set(0, 0, -10);
+        smokeSystem = new SmokeSystem(500, 8, dummies);
+        smokeSystem.position.set(0, 0, 0);
         smokeSystem.scale.set(2, 2, 2);
         scene.add(smokeSystem);
 
         // Add spark system
-        sparkSystem = new SparkSystem(2000, 6);
-        sparkSystem.position.set(0, -3, -8);
-        sparkSystem.scale.set(1.5, 1.5, 1.5);
+        sparkSystem = new SparkSystem(20000, 6, dummies);
+        sparkSystem.position.set(0, 0, 0);
+        sparkSystem.scale.set(1, 1, 1);
         scene.add(sparkSystem);
 
 
@@ -163,7 +165,7 @@ export default {
         renderer.setSize(canvas.width, canvas.height, false);
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(45, canvas.width / canvas.height, 0.1, 100);
-        camera.position.set(0, 0, 5);
+        
         sprites = [];
         velocities = [];
         life = [];
