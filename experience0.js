@@ -279,23 +279,33 @@ export default {
         const { foot0, foot1, hand0, hand1, head } = body;
 
         if(head.length > 0){
-            dummyHH.position.set(nrm(head[0]) * -10, nrm(head[1]) * -20, 0);
+            dummyHH.position.set(nrm(head[0]) * -15, nrm(head[1]) * -20, 0);
+        } else {
+            dummyHH.position.set(0, 20, 0); // Reset position if no head data
         }
 
         if(hand0.length > 0){
-            dummyLH.position.set(nrm(hand0[0]) * -10, nrm(hand0[1]) * -20, 0);
+            dummyLH.position.set(nrm(hand0[0]) * -15, nrm(hand0[1]) * -20, 0);
+        } else {
+            dummyLH.position.set(0, 20, 0); // Reset position if no hand0 data
         }
 
         if(hand1.length > 0){
-            dummyRH.position.set(nrm(hand1[0]) * -10, nrm(hand1[1]) * -20, 0);
+            dummyRH.position.set(nrm(hand1[0]) * -15, nrm(hand1[1]) * -20, 0);
+        } else {
+            dummyRH.position.set(0, 20, 0); // Reset position if no hand1 data
         }
 
         if(foot0.length > 0){
-            dummyLF.position.set(nrm(foot0[0]) * -10, nrm(foot0[1]) * -20, 0);
+            dummyLF.position.set(nrm(foot0[0]) * -15, nrm(foot0[1]) * -20, 0);
+        } else {
+            dummyLF.position.set(0, 20, 0); // Reset position if no foot0 data
         }
 
         if(foot1.length > 0){
-            dummyRF.position.set(nrm(foot1[0]) * -10, nrm(foot1[1]) * -20, 0);
+            dummyRF.position.set(nrm(foot1[0]) * -15, nrm(foot1[1]) * -20, 0);
+        } else {
+            dummyRF.position.set(0, 20, 0); // Reset position if no foot1 data
         }
 
         oscillateDummies(performance.now() * 0.001); // Use performance.now() for smoother oscillation
