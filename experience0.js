@@ -2,6 +2,10 @@ import * as THREE from 'three';
 import { InstancedParticleSystem } from './InstancedParticleSystem.js';
 import SmokeSystem from './SmokeSystem.js';
 import SparkSystem from './SparkSystem.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 
 const EXPERIENCE_COLOR = 0xffff00;
 const FORE_SPRITE_COUNT = 0;
@@ -28,6 +32,7 @@ let scene, camera;
 let chiliParticles = null; // reference to InstancedParticleSystem
 let smokeSystem = null; // reference to SmokeSystem
 let sparkSystem = null; // reference to SparkSystem
+let composer = null; // Post-processing composer
 
 const dummyGeometry = new THREE.SphereGeometry(0.5, 8, 8); // Dummy geometry for instancing
 const dummyMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.0 });
@@ -128,6 +133,34 @@ const chiliRenderTarget = new THREE.WebGLRenderTarget(2048, 2048, {
     format: THREE.RGBAFormat
 });
 
+// Chromatic aberration shader
+const ChromaticAberrationShader = {
+    uniforms: {
+        tDiffuse: { value: null },
+        amount: { value: 0.005 }
+    },
+    vertexShader: `
+        varying vec2 vUv;
+        void main() {
+            vUv = uv;
+            gl_Position = vec4(position, 1.0);
+        }
+    `,
+    fragmentShader: `
+        uniform sampler2D tDiffuse;
+        uniform float amount;
+        varying vec2 vUv;
+        
+        void main() {
+            vec2 offset = amount * (vUv - 0.5);
+            vec4 cr = texture2D(tDiffuse, vUv + offset);
+            vec4 cga = texture2D(tDiffuse, vUv);
+            vec4 cb = texture2D(tDiffuse, vUv - offset);
+            gl_FragColor = vec4(cr.r, cga.g, cb.b, cga.a);
+        }
+    `
+};
+
 export default {
     foreBlendMode: "plus-lighter",
 
@@ -146,6 +179,27 @@ export default {
         scene = new THREE.Scene();
         camera = new THREE.PerspectiveCamera(45, canvas.width / canvas.height, 0.1, 100);
         camera.position.set(0, 0, 20);
+
+        // Set up post-processing after scene and camera are created
+        composer = new EffectComposer(renderer);
+        
+        // Basic render pass
+        const renderPass = new RenderPass(scene, camera);
+        composer.addPass(renderPass);
+        
+        // Harsh bloom pass
+        const bloomPass = new UnrealBloomPass(
+            new THREE.Vector2(canvas.width, canvas.height),
+            0.4, // strength - very harsh
+            1, // radius
+            0.1  // threshold - low threshold for more bloom
+        );
+        composer.addPass(bloomPass);
+        
+        // Chromatic aberration pass
+        const chromaticAberrationPass = new ShaderPass(ChromaticAberrationShader);
+        chromaticAberrationPass.uniforms.amount.value = 0.008; // Strong aberration
+        composer.addPass(chromaticAberrationPass);
 
 
         scene.add(dummyLH);
@@ -253,8 +307,12 @@ export default {
 
         if (renderer.domElement.width !== canvas.width || renderer.domElement.height !== canvas.height) {
             renderer.setSize(canvas.width, canvas.height, false);
+            composer.setSize(canvas.width, canvas.height);
         }
-        renderer.render(scene, camera);
+        
+        // Use composer instead of direct renderer
+        composer.render();
+        
         if (renderer.domElement !== canvas) {
             const ctx = canvas.getContext('2d');
             ctx.clearRect(0, 0, canvas.width, canvas.height);

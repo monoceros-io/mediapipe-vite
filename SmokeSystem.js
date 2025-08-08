@@ -92,8 +92,8 @@ export class SmokeSystem extends THREE.Mesh {
 
                 
                 vec3 pos = position * instanceScale;
-                pos.x += sin(instanceLife * instancePosition.y * 0.001) * 0.2;
-                pos.y += cos(instanceLife * instancePosition.z * 0.001) * 0.2 * sin(instancePosition.x);
+                pos.x += sin(instanceLife * instancePosition.y * 0.001) * 0.1;
+                pos.y += cos(instanceLife * instancePosition.z * 0.001) * 0.1 * sin(instancePosition.x);
                 vec3 transformed = pos + instancePosition;
                 
                 
@@ -110,7 +110,7 @@ export class SmokeSystem extends THREE.Mesh {
                 float lifeFactor = vLife / vMaxLife * 3.14159265;
                 lifeFactor = abs(sin(lifeFactor)) * 0.1;
                 vec4 texColor = texture2D(map, vUv);
-                gl_FragColor = vec4(texColor.rgb, texColor.a * lifeFactor);
+                gl_FragColor = vec4(texColor.rgb, texColor.a * lifeFactor * 0.3);
             }
             `,
             transparent: true,
@@ -184,10 +184,11 @@ export class SmokeSystem extends THREE.Mesh {
                 this.velocities[i * 3 + 2] = (Math.random() - 0.5) * 0.002;
                 
                 this.maxLives[i] = this.lives[i] = Math.random() * MAX_LIFE; // Reset life
-                this.scales[i] = 0.5 + Math.random() * 1.5;
+                this.scales[i] = 2 + Math.random() * 5;
             }
         }
         this.positionAttr.needsUpdate = true;
+        this.scaleAttr.needsUpdate = true;
         this.velocityAttr.needsUpdate = true;
         this.lifeAttr.needsUpdate = true;
         this.maxLifeAttr.needsUpdate = true;

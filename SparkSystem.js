@@ -208,7 +208,10 @@ export class SparkSystem extends THREE.Mesh {
                 this.positions[idx] = teleportSpot.x;
                 this.positions[idx + 1] = teleportSpot.y;
                 this.positions[idx + 2] = teleportSpot.z;
-                
+
+                this.velocities[idx] /= 3;
+                this.velocities[idx + 1] /= 3;
+                this.velocities[idx + 2] /= 3;
             }
         }
 
