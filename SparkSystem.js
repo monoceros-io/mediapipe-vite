@@ -26,9 +26,9 @@ export class SparkSystem extends THREE.Mesh {
             
             // Random burst velocity - ensure balanced distribution
             const angle = Math.random() * Math.PI * 2;
-            const speed = Math.random() * 0.03 + 0.01;
+            const speed = Math.random() * 0.01 + 0.003;
             velocities[i * 3] = Math.cos(angle) * speed;
-            velocities[i * 3 + 1] = Math.random() * 0.03 + 0.02; // Always upward
+            velocities[i * 3 + 1] = Math.random() * 0.01 + 0.003; // Always upward
             velocities[i * 3 + 2] = Math.sin(angle) * speed;
             
             const maxLife = MIN_LIFE + Math.random() * (MAX_LIFE - MIN_LIFE);
@@ -72,8 +72,26 @@ export class SparkSystem extends THREE.Mesh {
                 float lifeFactor = vLife / vMaxLife;
                 vec3 pos = position * instanceScale * lifeFactor;
                 
-                // Simple billboard - no rotation, just face camera
-                vec3 worldPos = pos + instancePosition;
+                // Align particle with velocity direction using lookAt approach
+                vec3 velocity = normalize(instanceVelocity);
+                
+                // Calculate rotation to align Y-axis (height) with velocity
+                vec3 up = velocity;
+                vec3 forward = vec3(0.0, 0.0, 1.0);
+                
+                // If velocity is too close to forward, use right as reference
+                if (abs(dot(up, forward)) > 0.9) {
+                    forward = vec3(1.0, 0.0, 0.0);
+                }
+                
+                vec3 right = normalize(cross(up, forward));
+                forward = normalize(cross(right, up));
+                
+                // Apply rotation matrix
+                mat3 rotation = mat3(right, up, forward);
+                vec3 rotatedPos = rotation * pos;
+                
+                vec3 worldPos = rotatedPos + instancePosition;
                 gl_Position = projectionMatrix * modelViewMatrix * vec4(worldPos, 1.0);
             }
             `,
