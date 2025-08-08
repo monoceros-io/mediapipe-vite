@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import SpiralShaderMaterial from './spiral-shader.js';
+import { CheeseParticles } from './CheeseParticles.js';
 
 const EXPERIENCE_COLOR = 0x00953b;
 const CUBE_COUNT = 10;
@@ -7,8 +8,8 @@ const FORE_SPRITE_COUNT = 0;
 const MAX_LIFE = 1000;
 const PARTICLE_FRICTION = 0.97;
 
-let cubes = [];
 let sprites = [], velocities = [], life = [];
+let cheeseParticles = null;
 
 // Add these to hold internal state
 let background = { renderer: null, scene: null, camera: null, spiralMaterial: null };
@@ -16,26 +17,40 @@ let foreground = { renderer: null, scene: null, camera: null };
 
 export default {
     foreBlendMode: "normal",
-    initBackground(canvas) {
-        
+    initBackground(canvas) 
+    {
         const renderer = new THREE.WebGLRenderer({ alpha: true });
         renderer.setSize(canvas.width, canvas.height, false);
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(45, canvas.width / canvas.height, 0.1, 100);
         camera.position.set(0, 0, 5);
         const geometry = new THREE.BoxGeometry(1, 1, 1);
-        cubes = [];
-        for (let j = 0; j < CUBE_COUNT; j++) {
-            const material = new THREE.MeshStandardMaterial({ color: EXPERIENCE_COLOR, roughness: 0.5, metalness: 0.5 });
-            const mesh = new THREE.Mesh(geometry, material);
-            mesh.position.set(Math.random() * 10 - 5, Math.random() * 10 - 5, Math.random() * -10);
-            mesh.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
-            scene.add(mesh);
-            cubes.push(mesh);
-        }
-        const light = new THREE.DirectionalLight(0xffffff, 1);
-        light.position.set(2, 2, 5);
-        scene.add(light);
+        
+        // Add three point lights and one ambient light
+        const directionalLight1 = new THREE.DirectionalLight(0xffffff, 1.5);
+        directionalLight1.position.set(5, 5, 5);
+        directionalLight1.target.position.set(0, 0, 0);
+        scene.add(directionalLight1);
+        scene.add(directionalLight1.target);
+
+        const directionalLight2 = new THREE.DirectionalLight(0xffffff, 1.5);
+        directionalLight2.position.set(-5, 5, 5);
+        directionalLight2.target.position.set(2, -2, 0);
+        scene.add(directionalLight2);
+        scene.add(directionalLight2.target);
+
+        const directionalLight3 = new THREE.DirectionalLight(0xffffff, 1.5);
+        directionalLight3.position.set(0, -5, -5);
+        directionalLight3.target.position.set(-2, 2, 2);
+        scene.add(directionalLight3);
+        scene.add(directionalLight3.target);
+
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        scene.add(ambientLight);
+
+        // Create cheese particles
+        cheeseParticles = new CheeseParticles(100); // 10 instances of each model
+        scene.add(cheeseParticles.getGroup());
 
         background.renderer = renderer;
         background.scene = scene;
@@ -43,11 +58,12 @@ export default {
     },
     updateBackground({ canvas, time }) {
         const { renderer, scene, camera } = background;
-        for (let j = 0; j < cubes.length; j++) {
-            const t = time * 0.001 + j;
-            const s = 0.7 + 0.3 * Math.sin(t + j);
-            cubes[j].scale.set(s, s, s);
+        
+        // Update cheese particles
+        if (cheeseParticles) {
+            cheeseParticles.update();
         }
+        
         if (renderer.domElement.width !== canvas.width || renderer.domElement.height !== canvas.height) {
             renderer.setSize(canvas.width, canvas.height, false);
         }

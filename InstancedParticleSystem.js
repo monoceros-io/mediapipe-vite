@@ -52,7 +52,7 @@ export class InstancedParticleSystem extends THREE.Mesh {
                 uvScale[i * 2 + 1] = 1.0 / gridY;
 
                 rotations[i] = 0.0; // Initial rotation
-                scales[i] = 0.7; // Initial scale
+                scales[i] = 1; // Initial scale
 
                 i++;
             }
