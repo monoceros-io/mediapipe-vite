@@ -1,9 +1,11 @@
 import * as THREE from 'three';
 
 const MAX_LIFE = 1400;
+const ATT_FORCE = 0.001; // Attraction force strength for smoke (weaker than sparks)
+const AIR_FRICTION = 0.998; // Air resistance coefficient for smoke
 
 export class SmokeSystem extends THREE.Mesh {
-    constructor(particleCount = 100, cloudSize = 10) {
+    constructor(particleCount = 100, cloudSize = 10, attractors = []) {
         // Create base plane geometry
         const baseGeometry = new THREE.PlaneGeometry(0.5, 0.5);
         const geometry = new THREE.InstancedBufferGeometry().copy(baseGeometry);
@@ -11,6 +13,7 @@ export class SmokeSystem extends THREE.Mesh {
 
         // Create instanced attributes
         const positions = new Float32Array(particleCount * 3);
+        const velocities = new Float32Array(particleCount * 3);
         const scales = new Float32Array(particleCount);
         const lives = new Float32Array(particleCount);
         const maxLives = new Float32Array(particleCount);
@@ -20,14 +23,20 @@ export class SmokeSystem extends THREE.Mesh {
             positions[i * 3] = (Math.random() - 0.5) * cloudSize;
             positions[i * 3 + 1] = (Math.random() - 0.5) * cloudSize;
             positions[i * 3 + 2] = (Math.random() - 0.5) * cloudSize;
+            
+            // Initialize velocities to small upward drift
+            velocities[i * 3] = (Math.random() - 0.5) * 0.002;
+            velocities[i * 3 + 1] = Math.random() * 0.005 + 0.005; // Slight upward drift
+            velocities[i * 3 + 2] = (Math.random() - 0.5) * 0.002;
+            
             const maxLife = MAX_LIFE * Math.random();
             maxLives[i] = maxLife;
             lives[i] = maxLife; // Random life duration
             scales[i] = 2 + Math.random() * 10;
-            
         }
 
         geometry.setAttribute('instancePosition', new THREE.InstancedBufferAttribute(positions, 3));
+        geometry.setAttribute('instanceVelocity', new THREE.InstancedBufferAttribute(velocities, 3));
         geometry.setAttribute('instanceScale', new THREE.InstancedBufferAttribute(scales, 1));
         geometry.setAttribute('instanceLife', new THREE.InstancedBufferAttribute(lives, 1));
         geometry.setAttribute('instanceMaxLife', new THREE.InstancedBufferAttribute(maxLives, 1));
@@ -87,15 +96,18 @@ export class SmokeSystem extends THREE.Mesh {
 
         this.particleCount = particleCount;
         this.cloudSize = cloudSize;
+        this.attractors = attractors;
         
         // Store references to attributes for JS updates
         this.positionAttr = geometry.getAttribute('instancePosition');
+        this.velocityAttr = geometry.getAttribute('instanceVelocity');
         this.scaleAttr = geometry.getAttribute('instanceScale');
         this.lifeAttr = geometry.getAttribute('instanceLife');
         this.maxLifeAttr = geometry.getAttribute('instanceMaxLife');
         this.lives = lives; // Store the life array for direct access
         this.maxLives = maxLives; // Store the max life array for reference
         this.positions = positions; // Store the position array for direct access
+        this.velocities = velocities; // Store the velocity array for direct access
         this.scales = scales; // Store the scale array for direct access
     }
 
@@ -103,18 +115,56 @@ export class SmokeSystem extends THREE.Mesh {
         this.material.uniforms.time.value = time;
 
         for (let i = 0; i < this.particleCount; i++) {
-            this.positions[i * 3 + 1] += 0.01; // Move Z position forward
+            // Apply air resistance
+            this.velocities[i * 3] *= AIR_FRICTION;
+            this.velocities[i * 3 + 1] *= AIR_FRICTION;
+            this.velocities[i * 3 + 2] *= AIR_FRICTION;
+            
+            // Check for attractor influence
+            for (let j = 0; j < this.attractors.length; j++) {
+                const attractor = this.attractors[j];
+                
+                // Convert attractor world position to local space
+                const localAttractorX = attractor.position.x / this.scale.x - this.position.x / this.scale.x;
+                const localAttractorY = attractor.position.y / this.scale.y - this.position.y / this.scale.y;
+                const localAttractorZ = attractor.position.z / this.scale.z - this.position.z / this.scale.z;
+                
+                const dx = localAttractorX - this.positions[i * 3];
+                const dy = localAttractorY - this.positions[i * 3 + 1];
+                const dz = localAttractorZ - this.positions[i * 3 + 2];
+                const distSq = dx * dx + dy * dy + dz * dz;
+                const dist = Math.sqrt(distSq);
+                
+                // Apply gentle attraction force for smoke
+                const force = ATT_FORCE / (distSq + 0.1); // Gentler force for smoke
+                this.velocities[i * 3] += (dx / dist) * force;
+                this.velocities[i * 3 + 1] += (dy / dist) * force;
+                this.velocities[i * 3 + 2] += (dz / dist) * force;
+            }
+            
+            // Update position based on velocity
+            this.positions[i * 3] += this.velocities[i * 3];
+            this.positions[i * 3 + 1] += this.velocities[i * 3 + 1];
+            this.positions[i * 3 + 2] += this.velocities[i * 3 + 2];
+            
             this.lives[i] -= 1; // Decrease life
             if(this.lives[i] <= 0) {
                 // Reset particle
                 this.positions[i * 3] = (Math.random() - 0.5) * this.cloudSize;
                 this.positions[i * 3 + 1] = -7;
                 this.positions[i * 3 + 2] = (Math.random() - 0.5) * this.cloudSize;
+                
+                // Reset velocity with slight upward drift
+                this.velocities[i * 3] = (Math.random() - 0.5) * 0.002;
+                this.velocities[i * 3 + 1] = Math.random() * 0.005 + 0.005;
+                this.velocities[i * 3 + 2] = (Math.random() - 0.5) * 0.002;
+                
                 this.maxLives[i] = this.lives[i] = Math.random() * MAX_LIFE; // Reset life
                 this.scales[i] = 0.5 + Math.random() * 1.5;
             }
         }
         this.positionAttr.needsUpdate = true;
+        this.velocityAttr.needsUpdate = true;
         this.lifeAttr.needsUpdate = true;
         this.maxLifeAttr.needsUpdate = true;
 

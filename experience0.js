@@ -126,7 +126,7 @@ export default {
         scene.add(smokeSystem);
 
         // Add spark system
-        sparkSystem = new SparkSystem(20000, 6, dummies);
+        sparkSystem = new SparkSystem(6000, 6, dummies);
         sparkSystem.position.set(0, 0, 0);
         sparkSystem.scale.set(1, 1, 1);
         scene.add(sparkSystem);
