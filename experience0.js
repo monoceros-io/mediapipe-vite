@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { InstancedParticleSystem } from './InstancedParticleSystem.js';
 import SmokeSystem from './SmokeSystem.js';
+import SparkSystem from './SparkSystem.js';
 
 const EXPERIENCE_COLOR = 0xffff00;
 const FORE_SPRITE_COUNT = 0;
@@ -26,6 +27,7 @@ let foreground = { renderer: null, scene: null, camera: null };
 let scene, camera;
 let chiliParticles = null; // reference to InstancedParticleSystem
 let smokeSystem = null; // reference to SmokeSystem
+let sparkSystem = null; // reference to SparkSystem
 
 export default {
     foreBlendMode: "plus-lighter",
@@ -83,6 +85,12 @@ export default {
         smokeSystem.scale.set(2, 2, 2);
         scene.add(smokeSystem);
 
+        // Add spark system
+        sparkSystem = new SparkSystem(1500, 6);
+        sparkSystem.position.set(0, -3, -8);
+        sparkSystem.scale.set(1.5, 1.5, 1.5);
+        scene.add(sparkSystem);
+
 
         background.renderer = renderer;
         background.scene = scene;
@@ -95,6 +103,7 @@ export default {
 
         chiliParticles.update();
         smokeSystem.update(time * 0.001); // Convert time to seconds
+        sparkSystem.update(time * 0.001); // Convert time to seconds
         console.log("FONKO");
 
         for (let j = 0; j < starPlanes.length; j++) {
