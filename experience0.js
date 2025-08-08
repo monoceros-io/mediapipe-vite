@@ -91,16 +91,6 @@ const singleChiliMeshes = [];
 const chiliCount = 6;
 const chiliRadius = 4;
 
-let smallChiliSin = 0.0;
-let bigChiliSin = 0.0;
-let targetSmallChiliSin = 0.0;
-let targetBigChiliSin = 0.0;
-
-const BIG_SIN_SPEED = 0.0001; // Speed of big sine wave oscillation
-const SMALL_SIN_SPEED = 0.002; // Speed of small sine wave oscillation
-const SIN_LERP_SPEED = 0.1; // Speed of easing to target values
-const SIN_MULTIPLIER = 4; // Multiplier to make hand control more pronounced
-
 // Create a parent group for small chili meshes
 const chiliGroup = new THREE.Group();
 chiliGroup.position.set(0, 0, 0);
@@ -166,6 +156,9 @@ const ChromaticAberrationShader = {
         }
     `
 };
+
+let leftHandY = 0, rightHandY = 0;
+let leftHandX = 0, rightHandX = 0;
 
 const nrm = v => (v - 0.5);
 
@@ -264,7 +257,7 @@ export default {
         scene.add(smokeSystem);
 
         // Add spark system
-        sparkSystem = new SparkSystem(10000, 6, dummies);
+        sparkSystem = new SparkSystem(3000, 6, dummies);
         sparkSystem.position.set(0, 0, 0);
         sparkSystem.scale.set(1, 1, 1);
         scene.add(sparkSystem);
@@ -318,7 +311,24 @@ export default {
         smokeSystem.update(time * 0.001); // Convert time to seconds
         sparkSystem.update(time * 0.001); // Convert time to seconds
         
-        chiliGroup.rotation.z += Math.sin(smallChiliSin) * Math.sin(bigChiliSin) * Math.PI * 0.02;
+        // Hand controls for chili group
+        if (hand1.length > 0) {
+            // Right hand controls rotation
+            rightHandX = nrm(hand1[0]);
+            rightHandY = nrm(hand1[1]);
+        }
+        
+        if (hand0.length > 0) {
+            // Left hand controls Z position
+            leftHandX = nrm(hand0[0]);
+            leftHandY = nrm(hand0[1]);
+            // Ease chiliGroup.position.z towards target
+            
+        }
+        
+        const targetZ = -leftHandY * 80;
+        chiliGroup.position.z += (targetZ - chiliGroup.position.z) * 0.15;
+        chiliGroup.rotation.z = chiliGroup.position.z * 0.05; // Rotate based on Z position
 
         for (let j = 0; j < starPlanes.length; j++) {
             const plane = starPlanes[j];
@@ -360,31 +370,6 @@ export default {
             ctx.drawImage(renderer.domElement, 0, 0);
         }
 
-        // Control sin values with hand positions
-        if (hand0.length > 0) {
-            // Big sin controlled by left hand Y position
-            const leftHandY = nrm(hand0[1]);
-            targetBigChiliSin = leftHandY * Math.PI * SIN_MULTIPLIER;
-        }
-        
-        if (hand1.length > 0) {
-            // Small sin controlled by right hand Y position
-            const rightHandY = nrm(hand1[1]);
-            targetSmallChiliSin = rightHandY * Math.PI * SIN_MULTIPLIER;
-        }
-        
-        // Smooth easing to target values
-        bigChiliSin += (targetBigChiliSin - bigChiliSin) * SIN_LERP_SPEED;
-        smallChiliSin += (targetSmallChiliSin - smallChiliSin) * SIN_LERP_SPEED;
-
-        for (let i = 0; i < singleChiliMeshes.length; i++) {
-            const mesh = singleChiliMeshes[i];
-
-            let d = i / singleChiliMeshes.length * 2 * Math.PI; // Spread out over circle
-
-            mesh.position.z = Math.sin(smallChiliSin + d) * Math.sin(bigChiliSin) * 40;
-        }
-
         // Render the chili scene to texture for the instanced particle system
         renderer.setRenderTarget(chiliRenderTarget);
         renderer.render(chiliRenderScene, chiliRenderCamera);
@@ -395,6 +380,14 @@ export default {
             chiliParticles.setTexture(chiliRenderTarget.texture);
         }
 
+        for (let i = 0; i < singleChiliMeshes.length; i++) {
+            const mesh = singleChiliMeshes[i];
+            const target = Math.sin(rightHandY * i) * 20.0; // Oscillate Z position based on right hand Y
+            mesh.position.z += (target - mesh.position.z) * 0.25; //
+            const targetR = i * Math.PI / 3 + rightHandX * 6;
+            mesh.rotation.z += (targetR - mesh.rotation.z) * 0.25;
+        }
+
 
     },
 
@@ -403,13 +396,7 @@ export default {
         renderer.setSize(canvas.width, canvas.height, false);
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(45, canvas.width / canvas.height, 0.1, 100);
-        camera.position.set(0, 0, 5);
-
-        // Add a red spinning cube
-        const geometry = new THREE.BoxGeometry(1, 1, 1);
-        const material = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-        const cube = new THREE.Mesh(geometry, material);
-        scene.add(cube);
+        camera.position.set(0, 0, 20);
 
         sprites = [];
         velocities = [];
@@ -417,7 +404,7 @@ export default {
         for (let j = 0; j < FORE_SPRITE_COUNT; j++) {
             const material = new THREE.SpriteMaterial({
                 map: spriteTexture,
-                color: EXPERIENCE_COLOR,
+                color   : EXPERIENCE_COLOR,
                 transparent: true
             });
             const sprite = new THREE.Sprite(material);
@@ -439,17 +426,10 @@ export default {
         foreground.renderer = renderer;
         foreground.scene = scene;
         foreground.camera = camera;
-        foreground.cube = cube; // Store reference to the cube
     },
 
     updateForeground({ canvas, gravityPoints, time }) {
-        const { renderer, scene, camera, cube } = foreground;
-
-        // Spin the red cube slowly
-        if (cube) {
-            cube.rotation.x += 0.01;
-            cube.rotation.y += 0.01;
-        }
+        const { renderer, scene, camera } = foreground;
 
         for (let j = 0; j < sprites.length; j++) {
             const sprite = sprites[j];
