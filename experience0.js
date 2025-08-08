@@ -41,6 +41,25 @@ dummyHH.position.set(0, 6, 0);
 
 const dummies = [dummyLH, dummyRH, dummyHH];
 
+// Store initial positions for dummies
+const dummyInitialPositions = dummies.map(d => d.position.clone());
+
+// Oscillation parameters for each dummy: [xSpeed, ySpeed, xAmplitude, yAmplitude]
+const dummyOscillationParams = [
+    [0.7, 1.1, 1.0, 0.7], // dummyLH
+    [1.3, 0.8, 0.8, 1.2], // dummyRH
+    [0.9, 1.5, 1.1, 1.1]  // dummyHH
+];
+
+// In updateBackground, oscillate dummies
+function oscillateDummies(time) {
+    for (let i = 0; i < dummies.length; i++) {
+        const [xSpeed, ySpeed, xAmp, yAmp] = dummyOscillationParams[i];
+        const initPos = dummyInitialPositions[i];
+        dummies[i].position.x = initPos.x + Math.sin(time * xSpeed) * xAmp;
+        dummies[i].position.y = initPos.y + Math.cos(time * ySpeed) * yAmp;
+    }
+}
 export default {
     foreBlendMode: "plus-lighter",
 
@@ -117,6 +136,8 @@ export default {
     updateBackground({ canvas, time }) {
         if (!background.renderer) return;
         const { renderer } = background;
+
+        oscillateDummies(performance.now() * 0.001); // Use performance.now() for smoother oscillation
 
         chiliParticles.update();
         smokeSystem.update(time * 0.001); // Convert time to seconds
