@@ -30,7 +30,7 @@ let smokeSystem = null; // reference to SmokeSystem
 let sparkSystem = null; // reference to SparkSystem
 
 const dummyGeometry = new THREE.SphereGeometry(0.5, 8, 8); // Dummy geometry for instancing
-const dummyMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: false, opacity: 0.5 });
+const dummyMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.0 });
 
 const dummyLH = new THREE.Mesh(dummyGeometry, dummyMaterial);
 dummyLH.position.set(-5, 4.5, 0);
@@ -38,6 +38,10 @@ const dummyRH = new THREE.Mesh(dummyGeometry, dummyMaterial);
 dummyRH.position.set(5, -2, 0);
 const dummyHH = new THREE.Mesh(dummyGeometry, dummyMaterial);
 dummyHH.position.set(0, 6, 0);
+
+dummyLH.visible = false;
+dummyRH.visible = false;
+dummyHH.visible = false;
 
 const dummies = [dummyLH, dummyRH, dummyHH];
 

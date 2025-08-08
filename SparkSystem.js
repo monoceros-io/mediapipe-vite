@@ -103,9 +103,10 @@ export class SparkSystem extends THREE.Mesh {
                 vLife = instanceLife;
                 vMaxLife = instanceMaxLife;
 
-                // Scale the particle based on life
-                float lifeFactor = vLife / vMaxLife;
-                vec3 pos = position * instanceScale * lifeFactor;
+                // Scale the particle based on velocity magnitude
+                float speed = length(instanceVelocity);
+                float speedFactor = clamp(speed / 0.01, 0.1, 1.0); // Scale based on speed
+                vec3 pos = position * instanceScale * speedFactor;
                 
                 // Align particle with velocity direction using lookAt approach
                 vec3 velocity = normalize(instanceVelocity);
@@ -144,7 +145,7 @@ export class SparkSystem extends THREE.Mesh {
                 vec3 sparkColor = vec3(1.0, 0.9, 0.4) * lifeFactor;
                 sparkColor += vec3(1.0, 0.3, 0.1) * (1.0 - lifeFactor); // Orange trail
                 
-                gl_FragColor = vec4(sparkColor * texColor.rgb, texColor.a * lifeFactor);
+                gl_FragColor = vec4(sparkColor * texColor.rgb, texColor.a * lifeFactor * 0.25);
             }
             `,
             transparent: true,
