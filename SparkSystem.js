@@ -2,9 +2,10 @@ import * as THREE from 'three';
 
 const MAX_LIFE = 1000;
 const MIN_LIFE = 10;
-const ATT_RAD = 2.0; // Attraction radius
-const ATT_FORCE = 0.0001; // Attraction force strength
-const AIR_FRICTION = 0.999; // Air friction coefficient
+const ATT_RAD = 10.0; // Attraction radius
+const ATT_FORCE = 0.05; // Attraction force strength
+const AIR_FRICTION = 0.995; // Air resistance coefficient
+const GRAVITY = -0.0001; // Gravity force (negative Y)
 
 export class SparkSystem extends THREE.Mesh {
     constructor(particleCount = 50, cloudSize = 5, attractors = []) {
@@ -23,8 +24,8 @@ export class SparkSystem extends THREE.Mesh {
         // Initialize particles
         for (let i = 0; i < particleCount; i++) {
             // Start at origin with burst velocity
-            positions[i * 3] = (Math.random() - 0.5) * 5;
-            positions[i * 3 + 1] = (Math.random() - 2);
+            positions[i * 3] = (Math.random() - 0.5) * 10;
+            positions[i * 3 + 1] = -10;
             positions[i * 3 + 2] = (Math.random() - 0.5);
             
             // Random burst velocity - ensure balanced distribution
@@ -129,6 +130,9 @@ export class SparkSystem extends THREE.Mesh {
         this.cloudSize = cloudSize;
         this.attractors = attractors;
         
+        // Debug: log attractor info
+        console.log('SparkSystem attractors:', attractors.length, attractors.map(a => ({x: a.position.x, y: a.position.y, z: a.position.z})));
+        
         // Store references to attributes for JS updates
         this.positionAttr = geometry.getAttribute('instancePosition');
         this.velocityAttr = geometry.getAttribute('instanceVelocity');
@@ -146,24 +150,33 @@ export class SparkSystem extends THREE.Mesh {
         this.material.uniforms.time.value = time;
 
         for (let i = 0; i < this.particleCount; i++) {
-            // Apply air friction
+            // Apply air resistance
             this.velocities[i * 3] *= AIR_FRICTION;
             this.velocities[i * 3 + 1] *= AIR_FRICTION;
             this.velocities[i * 3 + 2] *= AIR_FRICTION;
             
+            // Apply gravity
+            // this.velocities[i * 3 + 1] += GRAVITY;
+            
             // Check for attractor influence
             for (let j = 0; j < this.attractors.length; j++) {
-                
                 const attractor = this.attractors[j];
-                const dx = attractor.x - this.positions[i * 3];
-                const dy = attractor.y - this.positions[i * 3 + 1];
-                const dz = attractor.z - this.positions[i * 3 + 2];
+                
+                // Convert attractor world position to local space
+                // Account for SparkSystem position and scale
+                const localAttractorX = attractor.position.x / this.scale.x - this.position.x / this.scale.x;
+                const localAttractorY = attractor.position.y / this.scale.y - this.position.y / this.scale.y;
+                const localAttractorZ = attractor.position.z / this.scale.z - this.position.z / this.scale.z;
+                
+                const dx = localAttractorX - this.positions[i * 3];
+                const dy = localAttractorY - this.positions[i * 3 + 1];
+                const dz = localAttractorZ - this.positions[i * 3 + 2];
                 const distSq = dx * dx + dy * dy + dz * dz;
                 const dist = Math.sqrt(distSq);
                 
                 if (dist < ATT_RAD && dist > 0.001) {
-                    // Apply attraction force
-                    const force = ATT_FORCE / distSq;
+                    // Apply attraction force (inverse square law)
+                    const force = ATT_FORCE / (distSq + 0.01); // Add small constant to prevent division by zero
                     this.velocities[i * 3] += (dx / dist) * force;
                     this.velocities[i * 3 + 1] += (dy / dist) * force;
                     this.velocities[i * 3 + 2] += (dz / dist) * force;
@@ -179,27 +192,18 @@ export class SparkSystem extends THREE.Mesh {
             
             if (this.lives[i] <= 0) {
                 // Reset particle with burst effect
-                this.positions[i * 3] = (Math.random() - 0.5) * 20;
-                this.positions[i * 3 + 1] = (Math.random() - 10);
-                this.positions[i * 3 + 2] = (Math.random() - 0.5) * 5;
+                this.positions[i * 3] = (Math.random() - 0.5) * 10;
+                this.positions[i * 3 + 1] = -10;
+                this.positions[i * 3 + 2] = (Math.random() - 0.5) * 2;
                 
-                // Balanced radial velocity
-                const angle = Math.random() * Math.PI - Math.PI;
-                const speed = Math.random() * 0.03 + 0.01;
+                // Radial burst velocity
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * 0.02 + 0.01;
                 this.velocities[i * 3] = Math.cos(angle) * speed;
                 this.velocities[i * 3 + 1] = Math.random() * 0.1 + 0.01; // Always upward
                 this.velocities[i * 3 + 2] = Math.sin(angle) * speed;
-
-                // this.velocities[i * 3] = 0;
-                // this.velocities[i * 3 + 1] = Math.random() * 0.1 + 0.1;
-                // this.velocities[i * 3 + 2] = 0;
-
-                
-
-
                 
                 this.maxLives[i] = this.lives[i] = MIN_LIFE + Math.random() * (MAX_LIFE - MIN_LIFE);
-                
             }
         }
         
