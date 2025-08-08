@@ -66,7 +66,7 @@ export class SparkSystem extends THREE.Mesh {
             const maxLife = MIN_LIFE + Math.random() * (MAX_LIFE - MIN_LIFE);
             maxLives[i] = maxLife;
             lives[i] = maxLife;
-            scales[i] = Math.random() * 4; // Random scale between 2 and 2.5
+            scales[i] = Math.random() * 2; // Random scale between 2 and 2.5
         }
 
         geometry.setAttribute('instancePosition', new THREE.InstancedBufferAttribute(positions, 3));
@@ -130,7 +130,7 @@ export class SparkSystem extends THREE.Mesh {
                 vec3 rotatedPos = rotation * pos;
                 
                 vec3 worldPos = rotatedPos + instancePosition;
-                
+
                 gl_Position = projectionMatrix * modelViewMatrix * vec4(worldPos, 1.0);
             }
             `,

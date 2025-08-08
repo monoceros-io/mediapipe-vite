@@ -93,9 +93,13 @@ const chiliRadius = 4;
 
 let smallChiliSin = 0.0;
 let bigChiliSin = 0.0;
+let targetSmallChiliSin = 0.0;
+let targetBigChiliSin = 0.0;
 
 const BIG_SIN_SPEED = 0.0001; // Speed of big sine wave oscillation
 const SMALL_SIN_SPEED = 0.002; // Speed of small sine wave oscillation
+const SIN_LERP_SPEED = 0.1; // Speed of easing to target values
+const SIN_MULTIPLIER = 4; // Multiplier to make hand control more pronounced
 
 // Create a parent group for small chili meshes
 const chiliGroup = new THREE.Group();
@@ -196,7 +200,7 @@ export default {
             new THREE.Vector2(canvas.width, canvas.height),
             0.4, // strength - very harsh
             1, // radius
-            0.1  // threshold - low threshold for more bloom
+            0.0  // threshold - low threshold for more bloom
         );
         composer.addPass(bloomPass);
         
@@ -254,13 +258,13 @@ export default {
         scene.add(chiliParticles);
 
         // Add smoke system
-        smokeSystem = new SmokeSystem(1000, 8, dummies);
+        smokeSystem = new SmokeSystem(700, 8, dummies);
         smokeSystem.position.set(0, 0, 0);
         smokeSystem.scale.set(1, 1, 1);
         scene.add(smokeSystem);
 
         // Add spark system
-        sparkSystem = new SparkSystem(40000, 6, dummies);
+        sparkSystem = new SparkSystem(10000, 6, dummies);
         sparkSystem.position.set(0, 0, 0);
         sparkSystem.scale.set(1, 1, 1);
         scene.add(sparkSystem);
@@ -356,8 +360,22 @@ export default {
             ctx.drawImage(renderer.domElement, 0, 0);
         }
 
-        smallChiliSin += SMALL_SIN_SPEED * 10;
-        bigChiliSin += BIG_SIN_SPEED* 10;
+        // Control sin values with hand positions
+        if (hand0.length > 0) {
+            // Big sin controlled by left hand Y position
+            const leftHandY = nrm(hand0[1]);
+            targetBigChiliSin = leftHandY * Math.PI * SIN_MULTIPLIER;
+        }
+        
+        if (hand1.length > 0) {
+            // Small sin controlled by right hand Y position
+            const rightHandY = nrm(hand1[1]);
+            targetSmallChiliSin = rightHandY * Math.PI * SIN_MULTIPLIER;
+        }
+        
+        // Smooth easing to target values
+        bigChiliSin += (targetBigChiliSin - bigChiliSin) * SIN_LERP_SPEED;
+        smallChiliSin += (targetSmallChiliSin - smallChiliSin) * SIN_LERP_SPEED;
 
         for (let i = 0; i < singleChiliMeshes.length; i++) {
             const mesh = singleChiliMeshes[i];
