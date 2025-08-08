@@ -1,10 +1,10 @@
 import * as THREE from 'three';
 
-const MAX_LIFE = 1000;
-const MIN_LIFE = 10;
-const ATT_FORCE = 0.1; // Attraction force strength
-const AIR_FRICTION = 0.995; // Air resistance coefficient
-const MAX_SPEED = 0.1; // Maximum particle speed
+const MAX_LIFE = 300;
+const MIN_LIFE = 200;
+const ATT_FORCE = 0.05; // Attraction force strength
+const AIR_FRICTION = 0.99; // Air resistance coefficient
+const MAX_SPEED = 0.2; // Maximum particle speed
 const TELEPORT_PROBABILITY = 0.02; // Probability per frame to teleport 20% of particles
 
 
@@ -103,9 +103,11 @@ export class SparkSystem extends THREE.Mesh {
                 vLife = instanceLife;
                 vMaxLife = instanceMaxLife;
 
+                float T = (vMaxLife - vLife) / vMaxLife;
+
                 // Scale the particle based on velocity magnitude
                 float speed = length(instanceVelocity);
-                float speedFactor = clamp(speed / 0.01, 0.1, 1.0); // Scale based on speed
+                float speedFactor = clamp(speed / 0.01, 0.1, 2.0); // Scale based on speed
                 vec3 pos = position * instanceScale * speedFactor;
                 
                 // Align particle with velocity direction using lookAt approach
@@ -128,6 +130,7 @@ export class SparkSystem extends THREE.Mesh {
                 vec3 rotatedPos = rotation * pos;
                 
                 vec3 worldPos = rotatedPos + instancePosition;
+                
                 gl_Position = projectionMatrix * modelViewMatrix * vec4(worldPos, 1.0);
             }
             `,

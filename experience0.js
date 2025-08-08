@@ -39,25 +39,32 @@ dummyRH.position.set(5, -2, 0);
 const dummyHH = new THREE.Mesh(dummyGeometry, dummyMaterial);
 dummyHH.position.set(0, 6, 0);
 
+const dummyLF = new THREE.Mesh(dummyGeometry, dummyMaterial);
+dummyLF.position.set(-3, -6, 0);
+const dummyRF = new THREE.Mesh(dummyGeometry, dummyMaterial);
+dummyRF.position.set(3, -6, 0);
+
 dummyLH.visible = false;
 dummyRH.visible = false;
 dummyHH.visible = false;
+dummyLF.visible = false;
+dummyRF.visible = false;
 
-const dummies = [dummyLH, dummyRH, dummyHH];
+const dummies = [dummyLH, dummyRH, dummyHH, dummyLF, dummyRF];
 
 // Store initial positions for dummies
 const dummyInitialPositions = dummies.map(d => d.position.clone());
 
 // Oscillation parameters for each dummy: [xSpeed, ySpeed, xAmplitude, yAmplitude]
 const dummyOscillationParams = [
-    [0.7, 1.1, 1.0, 0.7], // dummyLH
-    [1.3, 0.8, 0.8, 1.2], // dummyRH
-    [0.9, 1.5, 1.1, 1.1]  // dummyHH
+    [0.7, 4.1, 1.0, 0.7], // dummyLH
+    [1.3, 2.8, 0.8, 1.2], // dummyRH
+    [0.9, 6.5, 1.1, 1.1],  // dummyHH
 ];
 
 // In updateBackground, oscillate dummies
 function oscillateDummies(time) {
-    for (let i = 0; i < dummies.length; i++) {
+    for (let i = 0; i < 3; i++) {
         const [xSpeed, ySpeed, xAmp, yAmp] = dummyOscillationParams[i];
         const initPos = dummyInitialPositions[i];
         dummies[i].position.x = initPos.x + Math.sin(time * xSpeed) * xAmp;
@@ -87,6 +94,8 @@ export default {
         scene.add(dummyLH);
         scene.add(dummyRH);
         scene.add(dummyHH);
+        scene.add(dummyLF);
+        scene.add(dummyRF);
 
         // Starfield planes
         const geometry = new THREE.PlaneGeometry(1, 1);
