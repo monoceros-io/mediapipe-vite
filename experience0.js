@@ -71,6 +71,43 @@ function oscillateDummies(time) {
         dummies[i].position.y = initPos.y + Math.cos(time * ySpeed) * yAmp;
     }
 }
+
+const singleChiliPlaneGeometry = new THREE.PlaneGeometry(6, 6);
+const singleChiliPlaneMaterial = new THREE.MeshBasicMaterial({
+    map: new THREE.TextureLoader().load('jala/back-single.png'),
+    transparent: true,
+    depthTest: false,
+    depthWrite: false
+});
+
+const singleChiliMeshes = [];
+const chiliCount = 6;
+const chiliRadius = 4;
+
+let smallChiliSin = 0.0;
+let bigChiliSin = 0.0;
+
+const BIG_SIN_SPEED = 0.001; // Speed of big sine wave oscillation
+const SMALL_SIN_SPEED = 0.002; // Speed of small sine wave oscillation
+
+// Create a parent group for small chili meshes
+const chiliGroup = new THREE.Group();
+chiliGroup.position.set(0, 0, 0);
+
+
+// Move chili mesh creation into the group
+for (let i = 0; i < chiliCount; i++) {
+    const angle = (i / chiliCount) * Math.PI * 2;
+    const mesh = new THREE.Mesh(singleChiliPlaneGeometry, singleChiliPlaneMaterial);
+    mesh.position.set(
+        Math.cos(angle) * chiliRadius,
+        Math.sin(angle) * chiliRadius,
+        0
+    );
+    mesh.rotation.z = angle + Math.PI / 2;
+    chiliGroup.add(mesh);
+    singleChiliMeshes.push(mesh);
+}
 export default {
     foreBlendMode: "plus-lighter",
 
@@ -96,6 +133,11 @@ export default {
         scene.add(dummyHH);
         scene.add(dummyLF);
         scene.add(dummyRF);
+
+
+        scene.add(chiliGroup);
+
+        // Chili meshes are already created in chiliGroup at the top of the file
 
         // Starfield planes
         const geometry = new THREE.PlaneGeometry(1, 1);
@@ -126,7 +168,7 @@ export default {
         chiliParticles.position.z = -50; // in front of most stars
         chiliParticles.scale.set(5, 5, 5); // big enough to see
         chiliParticles.renderOrder = 1; // render after stars
-        scene.add(chiliParticles);
+        // scene.add(chiliParticles);
 
         // Add smoke system
         smokeSystem = new SmokeSystem(500, 8, dummies);
@@ -135,7 +177,7 @@ export default {
         scene.add(smokeSystem);
 
         // Add spark system
-        sparkSystem = new SparkSystem(6000, 6, dummies);
+        sparkSystem = new SparkSystem(3000, 6, dummies);
         sparkSystem.position.set(0, 0, 0);
         sparkSystem.scale.set(1, 1, 1);
         scene.add(sparkSystem);
@@ -155,7 +197,8 @@ export default {
         chiliParticles.update();
         smokeSystem.update(time * 0.001); // Convert time to seconds
         sparkSystem.update(time * 0.001); // Convert time to seconds
-        console.log("FONKO");
+        
+        chiliGroup.rotation.z += Math.sin(smallChiliSin) * Math.sin(bigChiliSin) * Math.PI * 0.02;
 
         for (let j = 0; j < starPlanes.length; j++) {
             const plane = starPlanes[j];
@@ -192,6 +235,20 @@ export default {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.drawImage(renderer.domElement, 0, 0);
         }
+
+        smallChiliSin += SMALL_SIN_SPEED * 10;
+        bigChiliSin += BIG_SIN_SPEED;
+
+        for (let i = 0; i < singleChiliMeshes.length; i++) {
+            const mesh = singleChiliMeshes[i];
+
+            let d = i / singleChiliMeshes.length * 2 * Math.PI; // Spread out over circle
+
+            mesh.position.z = Math.sin(smallChiliSin + d) * Math.sin(bigChiliSin) * 10;
+            // mesh.scale.setScalar(1 + 0.2 * Math.sin(time * 0.002 + i));
+        }
+
+
     },
 
     initForeground(canvas, spriteTexture) {
@@ -199,7 +256,7 @@ export default {
         renderer.setSize(canvas.width, canvas.height, false);
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(45, canvas.width / canvas.height, 0.1, 100);
-        
+
         sprites = [];
         velocities = [];
         life = [];

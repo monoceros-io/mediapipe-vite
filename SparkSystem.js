@@ -1,11 +1,11 @@
 import * as THREE from 'three';
 
-const MAX_LIFE = 300;
-const MIN_LIFE = 200;
-const ATT_FORCE = 0.05; // Attraction force strength
-const AIR_FRICTION = 0.99; // Air resistance coefficient
-const MAX_SPEED = 0.2; // Maximum particle speed
-const TELEPORT_PROBABILITY = 0.02; // Probability per frame to teleport 20% of particles
+const MAX_LIFE = 400;
+const MIN_LIFE = 100;
+const ATT_FORCE = 0.04; // Attraction force strength
+const AIR_FRICTION = 0.9999; // Air resistance coefficient
+const MAX_SPEED = 0.1; // Maximum particle speed
+const TELEPORT_PROBABILITY = 0.1; // Probability per frame to teleport 20% of particles
 
 
 const rand = (min, max) => Math.random() * (max - min) + min;
