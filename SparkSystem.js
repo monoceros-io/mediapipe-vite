@@ -2,10 +2,10 @@ import * as THREE from 'three';
 
 const MAX_LIFE = 1000;
 const MIN_LIFE = 10;
-const ATT_FORCE = 0.02; // Attraction force strength
+const ATT_FORCE = 0.1; // Attraction force strength
 const AIR_FRICTION = 0.995; // Air resistance coefficient
-
 const MAX_SPEED = 0.1; // Maximum particle speed
+const TELEPORT_PROBABILITY = 0.02; // Probability per frame to teleport 20% of particles
 
 
 const rand = (min, max) => Math.random() * (max - min) + min;
@@ -66,7 +66,7 @@ export class SparkSystem extends THREE.Mesh {
             const maxLife = MIN_LIFE + Math.random() * (MAX_LIFE - MIN_LIFE);
             maxLives[i] = maxLife;
             lives[i] = maxLife;
-            scales[i] = 0.5 + Math.random() * 0.5; // Random scale between 0.5 and 1.0
+            scales[i] = 1 + Math.random(); // Random scale between 0.5 and 1.0
         }
 
         geometry.setAttribute('instancePosition', new THREE.InstancedBufferAttribute(positions, 3));
@@ -176,6 +176,37 @@ export class SparkSystem extends THREE.Mesh {
 
     update(time) {
         this.material.uniforms.time.value = time;
+
+        // Check for random teleportation event every frame
+        if (Math.random() < TELEPORT_PROBABILITY) {
+            // Pick a single random spot for all teleported particles
+            const teleportSpot = {
+                x: rand(-10, 10),
+                y: rand(-10, 10),
+                z: rand(-10, 10)
+            };
+            
+            // Teleport 20% of particles to the same spot
+            const particlesToTeleport = Math.floor(this.particleCount * 0.1);
+            const teleportedIndices = new Set();
+            
+            for (let i = 0; i < particlesToTeleport; i++) {
+                let particleIndex;
+                // Ensure we don't teleport the same particle twice
+                do {
+                    particleIndex = Math.floor(Math.random() * this.particleCount);
+                } while (teleportedIndices.has(particleIndex));
+                
+                teleportedIndices.add(particleIndex);
+                const idx = particleIndex * 3;
+                
+                // Teleport to the same spot
+                this.positions[idx] = teleportSpot.x;
+                this.positions[idx + 1] = teleportSpot.y;
+                this.positions[idx + 2] = teleportSpot.z;
+                
+            }
+        }
 
         for (let i = 0; i < this.particleCount; i++) {
             // Apply air resistance
