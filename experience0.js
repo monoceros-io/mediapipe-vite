@@ -254,13 +254,13 @@ export default {
         scene.add(chiliParticles);
 
         // Add smoke system
-        smokeSystem = new SmokeSystem(500, 8, dummies);
+        smokeSystem = new SmokeSystem(1000, 8, dummies);
         smokeSystem.position.set(0, 0, 0);
         smokeSystem.scale.set(1, 1, 1);
         scene.add(smokeSystem);
 
         // Add spark system
-        sparkSystem = new SparkSystem(8000, 6, dummies);
+        sparkSystem = new SparkSystem(40000, 6, dummies);
         sparkSystem.position.set(0, 0, 0);
         sparkSystem.scale.set(1, 1, 1);
         scene.add(sparkSystem);
