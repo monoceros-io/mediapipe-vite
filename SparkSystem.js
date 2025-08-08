@@ -2,8 +2,8 @@ import * as THREE from 'three';
 
 const MAX_LIFE = 400;
 const MIN_LIFE = 100;
-const ATT_FORCE = 0.08; // Attraction force strength
-const AIR_FRICTION = 0.999; // Air resistance coefficient
+const ATT_FORCE = 0.03; // Attraction force strength
+const AIR_FRICTION = 0.991; // Air resistance coefficient
 const MAX_SPEED = 0.1; // Maximum particle speed
 const TELEPORT_PROBABILITY = 0.1; // Probability per frame to teleport 20% of particles
 
@@ -40,7 +40,7 @@ function randomEdgePosition(idx, positions) {
 export class SparkSystem extends THREE.Mesh {
     constructor(particleCount = 50, cloudSize = 5, attractors = []) {
         // Create base plane geometry
-        const baseGeometry = new THREE.PlaneGeometry(0.05, 0.3); // Thin vertical streaks
+        const baseGeometry = new THREE.PlaneGeometry(0.1, 0.1); // Thin vertical streaks
         const geometry = new THREE.InstancedBufferGeometry().copy(baseGeometry);
         geometry.instanceCount = particleCount;
 
@@ -66,7 +66,7 @@ export class SparkSystem extends THREE.Mesh {
             const maxLife = MIN_LIFE + Math.random() * (MAX_LIFE - MIN_LIFE);
             maxLives[i] = maxLife;
             lives[i] = maxLife;
-            scales[i] = 1 + Math.random(); // Random scale between 0.5 and 1.0
+            scales[i] = 0.25 + Math.random(); // Random scale between 0.5 and 1.0
         }
 
         geometry.setAttribute('instancePosition', new THREE.InstancedBufferAttribute(positions, 3));

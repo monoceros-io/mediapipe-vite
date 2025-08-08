@@ -87,7 +87,7 @@ const chiliRadius = 4;
 let smallChiliSin = 0.0;
 let bigChiliSin = 0.0;
 
-const BIG_SIN_SPEED = 0.001; // Speed of big sine wave oscillation
+const BIG_SIN_SPEED = 0.0001; // Speed of big sine wave oscillation
 const SMALL_SIN_SPEED = 0.002; // Speed of small sine wave oscillation
 
 // Create a parent group for small chili meshes
@@ -116,7 +116,7 @@ const chiliRenderCamera = new THREE.PerspectiveCamera(
     0.1,
     100
 );
-chiliRenderCamera.position.set(0, 0, 20);
+chiliRenderCamera.position.set(0, 0, 40);
 
 // Add the chili group to the new scene
 chiliRenderScene.add(chiliGroup);
@@ -189,7 +189,7 @@ export default {
         renderer.render(chiliRenderScene, chiliRenderCamera);
         renderer.setRenderTarget(null);
         
-        chiliParticles = new InstancedParticleSystem(chiliRenderTarget.texture, 100, 100, 0.1);
+        chiliParticles = new InstancedParticleSystem(chiliRenderTarget.texture, 400, 400, 0.075, dummies);
         chiliParticles.position.z = 0; // in front of most stars
         chiliParticles.scale.set(1, 1, 1); // big enough to see
         chiliParticles.renderOrder = 1; // render after stars
@@ -261,7 +261,7 @@ export default {
             ctx.drawImage(renderer.domElement, 0, 0);
         }
 
-        smallChiliSin += SMALL_SIN_SPEED * 10;
+        smallChiliSin += SMALL_SIN_SPEED;
         bigChiliSin += BIG_SIN_SPEED;
 
         for (let i = 0; i < singleChiliMeshes.length; i++) {
@@ -269,7 +269,7 @@ export default {
 
             let d = i / singleChiliMeshes.length * 2 * Math.PI; // Spread out over circle
 
-            mesh.position.z = Math.sin(smallChiliSin + d) * Math.sin(bigChiliSin) * 10;
+            mesh.position.z = Math.sin(smallChiliSin + d) * Math.sin(bigChiliSin) * 40;
         }
 
         // Render the chili scene to texture for the instanced particle system

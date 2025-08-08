@@ -92,8 +92,8 @@ export class SmokeSystem extends THREE.Mesh {
 
                 
                 vec3 pos = position * instanceScale;
-                pos.x += sin(instanceLife * instancePosition.y * 0.01) * 0.2;
-                pos.y += cos(instanceLife * instancePosition.z * 0.01) * 0.2 * sin(instancePosition.x);
+                pos.x += sin(instanceLife * instancePosition.y * 0.001) * 0.2;
+                pos.y += cos(instanceLife * instancePosition.z * 0.001) * 0.2 * sin(instancePosition.x);
                 vec3 transformed = pos + instancePosition;
                 
                 
