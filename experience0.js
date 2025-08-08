@@ -403,6 +403,13 @@ export default {
         renderer.setSize(canvas.width, canvas.height, false);
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(45, canvas.width / canvas.height, 0.1, 100);
+        camera.position.set(0, 0, 5);
+
+        // Add a red spinning cube
+        const geometry = new THREE.BoxGeometry(1, 1, 1);
+        const material = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+        const cube = new THREE.Mesh(geometry, material);
+        scene.add(cube);
 
         sprites = [];
         velocities = [];
@@ -432,10 +439,17 @@ export default {
         foreground.renderer = renderer;
         foreground.scene = scene;
         foreground.camera = camera;
+        foreground.cube = cube; // Store reference to the cube
     },
 
     updateForeground({ canvas, gravityPoints, time }) {
-        const { renderer, scene, camera } = foreground;
+        const { renderer, scene, camera, cube } = foreground;
+
+        // Spin the red cube slowly
+        if (cube) {
+            cube.rotation.x += 0.01;
+            cube.rotation.y += 0.01;
+        }
 
         for (let j = 0; j < sprites.length; j++) {
             const sprite = sprites[j];

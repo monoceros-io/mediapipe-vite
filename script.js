@@ -160,17 +160,11 @@ function updateShaderBC() {
 brightnessInput.addEventListener('input', updateShaderBC);
 contrastInput.addEventListener('input', updateShaderBC);
 
-// Wire up overlay-mask checkbox
-
-const overlayMaskInput = document.getElementById('overlay-mask');
-const foreCanvases = document.querySelector('.fore-canvases');
-
-
-
 // Fullscreen button logic for qc-0
 const fullscreenBtn = document.getElementById('fullscreen-btn');
 const qc0 = document.querySelector('.qc-0');
 const mainColumn = document.querySelector('.main-column');
+      
 
 fullscreenBtn.addEventListener('click', () => {
     console.log("Fullscreen button clicked");
