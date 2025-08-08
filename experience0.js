@@ -108,6 +108,26 @@ for (let i = 0; i < chiliCount; i++) {
     chiliGroup.add(mesh);
     singleChiliMeshes.push(mesh);
 }
+
+const chiliRenderScene = new THREE.Scene();
+const chiliRenderCamera = new THREE.PerspectiveCamera(
+    45,
+    1, // square aspect for canvas texture
+    0.1,
+    100
+);
+chiliRenderCamera.position.set(0, 0, 20);
+
+// Add the chili group to the new scene
+chiliRenderScene.add(chiliGroup);
+
+// Create a render target for the chili scene
+const chiliRenderTarget = new THREE.WebGLRenderTarget(256, 256, {
+    minFilter: THREE.LinearFilter,
+    magFilter: THREE.LinearFilter,
+    format: THREE.RGBAFormat
+});
+
 export default {
     foreBlendMode: "plus-lighter",
 
@@ -135,7 +155,7 @@ export default {
         scene.add(dummyRF);
 
 
-        scene.add(chiliGroup);
+        // scene.add(chiliGroup);
 
         // Chili meshes are already created in chiliGroup at the top of the file
 
@@ -245,7 +265,7 @@ export default {
             let d = i / singleChiliMeshes.length * 2 * Math.PI; // Spread out over circle
 
             mesh.position.z = Math.sin(smallChiliSin + d) * Math.sin(bigChiliSin) * 10;
-            // mesh.scale.setScalar(1 + 0.2 * Math.sin(time * 0.002 + i));
+            
         }
 
 

@@ -4,6 +4,34 @@ const MAX_LIFE = 1400;
 const ATT_FORCE = 0.002; // Attraction force strength for smoke (weaker than sparks)
 const AIR_FRICTION = 0.996; // Air resistance coefficient for smoke
 
+const rand = (min, max) => Math.random() * (max - min) + min;
+
+function randomEdgePosition(idx, positions) {
+    const edge = Math.floor(Math.random() * 4);
+    switch (edge) {
+        case 0:
+            positions[idx] = -10;
+            positions[idx + 1] = rand(-10, 10);
+            positions[idx + 2] = rand(-5, 5);
+            break;
+        case 1:
+            positions[idx] = 10;
+            positions[idx + 1] = rand(-10, 10);
+            positions[idx + 2] = rand(-5, 5);
+            break;
+        case 2:
+            positions[idx] = rand(-10, 10);
+            positions[idx + 1] = -10;
+            positions[idx + 2] = rand(-5, 5);
+            break;
+        case 3:
+            positions[idx] = rand(-10, 10);
+            positions[idx + 1] = 10;
+            positions[idx + 2] = rand(-5, 5);
+            break;
+    }
+}
+
 export class SmokeSystem extends THREE.Mesh {
     constructor(particleCount = 100, cloudSize = 10, attractors = []) {
         // Create base plane geometry
@@ -18,15 +46,13 @@ export class SmokeSystem extends THREE.Mesh {
         const lives = new Float32Array(particleCount);
         const maxLives = new Float32Array(particleCount);
 
-        // Randomize particles in a cube
+        // Randomize particles at edges
         for (let i = 0; i < particleCount; i++) {
-            positions[i * 3] = (Math.random() - 0.5) * cloudSize;
-            positions[i * 3 + 1] = (Math.random() - 0.5) * cloudSize;
-            positions[i * 3 + 2] = (Math.random() - 0.5) * cloudSize;
+            randomEdgePosition(i * 3, positions);
             
-            // Initialize velocities to small upward drift
+            // Initialize velocities to small inward drift
             velocities[i * 3] = (Math.random() - 0.5) * 0.002;
-            velocities[i * 3 + 1] = Math.random() * 0.005 + 0.005; // Slight upward drift
+            velocities[i * 3 + 1] = (Math.random() - 0.5) * 0.002;
             velocities[i * 3 + 2] = (Math.random() - 0.5) * 0.002;
             
             const maxLife = MAX_LIFE * Math.random();
@@ -149,14 +175,12 @@ export class SmokeSystem extends THREE.Mesh {
             
             this.lives[i] -= 1; // Decrease life
             if(this.lives[i] <= 0) {
-                // Reset particle
-                this.positions[i * 3] = (Math.random() - 0.5) * this.cloudSize;
-                this.positions[i * 3 + 1] = -7;
-                this.positions[i * 3 + 2] = (Math.random() - 0.5) * this.cloudSize;
+                // Reset particle at edge
+                randomEdgePosition(i * 3, this.positions);
                 
-                // Reset velocity with slight upward drift
+                // Reset velocity with gentle drift
                 this.velocities[i * 3] = (Math.random() - 0.5) * 0.002;
-                this.velocities[i * 3 + 1] = Math.random() * 0.005 + 0.005;
+                this.velocities[i * 3 + 1] = (Math.random() - 0.5) * 0.002;
                 this.velocities[i * 3 + 2] = (Math.random() - 0.5) * 0.002;
                 
                 this.maxLives[i] = this.lives[i] = Math.random() * MAX_LIFE; // Reset life
