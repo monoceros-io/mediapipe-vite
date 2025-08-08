@@ -244,7 +244,7 @@ export default {
         renderer.render(chiliRenderScene, chiliRenderCamera);
         renderer.setRenderTarget(null);
         
-        chiliParticles = new InstancedParticleSystem(chiliRenderTarget.texture, 400, 400, 0.075, dummies);
+        chiliParticles = new InstancedParticleSystem(chiliRenderTarget.texture, 50, 50, 0.5, dummies);
         chiliParticles.position.z = 0; // in front of most stars
         chiliParticles.scale.set(1, 1, 1); // big enough to see
         chiliParticles.renderOrder = 1; // render after stars

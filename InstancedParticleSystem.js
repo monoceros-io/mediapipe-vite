@@ -1,31 +1,11 @@
 import * as THREE from 'three';
 
-
 export class InstancedParticleSystem extends THREE.Mesh {
 
     update(){
-        
-        for (let i = 0; i < this.total; i++) {
-            // Get current position
-            const posAttr = this.geometry.getAttribute('instancePos');
-            const scaleAttr = this.geometry.getAttribute('instanceScale');
-            const currentX = posAttr.getX(i);
-            const currentY = posAttr.getY(i);
-            const currentZ = posAttr.getZ(i);
-            
-          
-        }
-        
-        this.geometry.getAttribute('instancePos').needsUpdate = true;
-        this.geometry.getAttribute('instanceScale').needsUpdate = true;
+        // Simple update method without repulsor logic
+        // Available for future enhancements
     }
-
-    repulsors = [
-        new THREE.Vector3(0.3, 0, 0),
-        new THREE.Vector3(-0.3, 0, 0),
-        new THREE.Vector3(0, 0.3, 0),
-        new THREE.Vector3(0, -0.3, 0)
-    ];
 
     constructor(texture, gridX, gridY, quadSize = 1) {
         // Build geometry
@@ -72,7 +52,7 @@ export class InstancedParticleSystem extends THREE.Mesh {
                 uvScale[i * 2 + 1] = 1.0 / gridY;
 
                 rotations[i] = 0.0; // Initial rotation
-                scales[i] = 1.0; // Initial scale
+                scales[i] = 0.7; // Initial scale
 
                 i++;
             }
@@ -124,6 +104,7 @@ export class InstancedParticleSystem extends THREE.Mesh {
 
         super(geometry, material);
 
+        // Store physics arrays after super() call
         this.velocities = velocities;
         this.originalPositions = originalPositions;
 
