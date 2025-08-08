@@ -1,106 +1,13 @@
 import * as THREE from 'three';
 
-const ATTRACTION_RADIUS = 3.0; // Distance within which attraction occurs
-const ATTRACTION_FORCE = 0.0001; // Strength of movement when near attractors (much gentler)
-const RESTORATION_FORCE = 0.005; // Strength of force pulling back to original position (gentler)
-const DAMPING = 0.95; // Air resistance (less damping for smoother movement)
-const MAX_VELOCITY = 0.01; // Hard limit on velocity to prevent flicker (much lower)
-const SCALE_MULTIPLIER = 1.2; // How much particles can grow when near attractors (less dramatic)
-
 export class InstancedParticleSystem extends THREE.Mesh {
 
     update(){
-        // Pre-compute collider positions in local space once per frame
-        const localColliderPositions = [];
-        for (let j = 0; j < this.colliders.length; j++) {
-            const collider = this.colliders[j];
-            // Get world position and convert to local space efficiently
-            const worldPos = collider.position;
-            const localPos = this.worldToLocal(worldPos.clone());
-            localColliderPositions.push(localPos);
-        }
-        
-        for (let i = 0; i < this.total; i++) {
-            // Get current position
-            const posAttr = this.geometry.getAttribute('instancePos');
-            const scaleAttr = this.geometry.getAttribute('instanceScale');
-            const currentX = posAttr.getX(i);
-            const currentY = posAttr.getY(i);
-            const currentZ = posAttr.getZ(i);
-            
-            // Check for collider influence using pre-computed positions
-            let attracted = false;
-            let closestDistance = Infinity;
-            let attractionInfluence = 0;
-            
-            for (let j = 0; j < localColliderPositions.length; j++) {
-                const localPos = localColliderPositions[j];
-                const dx = localPos.x - currentX;
-                const dy = localPos.y - currentY;
-                const dz = localPos.z - currentZ;
-                const distSq = dx * dx + dy * dy + dz * dz;
-                const dist = Math.sqrt(distSq);
-                
-                if (dist < ATTRACTION_RADIUS) {
-                    // Calculate influence (stronger when closer)
-                    const influence = 1.0 - (dist / ATTRACTION_RADIUS);
-                    attractionInfluence = Math.max(attractionInfluence, influence);
-                    
-                    // Apply gentle movement force (not magnetic pull)
-                    const moveForce = ATTRACTION_FORCE * influence;
-                    this.velocities[i * 3] += (dx / dist) * moveForce;
-                    this.velocities[i * 3 + 1] += (dy / dist) * moveForce;
-                    this.velocities[i * 3 + 2] += (dz / dist) * moveForce;
-                    attracted = true;
-                }
-                
-                closestDistance = Math.min(closestDistance, dist);
-            }
-            
-            // Update scale based on attraction influence
-            const targetScale = 1.0 + (attractionInfluence * SCALE_MULTIPLIER);
-            const currentScale = scaleAttr.getX(i);
-            const newScale = currentScale + (targetScale - currentScale) * 0.1; // Smooth interpolation
-            scaleAttr.setX(i, newScale);
-            
-            if (!attracted) {
-                // Apply restoration force to original position
-                const originalX = this.originalPositions[i * 3];
-                const originalY = this.originalPositions[i * 3 + 1];
-                const originalZ = this.originalPositions[i * 3 + 2];
-                
-                const restoreX = originalX - currentX;
-                const restoreY = originalY - currentY;
-                const restoreZ = originalZ - currentZ;
-                
-                this.velocities[i * 3] += restoreX * RESTORATION_FORCE;
-                this.velocities[i * 3 + 1] += restoreY * RESTORATION_FORCE;
-                this.velocities[i * 3 + 2] += restoreZ * RESTORATION_FORCE;
-            }
-            
-            // Apply damping
-            this.velocities[i * 3] *= DAMPING;
-            this.velocities[i * 3 + 1] *= DAMPING;
-            this.velocities[i * 3 + 2] *= DAMPING;
-            
-            // Clamp velocity to prevent flicker
-            this.velocities[i * 3] = Math.max(-MAX_VELOCITY, Math.min(MAX_VELOCITY, this.velocities[i * 3]));
-            this.velocities[i * 3 + 1] = Math.max(-MAX_VELOCITY, Math.min(MAX_VELOCITY, this.velocities[i * 3 + 1]));
-            this.velocities[i * 3 + 2] = Math.max(-MAX_VELOCITY, Math.min(MAX_VELOCITY, this.velocities[i * 3 + 2]));
-            
-            // Update position
-            const newX = currentX + this.velocities[i * 3];
-            const newY = currentY + this.velocities[i * 3 + 1];
-            const newZ = currentZ + this.velocities[i * 3 + 2];
-            
-            posAttr.setXYZ(i, newX, newY, newZ);
-        }
-        
-        this.geometry.getAttribute('instancePos').needsUpdate = true;
-        this.geometry.getAttribute('instanceScale').needsUpdate = true;
+        // Simple update method without repulsor logic
+        // Available for future enhancements
     }
 
-    constructor(texture, gridX, gridY, quadSize = 1, colliders = []) {
+    constructor(texture, gridX, gridY, quadSize = 1) {
         // Build geometry
         const total = gridX * gridY;
         const base = new THREE.PlaneGeometry(quadSize, quadSize);
@@ -145,7 +52,7 @@ export class InstancedParticleSystem extends THREE.Mesh {
                 uvScale[i * 2 + 1] = 1.0 / gridY;
 
                 rotations[i] = 0.0; // Initial rotation
-                scales[i] = 1.0; // Initial scale
+                scales[i] = 0.7; // Initial scale
 
                 i++;
             }
@@ -197,8 +104,7 @@ export class InstancedParticleSystem extends THREE.Mesh {
 
         super(geometry, material);
 
-        // Store colliders and physics arrays after super() call
-        this.colliders = colliders;
+        // Store physics arrays after super() call
         this.velocities = velocities;
         this.originalPositions = originalPositions;
 

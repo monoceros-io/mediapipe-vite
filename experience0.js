@@ -91,12 +91,6 @@ const singleChiliMeshes = [];
 const chiliCount = 6;
 const chiliRadius = 4;
 
-let smallChiliSin = 0.0;
-let bigChiliSin = 0.0;
-
-const BIG_SIN_SPEED = 0.0001; // Speed of big sine wave oscillation
-const SMALL_SIN_SPEED = 0.002; // Speed of small sine wave oscillation
-
 // Create a parent group for small chili meshes
 const chiliGroup = new THREE.Group();
 chiliGroup.position.set(0, 0, 0);
@@ -163,6 +157,9 @@ const ChromaticAberrationShader = {
     `
 };
 
+let leftHandY = 0, rightHandY = 0;
+let leftHandX = 0, rightHandX = 0;
+
 const nrm = v => (v - 0.5);
 
 export default {
@@ -196,7 +193,7 @@ export default {
             new THREE.Vector2(canvas.width, canvas.height),
             0.4, // strength - very harsh
             1, // radius
-            0.1  // threshold - low threshold for more bloom
+            0.0  // threshold - low threshold for more bloom
         );
         composer.addPass(bloomPass);
         
@@ -247,20 +244,20 @@ export default {
         renderer.render(chiliRenderScene, chiliRenderCamera);
         renderer.setRenderTarget(null);
         
-        chiliParticles = new InstancedParticleSystem(chiliRenderTarget.texture, 400, 400, 0.075, dummies);
+        chiliParticles = new InstancedParticleSystem(chiliRenderTarget.texture, 50, 50, 0.5, dummies);
         chiliParticles.position.z = 0; // in front of most stars
         chiliParticles.scale.set(1, 1, 1); // big enough to see
         chiliParticles.renderOrder = 1; // render after stars
         scene.add(chiliParticles);
 
         // Add smoke system
-        smokeSystem = new SmokeSystem(500, 8, dummies);
+        smokeSystem = new SmokeSystem(700, 8, dummies);
         smokeSystem.position.set(0, 0, 0);
         smokeSystem.scale.set(1, 1, 1);
         scene.add(smokeSystem);
 
         // Add spark system
-        sparkSystem = new SparkSystem(8000, 6, dummies);
+        sparkSystem = new SparkSystem(3000, 6, dummies);
         sparkSystem.position.set(0, 0, 0);
         sparkSystem.scale.set(1, 1, 1);
         scene.add(sparkSystem);
@@ -279,23 +276,33 @@ export default {
         const { foot0, foot1, hand0, hand1, head } = body;
 
         if(head.length > 0){
-            dummyHH.position.set(nrm(head[0]) * -10, nrm(head[1]) * -20, 0);
+            dummyHH.position.set(nrm(head[0]) * -15, nrm(head[1]) * -20, 0);
+        } else {
+            dummyHH.position.set(0, 20, 0); // Reset position if no head data
         }
 
         if(hand0.length > 0){
-            dummyLH.position.set(nrm(hand0[0]) * -10, nrm(hand0[1]) * -20, 0);
+            dummyLH.position.set(nrm(hand0[0]) * -15, nrm(hand0[1]) * -20, 0);
+        } else {
+            dummyLH.position.set(0, 20, 0); // Reset position if no hand0 data
         }
 
         if(hand1.length > 0){
-            dummyRH.position.set(nrm(hand1[0]) * -10, nrm(hand1[1]) * -20, 0);
+            dummyRH.position.set(nrm(hand1[0]) * -15, nrm(hand1[1]) * -20, 0);
+        } else {
+            dummyRH.position.set(0, 20, 0); // Reset position if no hand1 data
         }
 
         if(foot0.length > 0){
-            dummyLF.position.set(nrm(foot0[0]) * -10, nrm(foot0[1]) * -20, 0);
+            dummyLF.position.set(nrm(foot0[0]) * -15, nrm(foot0[1]) * -20, 0);
+        } else {
+            dummyLF.position.set(0, 20, 0); // Reset position if no foot0 data
         }
 
         if(foot1.length > 0){
-            dummyRF.position.set(nrm(foot1[0]) * -10, nrm(foot1[1]) * -20, 0);
+            dummyRF.position.set(nrm(foot1[0]) * -15, nrm(foot1[1]) * -20, 0);
+        } else {
+            dummyRF.position.set(0, 20, 0); // Reset position if no foot1 data
         }
 
         oscillateDummies(performance.now() * 0.001); // Use performance.now() for smoother oscillation
@@ -304,7 +311,24 @@ export default {
         smokeSystem.update(time * 0.001); // Convert time to seconds
         sparkSystem.update(time * 0.001); // Convert time to seconds
         
-        chiliGroup.rotation.z += Math.sin(smallChiliSin) * Math.sin(bigChiliSin) * Math.PI * 0.02;
+        // Hand controls for chili group
+        if (hand1.length > 0) {
+            // Right hand controls rotation
+            rightHandX = nrm(hand1[0]);
+            rightHandY = nrm(hand1[1]);
+        }
+        
+        if (hand0.length > 0) {
+            // Left hand controls Z position
+            leftHandX = nrm(hand0[0]);
+            leftHandY = nrm(hand0[1]);
+            // Ease chiliGroup.position.z towards target
+            
+        }
+        
+        const targetZ = -leftHandY * 80;
+        chiliGroup.position.z += (targetZ - chiliGroup.position.z) * 0.15;
+        chiliGroup.rotation.z = chiliGroup.position.z * 0.05; // Rotate based on Z position
 
         for (let j = 0; j < starPlanes.length; j++) {
             const plane = starPlanes[j];
@@ -346,17 +370,6 @@ export default {
             ctx.drawImage(renderer.domElement, 0, 0);
         }
 
-        smallChiliSin += SMALL_SIN_SPEED * 10;
-        bigChiliSin += BIG_SIN_SPEED* 10;
-
-        for (let i = 0; i < singleChiliMeshes.length; i++) {
-            const mesh = singleChiliMeshes[i];
-
-            let d = i / singleChiliMeshes.length * 2 * Math.PI; // Spread out over circle
-
-            mesh.position.z = Math.sin(smallChiliSin + d) * Math.sin(bigChiliSin) * 40;
-        }
-
         // Render the chili scene to texture for the instanced particle system
         renderer.setRenderTarget(chiliRenderTarget);
         renderer.render(chiliRenderScene, chiliRenderCamera);
@@ -367,6 +380,14 @@ export default {
             chiliParticles.setTexture(chiliRenderTarget.texture);
         }
 
+        for (let i = 0; i < singleChiliMeshes.length; i++) {
+            const mesh = singleChiliMeshes[i];
+            const target = Math.sin(rightHandY * i) * 20.0; // Oscillate Z position based on right hand Y
+            mesh.position.z += (target - mesh.position.z) * 0.25; //
+            const targetR = i * Math.PI / 3 + rightHandX * 6;
+            mesh.rotation.z += (targetR - mesh.rotation.z) * 0.25;
+        }
+
 
     },
 
@@ -375,6 +396,7 @@ export default {
         renderer.setSize(canvas.width, canvas.height, false);
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(45, canvas.width / canvas.height, 0.1, 100);
+        camera.position.set(0, 0, 20);
 
         sprites = [];
         velocities = [];
@@ -382,7 +404,7 @@ export default {
         for (let j = 0; j < FORE_SPRITE_COUNT; j++) {
             const material = new THREE.SpriteMaterial({
                 map: spriteTexture,
-                color: EXPERIENCE_COLOR,
+                color   : EXPERIENCE_COLOR,
                 transparent: true
             });
             const sprite = new THREE.Sprite(material);

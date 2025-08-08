@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 
-const MAX_LIFE = 1400;
-const ATT_FORCE = 0.002; // Attraction force strength for smoke (weaker than sparks)
-const AIR_FRICTION = 0.996; // Air resistance coefficient for smoke
+const MAX_LIFE = 3000;
+const ATT_FORCE = 0.02; // Attraction force strength for smoke (weaker than sparks)
+const AIR_FRICTION = 0.998; // Air resistance coefficient for smoke
 
 const rand = (min, max) => Math.random() * (max - min) + min;
 

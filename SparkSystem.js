@@ -1,12 +1,12 @@
 import * as THREE from 'three';
 
-const MAX_LIFE = 400;
-const MIN_LIFE = 100;
-const ATT_FORCE = 0.06; // Attraction force strength
+const MAX_LIFE = 100;
+const MIN_LIFE = 10;
+const ATT_FORCE = 0.2; // Attraction force strength
 const AIR_FRICTION = 0.99999; // Air resistance coefficient
-const MAX_SPEED = 0.1; // Maximum particle speed
+const MAX_SPEED = 0.2; // Maximum particle speed
 const TELEPORT_PROBABILITY = 0.002; // Probability per frame to teleport 20% of particles
-
+const R_R = 1; // Small random range for attractor jitter
 
 const rand = (min, max) => Math.random() * (max - min) + min;
 
@@ -66,7 +66,7 @@ export class SparkSystem extends THREE.Mesh {
             const maxLife = MIN_LIFE + Math.random() * (MAX_LIFE - MIN_LIFE);
             maxLives[i] = maxLife;
             lives[i] = maxLife;
-            scales[i] = Math.random() * 2; // Random scale between 2 and 2.5
+            scales[i] = 1 + Math.random() * 1; // Random scale between 2 and 2.5
         }
 
         geometry.setAttribute('instancePosition', new THREE.InstancedBufferAttribute(positions, 3));
@@ -130,7 +130,7 @@ export class SparkSystem extends THREE.Mesh {
                 vec3 rotatedPos = rotation * pos;
                 
                 vec3 worldPos = rotatedPos + instancePosition;
-                
+
                 gl_Position = projectionMatrix * modelViewMatrix * vec4(worldPos, 1.0);
             }
             `,
@@ -230,9 +230,9 @@ export class SparkSystem extends THREE.Mesh {
                 
                 // Convert attractor world position to local space
                 // Account for SparkSystem position and scale
-                const localAttractorX = attractor.position.x / this.scale.x - this.position.x / this.scale.x;
-                const localAttractorY = attractor.position.y / this.scale.y - this.position.y / this.scale.y;
-                const localAttractorZ = attractor.position.z / this.scale.z - this.position.z / this.scale.z;
+                const localAttractorX = attractor.position.x - this.position.x + rand(-R_R, R_R);
+                const localAttractorY = attractor.position.y - this.position.y + rand(-R_R, R_R);
+                const localAttractorZ = attractor.position.z - this.position.z + rand(-R_R, R_R);
                 
                 const dx = localAttractorX - this.positions[i * 3];
                 const dy = localAttractorY - this.positions[i * 3 + 1];
