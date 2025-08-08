@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 
-const MAX_LIFE = 600;
-const MIN_LIFE = 30;
+const MAX_LIFE = 1000;
+const MIN_LIFE = 10;
 
 export class SparkSystem extends THREE.Mesh {
     constructor(particleCount = 50, cloudSize = 5) {
@@ -25,7 +25,7 @@ export class SparkSystem extends THREE.Mesh {
             positions[i * 3 + 2] = (Math.random() - 0.5);
             
             // Random burst velocity - ensure balanced distribution
-            const angle = Math.random() * Math.PI * 2;
+            const angle = 0;
             const speed = Math.random() * 0.01 + 0.003;
             velocities[i * 3] = Math.cos(angle) * speed;
             velocities[i * 3 + 1] = Math.random() * 0.01 + 0.003; // Always upward
@@ -50,7 +50,10 @@ export class SparkSystem extends THREE.Mesh {
         const material = new THREE.ShaderMaterial({
             uniforms: {
                 map: { value: texture },
-                time: { value: 0.0 }
+                time: { value: 0.0 },
+                xNoiseArray: { value: new Float32Array(particleCount) },
+                yNoiseArray: { value: new Float32Array(particleCount) },
+                zNoiseArray: { value: new Float32Array(particleCount) }
             },
             vertexShader: `
             attribute vec3 instancePosition;
@@ -158,10 +161,10 @@ export class SparkSystem extends THREE.Mesh {
                 this.positions[i * 3 + 2] = (Math.random() - 0.5);
                 
                 // Balanced radial velocity
-                const angle = Math.random() * Math.PI * 2;
+                const angle = Math.random() * Math.PI - Math.PI;
                 const speed = Math.random() * 0.03 + 0.01;
                 this.velocities[i * 3] = Math.cos(angle) * speed;
-                this.velocities[i * 3 + 1] = Math.random() * 0.03 + 0.02;
+                this.velocities[i * 3 + 1] = Math.random() * 0.01 + 0.01; // Always upward
                 this.velocities[i * 3 + 2] = Math.sin(angle) * speed;
 
 

@@ -29,6 +29,16 @@ let chiliParticles = null; // reference to InstancedParticleSystem
 let smokeSystem = null; // reference to SmokeSystem
 let sparkSystem = null; // reference to SparkSystem
 
+const dummyGeometry = new THREE.SphereGeometry(0.1, 8, 8); // Dummy geometry for instancing
+const dummyMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.5 });
+
+const dummyLH = new THREE.Mesh(dummyGeometry, dummyMaterial);
+dummyLH.position.set(-1, -0.5, 0);
+const dummyRH = new THREE.Mesh(dummyGeometry, dummyMaterial);
+dummyRH.position.set(1, 1, 0);
+const dummyHH = new THREE.Mesh(dummyGeometry, dummyMaterial);
+dummyHH.position.set(0, 1.2, 1);
+
 export default {
     foreBlendMode: "plus-lighter",
 
@@ -47,6 +57,11 @@ export default {
         scene = new THREE.Scene();
         camera = new THREE.PerspectiveCamera(45, canvas.width / canvas.height, 0.1, 100);
         camera.position.set(0, 0, 5);
+
+
+        scene.add(dummyLH);
+        scene.add(dummyRH);
+        scene.add(dummyHH);
 
         // Starfield planes
         const geometry = new THREE.PlaneGeometry(1, 1);
@@ -86,7 +101,7 @@ export default {
         scene.add(smokeSystem);
 
         // Add spark system
-        sparkSystem = new SparkSystem(1500, 6);
+        sparkSystem = new SparkSystem(2000, 6);
         sparkSystem.position.set(0, -3, -8);
         sparkSystem.scale.set(1.5, 1.5, 1.5);
         scene.add(sparkSystem);
