@@ -6,6 +6,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+import { bodies } from './processing.js';
 
 const EXPERIENCE_COLOR = 0xffff00;
 const FORE_SPRITE_COUNT = 0;
@@ -35,19 +36,19 @@ let sparkSystem = null; // reference to SparkSystem
 let composer = null; // Post-processing composer
 
 const dummyGeometry = new THREE.SphereGeometry(0.5, 8, 8); // Dummy geometry for instancing
-const dummyMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.0 });
+const dummyMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
 
 const dummyLH = new THREE.Mesh(dummyGeometry, dummyMaterial);
-dummyLH.position.set(-5, 4.5, 0);
+// dummyLH.position.set(-5, 4.5, 0);
 const dummyRH = new THREE.Mesh(dummyGeometry, dummyMaterial);
-dummyRH.position.set(5, -2, 0);
+// dummyRH.position.set(5, -2, 0);
 const dummyHH = new THREE.Mesh(dummyGeometry, dummyMaterial);
-dummyHH.position.set(0, 6, 0);
+// dummyHH.position.set(0, 6, 0);
 
 const dummyLF = new THREE.Mesh(dummyGeometry, dummyMaterial);
-dummyLF.position.set(-3, -6, 0);
+// dummyLF.position.set(-3, -6, 0);
 const dummyRF = new THREE.Mesh(dummyGeometry, dummyMaterial);
-dummyRF.position.set(3, -6, 0);
+// dummyRF.position.set(3, -6, 0);
 
 dummyLH.visible = false;
 dummyRH.visible = false;
@@ -69,6 +70,7 @@ const dummyOscillationParams = [
 
 // In updateBackground, oscillate dummies
 function oscillateDummies(time) {
+    return;
     for (let i = 0; i < 3; i++) {
         const [xSpeed, ySpeed, xAmp, yAmp] = dummyOscillationParams[i];
         const initPos = dummyInitialPositions[i];
@@ -161,6 +163,8 @@ const ChromaticAberrationShader = {
     `
 };
 
+const nrm = v => (v - 0.5);
+
 export default {
     foreBlendMode: "plus-lighter",
 
@@ -198,7 +202,7 @@ export default {
         
         // Chromatic aberration pass
         const chromaticAberrationPass = new ShaderPass(ChromaticAberrationShader);
-        chromaticAberrationPass.uniforms.amount.value = 0.008; // Strong aberration
+        chromaticAberrationPass.uniforms.amount.value = 0.015; // Much stronger aberration
         composer.addPass(chromaticAberrationPass);
 
 
@@ -252,7 +256,7 @@ export default {
         // Add smoke system
         smokeSystem = new SmokeSystem(500, 8, dummies);
         smokeSystem.position.set(0, 0, 0);
-        smokeSystem.scale.set(2, 2, 2);
+        smokeSystem.scale.set(1, 1, 1);
         scene.add(smokeSystem);
 
         // Add spark system
@@ -270,6 +274,29 @@ export default {
     updateBackground({ canvas, time }) {
         if (!background.renderer) return;
         const { renderer } = background;
+
+        const body = bodies[0];
+        const { foot0, foot1, hand0, hand1, head } = body;
+
+        if(head.length > 0){
+            dummyHH.position.set(nrm(head[0]) * -10, nrm(head[1]) * -20, 0);
+        }
+
+        if(hand0.length > 0){
+            dummyLH.position.set(nrm(hand0[0]) * -10, nrm(hand0[1]) * -20, 0);
+        }
+
+        if(hand1.length > 0){
+            dummyRH.position.set(nrm(hand1[0]) * -10, nrm(hand1[1]) * -20, 0);
+        }
+
+        if(foot0.length > 0){
+            dummyLF.position.set(nrm(foot0[0]) * -10, nrm(foot0[1]) * -20, 0);
+        }
+
+        if(foot1.length > 0){
+            dummyRF.position.set(nrm(foot1[0]) * -10, nrm(foot1[1]) * -20, 0);
+        }
 
         oscillateDummies(performance.now() * 0.001); // Use performance.now() for smoother oscillation
 
@@ -319,8 +346,8 @@ export default {
             ctx.drawImage(renderer.domElement, 0, 0);
         }
 
-        smallChiliSin += SMALL_SIN_SPEED;
-        bigChiliSin += BIG_SIN_SPEED;
+        smallChiliSin += SMALL_SIN_SPEED * 10;
+        bigChiliSin += BIG_SIN_SPEED* 10;
 
         for (let i = 0; i < singleChiliMeshes.length; i++) {
             const mesh = singleChiliMeshes[i];

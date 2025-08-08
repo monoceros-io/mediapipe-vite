@@ -2,10 +2,10 @@ import * as THREE from 'three';
 
 const MAX_LIFE = 400;
 const MIN_LIFE = 100;
-const ATT_FORCE = 0.03; // Attraction force strength
-const AIR_FRICTION = 0.991; // Air resistance coefficient
+const ATT_FORCE = 0.06; // Attraction force strength
+const AIR_FRICTION = 0.99999; // Air resistance coefficient
 const MAX_SPEED = 0.1; // Maximum particle speed
-const TELEPORT_PROBABILITY = 0.1; // Probability per frame to teleport 20% of particles
+const TELEPORT_PROBABILITY = 0.002; // Probability per frame to teleport 20% of particles
 
 
 const rand = (min, max) => Math.random() * (max - min) + min;
@@ -66,7 +66,7 @@ export class SparkSystem extends THREE.Mesh {
             const maxLife = MIN_LIFE + Math.random() * (MAX_LIFE - MIN_LIFE);
             maxLives[i] = maxLife;
             lives[i] = maxLife;
-            scales[i] = 0.25 + Math.random(); // Random scale between 0.5 and 1.0
+            scales[i] = Math.random() * 2; // Random scale between 2 and 2.5
         }
 
         geometry.setAttribute('instancePosition', new THREE.InstancedBufferAttribute(positions, 3));
