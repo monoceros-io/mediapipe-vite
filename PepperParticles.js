@@ -1,9 +1,10 @@
 import * as THREE from 'three';
 
 export class PepperParticles {
-    constructor(count) {
+    constructor(count, targetObject = null) {
         this.count = count;
         this.group = new THREE.Group();
+        this.targetObject = targetObject; // Object to track
         
         // Physics arrays
         this.velocities = new Float32Array(count * 3);
@@ -14,10 +15,11 @@ export class PepperParticles {
         this.attractionPoint = new THREE.Vector3(0, 0, 0);
         
         // Physics constants
-        this.attractionForce = 0.001;
-        this.damping = 0.98;
+        this.attractionForce = 0.1;
+        this.damping = 0.9995; // Reduced friction (was 0.999)
         this.rotationSpeed = 0.02;
-        this.maxLife = 300; // Maximum life value
+        this.maxLife = 120; // Reduced from 300 to 120
+        this.maxSpeed = 0.12; // Maximum particle speed
         
         // Create simple particle system with plane geometry
         this.createParticleSystem();
@@ -152,6 +154,11 @@ export class PepperParticles {
     update() {
         if (!this.particleSystem) return;
         
+        // Update attraction point to target object's global position
+        if (this.targetObject) {
+            this.targetObject.getWorldPosition(this.attractionPoint);
+        }
+        
         const dummy = new THREE.Object3D();
         
         for (let i = 0; i < this.count; i++) {
@@ -177,6 +184,25 @@ export class PepperParticles {
             this.velocities[i * 3 + 1] *= this.damping;
             this.velocities[i * 3 + 2] *= this.damping;
             
+            // Add random velocity jitter
+            const jitterStrength = 0.002;
+            this.velocities[i * 3] += (Math.random() - 0.5) * jitterStrength;
+            this.velocities[i * 3 + 1] += (Math.random() - 0.5) * jitterStrength;
+            this.velocities[i * 3 + 2] += (Math.random() - 0.5) * jitterStrength;
+            
+            // Clamp velocity to max speed
+            const vx = this.velocities[i * 3];
+            const vy = this.velocities[i * 3 + 1];
+            const vz = this.velocities[i * 3 + 2];
+            const speed = Math.sqrt(vx * vx + vy * vy + vz * vz);
+            
+            if (speed > this.maxSpeed) {
+                const scale = this.maxSpeed / speed;
+                this.velocities[i * 3] *= scale;
+                this.velocities[i * 3 + 1] *= scale;
+                this.velocities[i * 3 + 2] *= scale;
+            }
+            
             // Update position
             dummy.position.x += this.velocities[i * 3];
             dummy.position.y += this.velocities[i * 3 + 1];
@@ -189,21 +215,29 @@ export class PepperParticles {
             // Update life
             this.life[i]--;
             
+            // Scale based on remaining life - grow bigger as life decreases (half size)
+            const lifeRatio = this.life[i] / this.maxLife; // 1.0 to 0.0
+            const scale = 0.05 + (1.0 - lifeRatio) * 0.2; // 0.05 to 0.25, half the original size
+            dummy.scale.setScalar(scale);
+            
             // Check if particle should respawn
             if (this.life[i] <= 0) {
-                // Respawn at (2, 2, 0) - top right to center
-                dummy.position.set(2, 2, 0);
+                // Respawn at (2, 2, 0) - top right to center with random scatter
+                const scatterX = (Math.random() - 0.5) * 1.0; // ±0.5 scatter
+                const scatterY = (Math.random() - 0.5) * 1.0; // ±0.5 scatter
+                const scatterZ = (Math.random() - 0.5) * 0.5; // ±0.25 scatter
+                dummy.position.set(2 + scatterX, 2 + scatterY, scatterZ);
                 
-                // Reset velocities
-                this.velocities[i * 3] = (Math.random() - 0.5) * 0.02;
-                this.velocities[i * 3 + 1] = (Math.random() - 0.5) * 0.02;
-                this.velocities[i * 3 + 2] = (Math.random() - 0.5) * 0.02;
+                // Reset velocities with more dramatic variation
+                this.velocities[i * 3] = (Math.random() - 0.5) * 0.08;     // 4x more variation
+                this.velocities[i * 3 + 1] = (Math.random() - 0.5) * 0.08; // 4x more variation
+                this.velocities[i * 3 + 2] = (Math.random() - 0.5) * 0.08; // 4x more variation
                 
-                // Reset rotation velocity
-                this.rotationVelocities[i] = (Math.random() - 0.5) * this.rotationSpeed;
+                // Reset rotation velocity with more drama
+                this.rotationVelocities[i] = (Math.random() - 0.5) * this.rotationSpeed * 3;
                 
-                // Reset life
-                this.life[i] = this.maxLife;
+                // Reset life with variation (80-100% of max life)
+                this.life[i] = this.maxLife * (0.8 + Math.random() * 0.2);
             }
             
             // Update matrix

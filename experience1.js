@@ -1,7 +1,6 @@
 import * as THREE from 'three';
 import SpiralShaderMaterial from './spiral-shader.js';
 import { CheeseParticles } from './CheeseParticles.js';
-import { PepperParticles } from './PepperParticles.js';
 import { bodies } from './processing.js';
 
 const EXPERIENCE_COLOR = 0x00953b;
@@ -10,15 +9,17 @@ const FORE_SPRITE_COUNT = 0;
 const MAX_LIFE = 1000;
 const PARTICLE_FRICTION = 0.97;
 
-const ROT_SPEED = 0.2;
+const ROT_SPEED = 0.1;
 
 const nrm = v => (v - 0.5);
 
 let sprites = [], velocities = [], life = [];
 let cheeseParticles = null;
-let pepperParticles = null;
+let pepperParticles = null; // Will be second CheeseParticles instance
 let leftHandCube = null;
 let rightHandCube = null;
+let leftChild = null;
+let rightChild = null;
 
 // Add these to hold internal state
 let background = { renderer: null, scene: null, camera: null, spiralMaterial: null };
@@ -106,22 +107,7 @@ export default {
         light.position.set(2, 2, 5);
         scene.add(light);
 
-        // Create cheese particles in foreground
-        cheeseParticles = new CheeseParticles(100);
-        scene.add(cheeseParticles.getGroup());
-
-        // Create pepper particles in foreground
-        pepperParticles = new PepperParticles(100);
-        scene.add(pepperParticles.getGroup());
-
-        // Create hand tracking cubes
-        const cubeGeometry = new THREE.BoxGeometry(1.0, 1.0, 1.0);
-        const redMaterial = new THREE.MeshBasicMaterial({ 
-            color: 0xff0000,
-            transparent: false,
-            opacity: 1.0
-        });
-        
+        // Create hand tracking cubes first
         leftHandCube = new THREE.Object3D();
         rightHandCube = new THREE.Object3D();
 
@@ -129,20 +115,61 @@ export default {
         const childGeometry = new THREE.SphereGeometry(0.2, 8, 8);
         const childMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
         
-        const leftChild = new THREE.Mesh(childGeometry, childMaterial);
+        leftChild = new THREE.Mesh(childGeometry, childMaterial);
         leftChild.position.set(0, 0.5, 0);
         leftHandCube.add(leftChild);
         
-        const rightChild = new THREE.Mesh(childGeometry, childMaterial);
+        rightChild = new THREE.Mesh(childGeometry, childMaterial);
         rightChild.position.set(0, 0.5, 0);
         rightHandCube.add(rightChild);
+
+
+        // Add cube children to the hand objects
+        const cubeGeometry = new THREE.BoxGeometry(1.0, 1.0, 1.0);
+        const redMaterial = new THREE.MeshBasicMaterial({ 
+            color: 0xff0000,
+            transparent: false,
+            opacity: 1.0
+        });
+        
+        const leftCube = new THREE.Mesh(cubeGeometry, redMaterial);
+        leftCube.position.set(0, 0, 0); // At the parent center
+        leftHandCube.add(leftCube);
+        
+        const rightCube = new THREE.Mesh(cubeGeometry, redMaterial);
+        rightCube.position.set(0, 0, 0); // At the parent center
+        rightHandCube.add(rightCube);
         
         // Position cubes initially visible for testing
         leftHandCube.position.set(-2, 0, 0);
         rightHandCube.position.set(2, 0, 0);
+
         
+        leftChild.visible = false;
+        rightChild.visible = false;
+        leftHandCube.visible = false;
+        rightHandCube.visible = false;
+
         scene.add(leftHandCube);
         scene.add(rightHandCube);
+
+        // Create cheese particles in foreground - attracted to left hand cube
+        cheeseParticles = new CheeseParticles(
+            400, // Doubled from 200 to 400
+            leftHandCube, 
+            'public/part-tex-atlas.png', 
+            { x: -2, y: 2, z: 0 }
+        );
+        scene.add(cheeseParticles.getGroup());
+
+        // Create pepper particles as second CheeseParticles instance - attracted to right hand cube
+        pepperParticles = new CheeseParticles(
+            400, // Doubled from 200 to 400
+            rightHandCube, 
+            'public/salt_and_pepper.png', 
+            { x: 2, y: 2, z: 0 }
+        );
+        scene.add(pepperParticles.getGroup());
 
         foreground.renderer = renderer;
         foreground.scene = scene;
@@ -174,15 +201,27 @@ export default {
                     const targetX = nrm(hand0[0]) * -5;
                     const targetY = nrm(hand0[1]) * -5;
                     const targetZ = 0;
-                    // Ease to target position by 0.5
-                    leftHandCube.position.x += (targetX - leftHandCube.position.x) * 0.5;
-                    leftHandCube.position.y += (targetY - leftHandCube.position.y) * 0.5;
-                    leftHandCube.position.z += (targetZ - leftHandCube.position.z) * 0.5;
+                    // Ease to target position by 0.25
+                    leftHandCube.position.x += (targetX - leftHandCube.position.x) * 0.25;
+                    leftHandCube.position.y += (targetY - leftHandCube.position.y) * 0.25;
+                    leftHandCube.position.z += (targetZ - leftHandCube.position.z) * 0.25;
+                    
+                    // Update left sphere based on hand Y position
+                    if (leftChild) {
+                        const handY = nrm(hand0[1]); // -0.5 to 0.5
+                        const distance = 0.5 + Math.abs(handY) * 2; // 0.5 to 2.5 distance
+                        leftChild.position.y = distance;
+                    }
                 } else {
                     // Ease to default visible position
-                    leftHandCube.position.x += (-2 - leftHandCube.position.x) * 0.5;
-                    leftHandCube.position.y += (0 - leftHandCube.position.y) * 0.5;
-                    leftHandCube.position.z += (0 - leftHandCube.position.z) * 0.5;
+                    leftHandCube.position.x += (-2 - leftHandCube.position.x) * 0.25;
+                    leftHandCube.position.y += (0 - leftHandCube.position.y) * 0.25;
+                    leftHandCube.position.z += (0 - leftHandCube.position.z) * 0.25;
+                    
+                    // Reset left sphere to default position
+                    if (leftChild) {
+                        leftChild.position.y = 0.5;
+                    }
                 }
             }
             
@@ -193,37 +232,76 @@ export default {
                     const targetX = nrm(hand1[0]) * -5;
                     const targetY = nrm(hand1[1]) * -5;
                     const targetZ = 0;
-                    // Ease to target position by 0.5
-                    rightHandCube.position.x += (targetX - rightHandCube.position.x) * 0.5;
-                    rightHandCube.position.y += (targetY - rightHandCube.position.y) * 0.5;
-                    rightHandCube.position.z += (targetZ - rightHandCube.position.z) * 0.5;
+                    // Ease to target position by 0.25
+                    rightHandCube.position.x += (targetX - rightHandCube.position.x) * 0.25;
+                    rightHandCube.position.y += (targetY - rightHandCube.position.y) * 0.25;
+                    rightHandCube.position.z += (targetZ - rightHandCube.position.z) * 0.25;
+                    
+                    // Update right sphere based on hand Y position
+                    if (rightChild) {
+                        const handY = nrm(hand1[1]); // -0.5 to 0.5
+                        const distance = 0.5 + Math.abs(handY) * 2; // 0.5 to 2.5 distance
+                        rightChild.position.y = distance;
+                    }
                 } else {
                     // Ease to default visible position
-                    rightHandCube.position.x += (2 - rightHandCube.position.x) * 0.5;
-                    rightHandCube.position.y += (0 - rightHandCube.position.y) * 0.5;
-                    rightHandCube.position.z += (0 - rightHandCube.position.z) * 0.5;
+                    rightHandCube.position.x += (2 - rightHandCube.position.x) * 0.25;
+                    rightHandCube.position.y += (0 - rightHandCube.position.y) * 0.25;
+                    rightHandCube.position.z += (0 - rightHandCube.position.z) * 0.25;
+                    
+                    // Reset right sphere to default position
+                    if (rightChild) {
+                        rightChild.position.y = 0.5;
+                    }
                 }
             }
         } else {
             // If no body data, ease cubes to default positions
             if (leftHandCube) {
-                leftHandCube.position.x += (-2 - leftHandCube.position.x) * 0.5;
-                leftHandCube.position.y += (0 - leftHandCube.position.y) * 0.5;
-                leftHandCube.position.z += (0 - leftHandCube.position.z) * 0.5;
+                leftHandCube.position.x += (-2 - leftHandCube.position.x) * 0.25;
+                leftHandCube.position.y += (0 - leftHandCube.position.y) * 0.25;
+                leftHandCube.position.z += (0 - leftHandCube.position.z) * 0.25;
             }
             if (rightHandCube) {
-                rightHandCube.position.x += (2 - rightHandCube.position.x) * 0.5;
-                rightHandCube.position.y += (0 - rightHandCube.position.y) * 0.5;
-                rightHandCube.position.z += (0 - rightHandCube.position.z) * 0.5;
+                rightHandCube.position.x += (2 - rightHandCube.position.x) * 0.25;
+                rightHandCube.position.y += (0 - rightHandCube.position.y) * 0.25;
+                rightHandCube.position.z += (0 - rightHandCube.position.z) * 0.25;
             }
+            // Reset spheres to default positions
+            if (leftChild) leftChild.position.y = 0.5;
+            if (rightChild) rightChild.position.y = 0.5;
         }
         
-        // Rotate the parent cubes around Z axis
+        // Rotate the parent cubes around Z axis with speed and direction based on hand Y position
         if (leftHandCube) {
-            leftHandCube.rotation.z += ROT_SPEED; // Slow rotation of the parent cube
+            let rotSpeed = ROT_SPEED;
+            if (body && body.hand0.length > 0) {
+                const handY = nrm(body.hand0[1]); // -0.5 to 0.5
+                rotSpeed = ROT_SPEED * (1 + Math.abs(handY) * 3); // 1x to 4x speed
+                // Change direction based on hand height: positive Y (higher) = positive rotation
+                if (handY > 0) {
+                    leftHandCube.rotation.z += rotSpeed;
+                } else {
+                    leftHandCube.rotation.z -= rotSpeed;
+                }
+            } else {
+                leftHandCube.rotation.z += rotSpeed; // Default positive rotation
+            }
         }
         if (rightHandCube) {
-            rightHandCube.rotation.z -= ROT_SPEED; // Slow rotation of the parent cube
+            let rotSpeed = ROT_SPEED;
+            if (body && body.hand1.length > 0) {
+                const handY = nrm(body.hand1[1]); // -0.5 to 0.5
+                rotSpeed = ROT_SPEED * (1 + Math.abs(handY) * 3); // 1x to 4x speed
+                // Change direction based on hand height: positive Y (higher) = negative rotation (opposite of left)
+                if (handY > 0) {
+                    rightHandCube.rotation.z -= rotSpeed;
+                } else {
+                    rightHandCube.rotation.z += rotSpeed;
+                }
+            } else {
+                rightHandCube.rotation.z -= rotSpeed; // Default negative rotation
+            }
         }
         
         for (let j = 0; j < sprites.length; j++) {
