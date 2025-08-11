@@ -50,30 +50,12 @@ export default {
         const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
         scene.add(ambientLight);
 
-        // Create cheese particles
-        cheeseParticles = new CheeseParticles(100);
-        scene.add(cheeseParticles.getGroup());
-
-        // Create pepper particles
-        pepperParticles = new PepperParticles(100);
-        scene.add(pepperParticles.getGroup());
-
         background.renderer = renderer;
         background.scene = scene;
         background.camera = camera;
     },
     updateBackground({ canvas, time }) {
         const { renderer, scene, camera } = background;
-        
-        // Update cheese particles
-        if (cheeseParticles) {
-            cheeseParticles.update();
-        }
-        
-        // Update pepper particles
-        if (pepperParticles) {
-            pepperParticles.update();
-        }
         
         if (renderer.domElement.width !== canvas.width || renderer.domElement.height !== canvas.height) {
             renderer.setSize(canvas.width, canvas.height, false);
@@ -117,12 +99,31 @@ export default {
         light.position.set(2, 2, 5);
         scene.add(light);
 
+        // Create cheese particles in foreground
+        cheeseParticles = new CheeseParticles(100);
+        scene.add(cheeseParticles.getGroup());
+
+        // Create pepper particles in foreground
+        pepperParticles = new PepperParticles(100);
+        scene.add(pepperParticles.getGroup());
+
         foreground.renderer = renderer;
         foreground.scene = scene;
         foreground.camera = camera;
     },
     updateForeground({ canvas, gravityPoints, time }) {
         const { renderer, scene, camera } = foreground;
+        
+        // Update cheese particles
+        if (cheeseParticles) {
+            cheeseParticles.update();
+        }
+        
+        // Update pepper particles
+        if (pepperParticles) {
+            pepperParticles.update();
+        }
+        
         for (let j = 0; j < sprites.length; j++) {
             const sprite = sprites[j];
             let v = velocities[j];
