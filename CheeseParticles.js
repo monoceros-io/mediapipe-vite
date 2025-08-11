@@ -124,7 +124,7 @@ export class CheeseParticles {
             dummy.rotation.set(0, 0, Math.random() * Math.PI * 2);
             
             // Smaller scale
-            const scale = 0.1 + Math.random() * 0.2; // 0.1 to 0.5
+            const scale = 0.05 + Math.random() * 0.1; // 0.1 to 0.5
             dummy.scale.setScalar(scale);
             
             dummy.updateMatrix();

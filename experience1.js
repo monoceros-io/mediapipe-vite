@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import SpiralShaderMaterial from './spiral-shader.js';
 import { CheeseParticles } from './CheeseParticles.js';
 import { PepperParticles } from './PepperParticles.js';
+import { bodies } from './processing.js';
 
 const EXPERIENCE_COLOR = 0x00953b;
 const CUBE_COUNT = 10;
@@ -9,9 +10,15 @@ const FORE_SPRITE_COUNT = 0;
 const MAX_LIFE = 1000;
 const PARTICLE_FRICTION = 0.97;
 
+const ROT_SPEED = 0.2;
+
+const nrm = v => (v - 0.5);
+
 let sprites = [], velocities = [], life = [];
 let cheeseParticles = null;
 let pepperParticles = null;
+let leftHandCube = null;
+let rightHandCube = null;
 
 // Add these to hold internal state
 let background = { renderer: null, scene: null, camera: null, spiralMaterial: null };
@@ -107,11 +114,41 @@ export default {
         pepperParticles = new PepperParticles(100);
         scene.add(pepperParticles.getGroup());
 
+        // Create hand tracking cubes
+        const cubeGeometry = new THREE.BoxGeometry(1.0, 1.0, 1.0);
+        const redMaterial = new THREE.MeshBasicMaterial({ 
+            color: 0xff0000,
+            transparent: false,
+            opacity: 1.0
+        });
+        
+        leftHandCube = new THREE.Object3D();
+        rightHandCube = new THREE.Object3D();
+
+        // Create rotating child objects
+        const childGeometry = new THREE.SphereGeometry(0.2, 8, 8);
+        const childMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+        
+        const leftChild = new THREE.Mesh(childGeometry, childMaterial);
+        leftChild.position.set(0, 0.5, 0);
+        leftHandCube.add(leftChild);
+        
+        const rightChild = new THREE.Mesh(childGeometry, childMaterial);
+        rightChild.position.set(0, 0.5, 0);
+        rightHandCube.add(rightChild);
+        
+        // Position cubes initially visible for testing
+        leftHandCube.position.set(-2, 0, 0);
+        rightHandCube.position.set(2, 0, 0);
+        
+        scene.add(leftHandCube);
+        scene.add(rightHandCube);
+
         foreground.renderer = renderer;
         foreground.scene = scene;
         foreground.camera = camera;
     },
-    updateForeground({ canvas, gravityPoints, time }) {
+    updateForeground({ canvas, gravityPoints, time, view }) {
         const { renderer, scene, camera } = foreground;
         
         // Update cheese particles
@@ -122,6 +159,71 @@ export default {
         // Update pepper particles
         if (pepperParticles) {
             pepperParticles.update();
+        }
+        
+        // Update hand tracking cubes
+        // Use the correct skeleton based on view (matching threeview.js logic)
+        const body = bodies[1 - view];
+        if (body) {
+            const { hand0, hand1 } = body;
+            
+            // Position left hand cube
+            if (leftHandCube) {
+                if (hand0.length > 0) {
+                    // Use smaller scale factor to keep cubes in view
+                    const targetX = nrm(hand0[0]) * -5;
+                    const targetY = nrm(hand0[1]) * -5;
+                    const targetZ = 0;
+                    // Ease to target position by 0.5
+                    leftHandCube.position.x += (targetX - leftHandCube.position.x) * 0.5;
+                    leftHandCube.position.y += (targetY - leftHandCube.position.y) * 0.5;
+                    leftHandCube.position.z += (targetZ - leftHandCube.position.z) * 0.5;
+                } else {
+                    // Ease to default visible position
+                    leftHandCube.position.x += (-2 - leftHandCube.position.x) * 0.5;
+                    leftHandCube.position.y += (0 - leftHandCube.position.y) * 0.5;
+                    leftHandCube.position.z += (0 - leftHandCube.position.z) * 0.5;
+                }
+            }
+            
+            // Position right hand cube
+            if (rightHandCube) {
+                if (hand1.length > 0) {
+                    // Use smaller scale factor to keep cubes in view
+                    const targetX = nrm(hand1[0]) * -5;
+                    const targetY = nrm(hand1[1]) * -5;
+                    const targetZ = 0;
+                    // Ease to target position by 0.5
+                    rightHandCube.position.x += (targetX - rightHandCube.position.x) * 0.5;
+                    rightHandCube.position.y += (targetY - rightHandCube.position.y) * 0.5;
+                    rightHandCube.position.z += (targetZ - rightHandCube.position.z) * 0.5;
+                } else {
+                    // Ease to default visible position
+                    rightHandCube.position.x += (2 - rightHandCube.position.x) * 0.5;
+                    rightHandCube.position.y += (0 - rightHandCube.position.y) * 0.5;
+                    rightHandCube.position.z += (0 - rightHandCube.position.z) * 0.5;
+                }
+            }
+        } else {
+            // If no body data, ease cubes to default positions
+            if (leftHandCube) {
+                leftHandCube.position.x += (-2 - leftHandCube.position.x) * 0.5;
+                leftHandCube.position.y += (0 - leftHandCube.position.y) * 0.5;
+                leftHandCube.position.z += (0 - leftHandCube.position.z) * 0.5;
+            }
+            if (rightHandCube) {
+                rightHandCube.position.x += (2 - rightHandCube.position.x) * 0.5;
+                rightHandCube.position.y += (0 - rightHandCube.position.y) * 0.5;
+                rightHandCube.position.z += (0 - rightHandCube.position.z) * 0.5;
+            }
+        }
+        
+        // Rotate the parent cubes around Z axis
+        if (leftHandCube) {
+            leftHandCube.rotation.z += ROT_SPEED; // Slow rotation of the parent cube
+        }
+        if (rightHandCube) {
+            rightHandCube.rotation.z -= ROT_SPEED; // Slow rotation of the parent cube
         }
         
         for (let j = 0; j < sprites.length; j++) {
