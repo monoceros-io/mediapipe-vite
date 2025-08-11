@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import SpiralShaderMaterial from './spiral-shader.js';
 import { CheeseParticles } from './CheeseParticles.js';
+import { PepperParticles } from './PepperParticles.js';
 
 const EXPERIENCE_COLOR = 0x00953b;
 const CUBE_COUNT = 10;
@@ -10,6 +11,7 @@ const PARTICLE_FRICTION = 0.97;
 
 let sprites = [], velocities = [], life = [];
 let cheeseParticles = null;
+let pepperParticles = null;
 
 // Add these to hold internal state
 let background = { renderer: null, scene: null, camera: null, spiralMaterial: null };
@@ -49,8 +51,12 @@ export default {
         scene.add(ambientLight);
 
         // Create cheese particles
-        cheeseParticles = new CheeseParticles(100); // 10 instances of each model
+        cheeseParticles = new CheeseParticles(100);
         scene.add(cheeseParticles.getGroup());
+
+        // Create pepper particles
+        pepperParticles = new PepperParticles(100);
+        scene.add(pepperParticles.getGroup());
 
         background.renderer = renderer;
         background.scene = scene;
@@ -62,6 +68,11 @@ export default {
         // Update cheese particles
         if (cheeseParticles) {
             cheeseParticles.update();
+        }
+        
+        // Update pepper particles
+        if (pepperParticles) {
+            pepperParticles.update();
         }
         
         if (renderer.domElement.width !== canvas.width || renderer.domElement.height !== canvas.height) {
