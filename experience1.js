@@ -10,6 +10,7 @@ const nrm = v => (v - 0.5);
 
 let leftHandCube = null;
 let rightHandCube = null;
+let headCube = null;
 let leftChild = null;
 let rightChild = null;
 let cheeseParticles = null;
@@ -84,6 +85,7 @@ export default {
         // Create hand tracking cubes first
         leftHandCube = new THREE.Object3D();
         rightHandCube = new THREE.Object3D();
+        headCube = new THREE.Object3D();
 
         // Create rotating child objects
         const childGeometry = new THREE.SphereGeometry(0.2, 8, 8);
@@ -123,40 +125,40 @@ export default {
         rightChild.visible = false;
         leftHandCube.visible = false;
         rightHandCube.visible = false;
+        headCube.visible = false;
 
         scene.add(leftHandCube);
         scene.add(rightHandCube);
+        scene.add(headCube);
 
-        // Create cheese particles - attracted to both hands, repelled by head
+        // Create cheese particles - attracted to both hands
         cheeseParticles = new CheeseParticles(
             400, // Number of particles
-            [leftHandCube, rightHandCube], // Attracted to both hand cubes
+            [leftChild, rightChild], // Attracted to both hand spheres
             'public/part-tex-atlas.png', 
             { x: 1.5, y: 2.15, z: 0 }, // Right side of screen, at the top
             null, // No color - use texture
             0.01, // Base scale
-            0.03, // Scale range
-            [] // Repulsors will be set in updateForeground
+            0.03 // Scale range
         );
         scene.add(cheeseParticles.getGroup());
 
-        // Create pepper particles - attracted to both hands, repelled by head
+        // Create pepper particles - attracted to both hands
         pepperParticles = new CheeseParticles(
             400, // Number of particles
-            [leftHandCube, rightHandCube], // Attracted to both hand cubes
+            [leftChild, rightChild], // Attracted to both hand spheres
             'public/salt_and_pepper.png', 
             { x: -1.5, y: 2.15, z: 0 }, // Left side of screen, at the top
             null, // No color - use texture
             0.01, // Base scale
-            0.03, // Scale range
-            [] // Repulsors will be set in updateForeground
+            0.03 // Scale range
         );
         scene.add(pepperParticles.getGroup());
 
-        // Create center particles - attracted to both hands, repelled by head
+        // Create center particles - attracted to both hands
         centerParticles = new CheeseParticles(
             400, // Number of particles
-            [leftHandCube, rightHandCube], // Attracted to both hand cubes
+            [leftChild, rightChild], // Attracted to both hand spheres
             'public/basepart.png', // Base part texture
             { x: 0, y: 2.15, z: 0 }, // Center of screen, at the top
             null, // No color - use texture
@@ -193,6 +195,16 @@ export default {
         if (body) {
             const { hand0, hand1 } = body;
             
+            // Position head cube using body.head data
+            if (headCube && body.head && body.head.length > 0) {
+                const targetX = nrm(body.head[0]) * -5;
+                const targetY = nrm(body.head[1]) * -5;
+                const targetZ = body.head[2] || 0;
+                headCube.position.x += (targetX - headCube.position.x) * 0.25;
+                headCube.position.y += (targetY - headCube.position.y) * 0.25;
+                headCube.position.z += (targetZ - headCube.position.z) * 0.25;
+            }
+            
             // Position left hand cube
             if (leftHandCube) {
                 if (hand0.length > 0) {
@@ -200,10 +212,10 @@ export default {
                     const targetX = nrm(hand0[0]) * -5;
                     const targetY = nrm(hand0[1]) * -5;
                     const targetZ = 0;
-                    // Ease to target position by 0.25
-                    leftHandCube.position.x += (targetX - leftHandCube.position.x) * 0.25;
-                    leftHandCube.position.y += (targetY - leftHandCube.position.y) * 0.25;
-                    leftHandCube.position.z += (targetZ - leftHandCube.position.z) * 0.25;
+                    // Ease to target position more slowly
+                    leftHandCube.position.x += (targetX - leftHandCube.position.x) * 0.1;
+                    leftHandCube.position.y += (targetY - leftHandCube.position.y) * 0.1;
+                    leftHandCube.position.z += (targetZ - leftHandCube.position.z) * 0.1;
                     
                     // Update left sphere based on hand Y position
                     if (leftChild) {
@@ -212,10 +224,10 @@ export default {
                         leftChild.position.y = distance;
                     }
                 } else {
-                    // Ease to default visible position
-                    leftHandCube.position.x += (-2 - leftHandCube.position.x) * 0.25;
-                    leftHandCube.position.y += (0 - leftHandCube.position.y) * 0.25;
-                    leftHandCube.position.z += (0 - leftHandCube.position.z) * 0.25;
+                    // Ease to default visible position more slowly
+                    leftHandCube.position.x += (-2 - leftHandCube.position.x) * 0.1;
+                    leftHandCube.position.y += (0 - leftHandCube.position.y) * 0.1;
+                    leftHandCube.position.z += (0 - leftHandCube.position.z) * 0.1;
                     
                     // Reset left sphere to default position
                     if (leftChild) {
@@ -231,10 +243,10 @@ export default {
                     const targetX = nrm(hand1[0]) * -5;
                     const targetY = nrm(hand1[1]) * -5;
                     const targetZ = 0;
-                    // Ease to target position by 0.25
-                    rightHandCube.position.x += (targetX - rightHandCube.position.x) * 0.25;
-                    rightHandCube.position.y += (targetY - rightHandCube.position.y) * 0.25;
-                    rightHandCube.position.z += (targetZ - rightHandCube.position.z) * 0.25;
+                    // Ease to target position more slowly
+                    rightHandCube.position.x += (targetX - rightHandCube.position.x) * 0.1;
+                    rightHandCube.position.y += (targetY - rightHandCube.position.y) * 0.1;
+                    rightHandCube.position.z += (targetZ - rightHandCube.position.z) * 0.1;
                     
                     // Update right sphere based on hand Y position
                     if (rightChild) {
@@ -243,10 +255,10 @@ export default {
                         rightChild.position.y = distance;
                     }
                 } else {
-                    // Ease to default visible position
-                    rightHandCube.position.x += (2 - rightHandCube.position.x) * 0.25;
-                    rightHandCube.position.y += (0 - rightHandCube.position.y) * 0.25;
-                    rightHandCube.position.z += (0 - rightHandCube.position.z) * 0.25;
+                    // Ease to default visible position more slowly
+                    rightHandCube.position.x += (2 - rightHandCube.position.x) * 0.1;
+                    rightHandCube.position.y += (0 - rightHandCube.position.y) * 0.1;
+                    rightHandCube.position.z += (0 - rightHandCube.position.z) * 0.1;
                     
                     // Reset right sphere to default position
                     if (rightChild) {
@@ -255,16 +267,16 @@ export default {
                 }
             }
         } else {
-            // If no body data, ease cubes to default positions
+            // If no body data, ease cubes to default positions more slowly
             if (leftHandCube) {
-                leftHandCube.position.x += (-2 - leftHandCube.position.x) * 0.25;
-                leftHandCube.position.y += (0 - leftHandCube.position.y) * 0.25;
-                leftHandCube.position.z += (0 - leftHandCube.position.z) * 0.25;
+                leftHandCube.position.x += (-2 - leftHandCube.position.x) * 0.1;
+                leftHandCube.position.y += (0 - leftHandCube.position.y) * 0.1;
+                leftHandCube.position.z += (0 - leftHandCube.position.z) * 0.1;
             }
             if (rightHandCube) {
-                rightHandCube.position.x += (2 - rightHandCube.position.x) * 0.25;
-                rightHandCube.position.y += (0 - rightHandCube.position.y) * 0.25;
-                rightHandCube.position.z += (0 - rightHandCube.position.z) * 0.25;
+                rightHandCube.position.x += (2 - rightHandCube.position.x) * 0.1;
+                rightHandCube.position.y += (0 - rightHandCube.position.y) * 0.1;
+                rightHandCube.position.z += (0 - rightHandCube.position.z) * 0.1;
             }
             // Reset spheres to default positions
             if (leftChild) leftChild.position.y = 0.5;

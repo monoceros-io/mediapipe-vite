@@ -26,13 +26,13 @@ export class CheeseParticles {
         this.attractionPoint = new THREE.Vector3(0, 0, 0);
         
         // Physics constants
-        this.attractionForce = 0.005; // Reduced from 0.02 - less powerful attraction
-        this.attractionRadius = 2.0; // Reduced from 3.0 - smaller attraction radius
+        this.attractionForce = 0.01; // Reduced from 0.02 - less powerful attraction
+        this.attractionRadius = 1.0; // Reduced from 3.0 - smaller attraction radius
         this.repulsionForce = 0.008; // Slightly stronger than attraction for clear avoidance
         this.repulsionRadius = 1.5; // Smaller radius for more localized repulsion
-        this.damping = 0.99999; // Reduced friction (was 0.999)
+        this.damping = 0.99; // Reduced friction (was 0.999)
         this.rotationSpeed = 0.02;
-        this.maxLife = 160; // Reduced from 300 to 120
+        this.maxLife = 120; // Reduced from 300 to 120
         this.maxSpeed = 0.005; // Maximum particle speed
         // Add random velocity jitter
         this.jitterStrength = 0.002;
@@ -61,7 +61,7 @@ export class CheeseParticles {
         // Initialize individual variations
         this.dampingVariations[index] = 0.995 + Math.random() * 0.009; // 0.995 to 0.9999
         this.maxSpeedVariations[index] = 0.08 + Math.random() * 0.08; // 0.08 to 0.16
-        this.jitterVariations[index] = 0.01 + Math.random() * 0.03; // 0.01 to 0.04
+        this.jitterVariations[index] = 0.001 + Math.random() * 0.002; // 0.001 to 0.003
         
         // Reset life with variation (80-100% of max life)
         this.life[index] = this.maxLife * (0.8 + Math.random() * 0.2);
@@ -187,7 +187,7 @@ export class CheeseParticles {
             // Initialize individual variations
             this.dampingVariations[i] = 0.995 + Math.random() * 0.009; // 0.995 to 0.9999
             this.maxSpeedVariations[i] = 0.08 + Math.random() * 0.08; // 0.08 to 0.16
-            this.jitterVariations[i] = 0.01 + Math.random() * 0.03; // 0.01 to 0.04
+            this.jitterVariations[i] = 0.001 + Math.random() * 0.002; // 0.001 to 0.003
             
             // Random initial Z rotation only
             dummy.rotation.set(0, 0, Math.random() * Math.PI * 2);
@@ -295,9 +295,9 @@ export class CheeseParticles {
             this.velocities[i * 3 + 2] *= this.dampingVariations[i];
             
             // Apply jitter with individual variation
-        //    this.velocities[i * 3] += (Math.random() - 0.5) * this.jitterVariations[i];
-         //   this.velocities[i * 3 + 1] += (Math.random() - 0.5) * this.jitterVariations[i];
-          //  this.velocities[i * 3 + 2] += (Math.random() - 0.5) * this.jitterVariations[i];
+            this.velocities[i * 3] += (Math.random() - 0.5) * this.jitterVariations[i];
+            this.velocities[i * 3 + 1] += (Math.random() - 0.5) * this.jitterVariations[i];
+            this.velocities[i * 3 + 2] += (Math.random() - 0.5) * this.jitterVariations[i];
             
             // Clamp velocity to individual max speed
             const vx = this.velocities[i * 3];
@@ -354,7 +354,7 @@ export class CheeseParticles {
                 // Reset individual variations
                 this.dampingVariations[i] = 0.995 + Math.random() * 0.009; // 0.995 to 0.9999
                 this.maxSpeedVariations[i] = 0.08 + Math.random() * 0.08; // 0.08 to 0.16
-                this.jitterVariations[i] = 0.01 + Math.random() * 0.01; // 0.01 to 0.04
+                this.jitterVariations[i] = 0.001 + Math.random() * 0.002; // 0.001 to 0.003
                 
                 // Reset life with variation (80-100% of max life)
                 this.life[i] = this.maxLife * (0.8 + Math.random() * 0.2);
