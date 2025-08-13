@@ -1,4 +1,5 @@
 import eventController from "./EventController";
+import Globals from "./globals.js";
 
 const messageElements0 = document.querySelectorAll('.fsmall-0');
 const messageElements1 = document.querySelectorAll('.fsmall-1');
