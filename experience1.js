@@ -4,22 +4,17 @@ import { CheeseParticles } from './CheeseParticles.js';
 import { bodies } from './processing.js';
 
 const EXPERIENCE_COLOR = 0x00953b;
-const CUBE_COUNT = 10;
-const FORE_SPRITE_COUNT = 0;
-const MAX_LIFE = 1000;
-const PARTICLE_FRICTION = 0.97;
-
 const ROT_SPEED = 0.1;
 
 const nrm = v => (v - 0.5);
 
-let sprites = [], velocities = [], life = [];
-let cheeseParticles = null;
-let pepperParticles = null; // Will be second CheeseParticles instance
 let leftHandCube = null;
 let rightHandCube = null;
 let leftChild = null;
 let rightChild = null;
+let cheeseParticles = null;
+let pepperParticles = null;
+let centerParticles = null;
 
 // Add these to hold internal state
 let background = { renderer: null, scene: null, camera: null, spiralMaterial: null };
@@ -81,28 +76,7 @@ export default {
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(45, canvas.width / canvas.height, 0.1, 100);
         camera.position.set(0, 0, 5);
-        sprites = [];
-        velocities = [];
-        life = [];
-        for (let j = 0; j < FORE_SPRITE_COUNT; j++) {
-            const material = new THREE.SpriteMaterial({ 
-                map: spriteTexture, 
-                // color: EXPERIENCE_COLOR,
-                color: 0xffffff,
-                transparent: true
-            });
-            const sprite = new THREE.Sprite(material);
-            sprite.position.set(Math.random() * 4 - 2, Math.random() * 4 - 2, Math.random() * 4 - 2);
-            sprite.scale.set(0.2, 0.2, 0.2);
-            scene.add(sprite);
-            sprites.push(sprite);
-            velocities[j] = [
-                (Math.random() - 0.5) * 0.05,
-                (Math.random() - 0.5) * 0.05,
-                (Math.random() - 0.5) * 0.05
-            ];
-            life[j] = Math.floor(Math.random() * MAX_LIFE);
-        }
+        
         const light = new THREE.DirectionalLight(0xffffff, 1);
         light.position.set(2, 2, 5);
         scene.add(light);
@@ -153,23 +127,35 @@ export default {
         scene.add(leftHandCube);
         scene.add(rightHandCube);
 
-        // Create cheese particles in foreground - attracted to left hand cube
+        // Create cheese particles - attracted to both hands
         cheeseParticles = new CheeseParticles(
-            400, // Doubled from 200 to 400
-            leftHandCube, 
+            400, // Number of particles
+            [leftHandCube, rightHandCube], // Attracted to both hand cubes
             'public/part-tex-atlas.png', 
-            { x: -2, y: 2, z: 0 }
+            { x: 1.5, y: 2.15, z: 0 } // Right side of screen, at the top
         );
         scene.add(cheeseParticles.getGroup());
 
-        // Create pepper particles as second CheeseParticles instance - attracted to right hand cube
+        // Create pepper particles - attracted to both hands
         pepperParticles = new CheeseParticles(
-            400, // Doubled from 200 to 400
-            rightHandCube, 
+            400, // Number of particles
+            [leftHandCube, rightHandCube], // Attracted to both hand cubes
             'public/salt_and_pepper.png', 
-            { x: 2, y: 2, z: 0 }
+            { x: -1.5, y: 2.15, z: 0 } // Left side of screen, at the top
         );
         scene.add(pepperParticles.getGroup());
+
+        // Create center particles - also attracted to both hands
+        centerParticles = new CheeseParticles(
+            400, // Number of particles
+            [leftHandCube, rightHandCube], // Attracted to both hand cubes
+            'public/basepart.png', // Base part texture
+            { x: 0, y: 2.15, z: 0 }, // Center of screen, at the top
+            null, // No color - use texture
+            0.02, // Base scale
+            0.04  // Scale range
+        );
+        scene.add(centerParticles.getGroup());
 
         foreground.renderer = renderer;
         foreground.scene = scene;
@@ -186,6 +172,11 @@ export default {
         // Update pepper particles
         if (pepperParticles) {
             pepperParticles.update();
+        }
+        
+        // Update center particles
+        if (centerParticles) {
+            centerParticles.update();
         }
         
         // Update hand tracking cubes
@@ -304,47 +295,6 @@ export default {
             }
         }
         
-        for (let j = 0; j < sprites.length; j++) {
-            const sprite = sprites[j];
-            let v = velocities[j];
-            let l = life[j];
-            for (let k = 0; k < gravityPoints.length; k++) {
-                const pt = gravityPoints[k];
-                const dx = pt.x - sprite.position.x;
-                const dy = pt.y - sprite.position.y;
-                const dz = pt.z - sprite.position.z;
-                const distSq = dx*dx + dy*dy + dz*dz + 0.0001;
-                const force = pt.g / (distSq / 3);
-                v[0] += force * dx;
-                v[1] += force * dy;
-                v[2] += force * dz;
-            }
-            v[0] *= PARTICLE_FRICTION;
-            v[1] *= PARTICLE_FRICTION;
-            v[2] *= PARTICLE_FRICTION;
-            sprite.position.x += v[0];
-            sprite.position.y += v[1];
-            sprite.position.z += v[2];
-            l--;
-            const scale = 0.7 * l / MAX_LIFE;
-            sprite.scale.set(scale, scale, scale);
-            let wrapped = false;
-            if (sprite.position.x > 2) { sprite.position.x = -2; wrapped = true; }
-            if (sprite.position.x < -2) { sprite.position.x = 2; wrapped = true; }
-            if (sprite.position.y > 2) { sprite.position.y = -2; wrapped = true; }
-            if (sprite.position.y < -2) { sprite.position.y = 2; wrapped = true; }
-            if (sprite.position.z > 2) { sprite.position.z = -2; wrapped = true; }
-            if (sprite.position.z < -2) { sprite.position.z = 2; wrapped = true; }
-            if (l <= 0 || wrapped) {
-                const respawnPt = gravityPoints[Math.floor(Math.random() * gravityPoints.length)];
-                sprite.position.set(respawnPt.x, respawnPt.y, respawnPt.z);
-                v[0] = (Math.random() - 0.5) * 0.05;
-                v[1] = (Math.random() - 0.5) * 0.05;
-                v[2] = (Math.random() - 0.5) * 0.05;
-                l = Math.floor(Math.random() * MAX_LIFE);
-            }
-            life[j] = l;
-        }
         if (renderer.domElement.width !== canvas.width || renderer.domElement.height !== canvas.height) {
             renderer.setSize(canvas.width, canvas.height, false);
         }
