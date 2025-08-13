@@ -1,10 +1,11 @@
 import * as THREE from 'three';
 
 export class CheeseParticles {
-    constructor(count, targetObjects = [], texturePath = 'public/part-tex-atlas.png', spawnPosition = { x: -2, y: 2, z: 0 }, color = null, baseScale = 0.01, scaleRange = 0.03) {
+    constructor(count, targetObjects = [], texturePath = 'public/part-tex-atlas.png', spawnPosition = { x: -2, y: 2, z: 0 }, color = null, baseScale = 0.01, scaleRange = 0.03, repulsors = []) {
         this.count = count;
         this.group = new THREE.Group();
         this.targetObjects = Array.isArray(targetObjects) ? targetObjects : (targetObjects ? [targetObjects] : []); // Array of objects to track
+        this.repulsors = Array.isArray(repulsors) ? repulsors : (repulsors ? [repulsors] : []); // Array of objects to repel from
         this.texturePath = texturePath; // Texture file path
         this.spawnPosition = spawnPosition; // Spawn position
         this.color = color; // Optional solid color (if no texture desired)
@@ -27,6 +28,8 @@ export class CheeseParticles {
         // Physics constants
         this.attractionForce = 0.005; // Reduced from 0.02 - less powerful attraction
         this.attractionRadius = 2.0; // Reduced from 3.0 - smaller attraction radius
+        this.repulsionForce = 0.008; // Slightly stronger than attraction for clear avoidance
+        this.repulsionRadius = 1.5; // Smaller radius for more localized repulsion
         this.damping = 0.99999; // Reduced friction (was 0.999)
         this.rotationSpeed = 0.02;
         this.maxLife = 160; // Reduced from 300 to 120
@@ -246,6 +249,35 @@ export class CheeseParticles {
                             const force = this.attractionForce / distSquared;
                             
                             // Apply attraction force to velocities
+                            this.velocities[i * 3] += dx * force;
+                            this.velocities[i * 3 + 1] += dy * force;
+                            this.velocities[i * 3 + 2] += dz * force;
+                        }
+                    }
+                }
+            }
+            
+            // Apply repulsion forces from all repulsor objects
+            if (this.repulsors.length > 0) {
+                for (const repulsor of this.repulsors) {
+                    if (repulsor) {
+                        // Get repulsor position
+                        const repulsionPoint = new THREE.Vector3();
+                        repulsor.getWorldPosition(repulsionPoint);
+                        
+                        // Calculate distance and repulsion force
+                        const dx = dummy.position.x - repulsionPoint.x; // Note: reversed direction for repulsion
+                        const dy = dummy.position.y - repulsionPoint.y;
+                        const dz = dummy.position.z - repulsionPoint.z;
+                        
+                        const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+                        
+                        // Only apply repulsion within radius
+                        if (distance < this.repulsionRadius && distance > 0.01) {
+                            const distSquared = distance * distance + 0.0001;
+                            const force = this.repulsionForce / distSquared;
+                            
+                            // Apply repulsion force to velocities (pushing away)
                             this.velocities[i * 3] += dx * force;
                             this.velocities[i * 3 + 1] += dy * force;
                             this.velocities[i * 3 + 2] += dz * force;

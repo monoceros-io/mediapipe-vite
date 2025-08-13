@@ -127,25 +127,33 @@ export default {
         scene.add(leftHandCube);
         scene.add(rightHandCube);
 
-        // Create cheese particles - attracted to both hands
+        // Create cheese particles - attracted to both hands, repelled by head
         cheeseParticles = new CheeseParticles(
             400, // Number of particles
             [leftHandCube, rightHandCube], // Attracted to both hand cubes
             'public/part-tex-atlas.png', 
-            { x: 1.5, y: 2.15, z: 0 } // Right side of screen, at the top
+            { x: 1.5, y: 2.15, z: 0 }, // Right side of screen, at the top
+            null, // No color - use texture
+            0.01, // Base scale
+            0.03, // Scale range
+            [] // Repulsors will be set in updateForeground
         );
         scene.add(cheeseParticles.getGroup());
 
-        // Create pepper particles - attracted to both hands
+        // Create pepper particles - attracted to both hands, repelled by head
         pepperParticles = new CheeseParticles(
             400, // Number of particles
             [leftHandCube, rightHandCube], // Attracted to both hand cubes
             'public/salt_and_pepper.png', 
-            { x: -1.5, y: 2.15, z: 0 } // Left side of screen, at the top
+            { x: -1.5, y: 2.15, z: 0 }, // Left side of screen, at the top
+            null, // No color - use texture
+            0.01, // Base scale
+            0.03, // Scale range
+            [] // Repulsors will be set in updateForeground
         );
         scene.add(pepperParticles.getGroup());
 
-        // Create center particles - also attracted to both hands
+        // Create center particles - attracted to both hands, repelled by head
         centerParticles = new CheeseParticles(
             400, // Number of particles
             [leftHandCube, rightHandCube], // Attracted to both hand cubes
@@ -153,7 +161,7 @@ export default {
             { x: 0, y: 2.15, z: 0 }, // Center of screen, at the top
             null, // No color - use texture
             0.02, // Base scale
-            0.04  // Scale range
+            0.04 // Scale range
         );
         scene.add(centerParticles.getGroup());
 
