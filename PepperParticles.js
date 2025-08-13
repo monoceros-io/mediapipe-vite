@@ -1,34 +1,25 @@
 import * as THREE from 'three';
 
-export class CheeseParticles {
-    constructor(count, targetObject = null, texturePath = 'public/part-tex-atlas.png', spawnPosition = { x: -2, y: 2, z: 0 }) {
+export class PepperParticles {
+    constructor(count, targetObject = null) {
         this.count = count;
         this.group = new THREE.Group();
         this.targetObject = targetObject; // Object to track
-        this.texturePath = texturePath; // Texture file path
-        this.spawnPosition = spawnPosition; // Spawn position
         
         // Physics arrays
         this.velocities = new Float32Array(count * 3);
         this.rotationVelocities = new Float32Array(count); // Z-axis rotation only
         this.life = new Float32Array(count); // Life for each particle
         
-        // Individual variation arrays
-        this.dampingVariations = new Float32Array(count); // Individual damping values
-        this.maxSpeedVariations = new Float32Array(count); // Individual max speeds
-        this.jitterVariations = new Float32Array(count); // Individual jitter strengths
-        
         // Attraction point
         this.attractionPoint = new THREE.Vector3(0, 0, 0);
         
         // Physics constants
-        this.attractionForce = 0.02;
-        this.damping = 0.99999; // Reduced friction (was 0.999)
+        this.attractionForce = 0.1;
+        this.damping = 0.9995; // Reduced friction (was 0.999)
         this.rotationSpeed = 0.02;
-        this.maxLife = 160; // Reduced from 300 to 120
-        this.maxSpeed = 0.005; // Maximum particle speed
-            // Add random velocity jitter
-        this.jitterStrength = 0.002;
+        this.maxLife = 120; // Reduced from 300 to 120
+        this.maxSpeed = 0.12; // Maximum particle speed
         
         // Create simple particle system with plane geometry
         this.createParticleSystem();
@@ -40,7 +31,7 @@ export class CheeseParticles {
         
         // Load texture atlas
         const textureLoader = new THREE.TextureLoader();
-        const atlasTexture = textureLoader.load(this.texturePath);
+        const atlasTexture = textureLoader.load('public/salt_and_pepper.png');
         atlasTexture.wrapS = THREE.ClampToEdgeWrap;
         atlasTexture.wrapT = THREE.ClampToEdgeWrap;
         atlasTexture.generateMipmaps = false;
@@ -96,7 +87,7 @@ export class CheeseParticles {
         const atlasSize = { x: 4, y: 2 }; // 4 columns, 2 rows
         
         for (let i = 0; i < this.count; i++) {
-            // Pick random atlas cell (0-7)
+            // Pick random atlas cell from full 4x2 grid (0-7)
             const atlasIndex = Math.floor(Math.random() * 8);
             const col = atlasIndex % atlasSize.x;
             const row = Math.floor(atlasIndex / atlasSize.x);
@@ -113,11 +104,11 @@ export class CheeseParticles {
         const dummy = new THREE.Object3D();
         
         for (let i = 0; i < this.count; i++) {
-            // Position across full width of screen at top
+            // Simple random rectangular positioning, more spaced out
             dummy.position.set(
-                (Math.random() - 0.5) * 8, // Full screen width: -4 to +4
-                3 + Math.random() * 1, // Top of screen with some variation: 3 to 4
-                this.spawnPosition.z + (Math.random() - 0.5) * 0.5 // ±0.25 around spawn depth
+                (Math.random() - 0.5) * 5, // -2.5 to 2.5
+                (Math.random() - 0.5) * 5, // -2.5 to 2.5
+                (Math.random() - 0.5) * 0  // flat
             );
             
             // Initialize random velocities
@@ -131,16 +122,11 @@ export class CheeseParticles {
             // Initialize random life
             this.life[i] = Math.random() * this.maxLife;
             
-            // Initialize individual variations
-            this.dampingVariations[i] = 0.995 + Math.random() * 0.009; // 0.995 to 0.9999
-            this.maxSpeedVariations[i] = 0.08 + Math.random() * 0.08; // 0.08 to 0.16
-            this.jitterVariations[i] = 0.01 + Math.random() * 0.03; // 0.01 to 0.04
-            
             // Random initial Z rotation only
             dummy.rotation.set(0, 0, Math.random() * Math.PI * 2);
             
-            // Much smaller scale
-            const scale = 0.01 + Math.random() * 0.03; // 0.01 to 0.04 (much smaller)
+            // Smaller scale
+            const scale = 0.05 + Math.random() * 0.1; // 0.1 to 0.3
             dummy.scale.setScalar(scale);
             
             dummy.updateMatrix();
@@ -193,27 +179,25 @@ export class CheeseParticles {
             this.velocities[i * 3 + 1] += dy * force;
             this.velocities[i * 3 + 2] += dz * force;
             
-            // Apply gravity (downward force)
-            this.velocities[i * 3 + 1] -= 0.002; // Mild gravity pulling down
+            // Apply damping
+            this.velocities[i * 3] *= this.damping;
+            this.velocities[i * 3 + 1] *= this.damping;
+            this.velocities[i * 3 + 2] *= this.damping;
             
-            // Apply damping with individual variation
-            this.velocities[i * 3] *= this.dampingVariations[i];
-            this.velocities[i * 3 + 1] *= this.dampingVariations[i];
-            this.velocities[i * 3 + 2] *= this.dampingVariations[i];
+            // Add random velocity jitter
+            const jitterStrength = 0.002;
+            this.velocities[i * 3] += (Math.random() - 0.5) * jitterStrength;
+            this.velocities[i * 3 + 1] += (Math.random() - 0.5) * jitterStrength;
+            this.velocities[i * 3 + 2] += (Math.random() - 0.5) * jitterStrength;
             
-            // Apply jitter with individual variation
-            this.velocities[i * 3] += (Math.random() - 0.5) * this.jitterVariations[i];
-            this.velocities[i * 3 + 1] += (Math.random() - 0.5) * this.jitterVariations[i];
-            this.velocities[i * 3 + 2] += (Math.random() - 0.5) * this.jitterVariations[i];
-            
-            // Clamp velocity to individual max speed
+            // Clamp velocity to max speed
             const vx = this.velocities[i * 3];
             const vy = this.velocities[i * 3 + 1];
             const vz = this.velocities[i * 3 + 2];
             const speed = Math.sqrt(vx * vx + vy * vy + vz * vz);
             
-            if (speed > this.maxSpeedVariations[i]) {
-                const scale = this.maxSpeedVariations[i] / speed;
+            if (speed > this.maxSpeed) {
+                const scale = this.maxSpeed / speed;
                 this.velocities[i * 3] *= scale;
                 this.velocities[i * 3 + 1] *= scale;
                 this.velocities[i * 3 + 2] *= scale;
@@ -231,24 +215,18 @@ export class CheeseParticles {
             // Update life
             this.life[i]--;
             
-            // Scale based on remaining life - grow bigger as life decreases (much smaller)
+            // Scale based on remaining life - grow bigger as life decreases (half size)
             const lifeRatio = this.life[i] / this.maxLife; // 1.0 to 0.0
-            // Exponential growth: scale = min + (max - min) * (1 - exp(-k * (1 - lifeRatio)))
-            const minScale = 0.001;
-            const maxScale = 0.1;
-            const k = 4; // Growth rate, higher = more rapid growth
-            const exponential = 1 - Math.exp(-k * (1 - lifeRatio));
-            const scale = minScale + (maxScale - minScale) * exponential;
+            const scale = 0.05 + (1.0 - lifeRatio) * 0.2; // 0.05 to 0.25, half the original size
             dummy.scale.setScalar(scale);
             
             // Check if particle should respawn
             if (this.life[i] <= 0) {
-                // Respawn across full width at top of screen
-                dummy.position.set(
-                    (Math.random() - 0.5) * 8, // Full screen width: -4 to +4
-                    3 + Math.random() * 1, // Top of screen with some variation: 3 to 4
-                    this.spawnPosition.z + (Math.random() - 0.5) * 0.5 // ±0.25 around spawn depth
-                );
+                // Respawn at (2, 2, 0) - top right to center with random scatter
+                const scatterX = (Math.random() - 0.5) * 1.0; // ±0.5 scatter
+                const scatterY = (Math.random() - 0.5) * 1.0; // ±0.5 scatter
+                const scatterZ = (Math.random() - 0.5) * 0.5; // ±0.25 scatter
+                dummy.position.set(2 + scatterX, 2 + scatterY, scatterZ);
                 
                 // Reset velocities with more dramatic variation
                 this.velocities[i * 3] = (Math.random() - 0.5) * 0.08;     // 4x more variation
@@ -257,11 +235,6 @@ export class CheeseParticles {
                 
                 // Reset rotation velocity with more drama
                 this.rotationVelocities[i] = (Math.random() - 0.5) * this.rotationSpeed * 3;
-                
-                // Reset individual variations
-                this.dampingVariations[i] = 0.995 + Math.random() * 0.009; // 0.995 to 0.9999
-                this.maxSpeedVariations[i] = 0.08 + Math.random() * 0.08; // 0.08 to 0.16
-                this.jitterVariations[i] = 0.01 + Math.random() * 0.03; // 0.01 to 0.04
                 
                 // Reset life with variation (80-100% of max life)
                 this.life[i] = this.maxLife * (0.8 + Math.random() * 0.2);

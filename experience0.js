@@ -268,11 +268,12 @@ export default {
         background.camera = camera;
     },
 
-    updateBackground({ canvas, time }) {
+    updateBackground({ canvas, time, view }) {
         if (!background.renderer) return;
         const { renderer } = background;
 
-        const body = bodies[0];
+        // Use the correct skeleton based on view (matching threeview.js logic)
+        const body = bodies[1 - view];
         const { foot0, foot1, hand0, hand1, head } = body;
 
         if(head.length > 0){
