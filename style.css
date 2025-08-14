@@ -426,3 +426,17 @@ body {
     padding: 0.25em;
     margin-right: 0.5em;
 }
+
+.conn-stat-dis {
+    color: red;
+    font-weight: 900;
+    font-size: 0.75em;
+    margin-top: 0.5em;
+}
+
+.conn-stat-con {
+    color: green;
+    font-weight: 900;
+    font-size: 0.75em;
+    margin-top: 0.5em;
+}

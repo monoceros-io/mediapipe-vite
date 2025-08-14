@@ -48,8 +48,8 @@
 
                 <div class="centred-canvases">
 
-                    <canvas width="960" height="1080" class="backing-canvas" id="backing-canvas-0"></canvas>
-                    <canvas width="960" height="1080" class="backing-canvas" id="backing-canvas-1"></canvas>
+                    <canvas width="960" height="1080" class="backing-canvas bk-cvs" id="backing-canvas-0"></canvas>
+                    <canvas width="960" height="1080" class="backing-canvas bk-cvs" id="backing-canvas-1"></canvas>
                 </div>
 
                 <div class="centred-canvases">
@@ -182,7 +182,11 @@
         <input type="range" id="alpha-max" min="0" max="1" step="0.01" value="0.7" style="width: 120px;">
         <span id="alpha-max-value">0.7</span>
         <label for="">Server URL base</label>
-        <input type="text" id="server-url" value="http://localhost:3456">
+        <input type="text" id="server-url" value="http://localhost:3000">
+        <div id="conn-stat" class="conn-stat-dis">
+            Disconnected
+        </div>
+        <button id="server-connect">Connect</button>
 
         <!-- ============================== -->
 

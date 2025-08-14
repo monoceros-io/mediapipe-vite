@@ -1,5 +1,6 @@
 import eventController from "./EventController";
 import { ImageSegmenter, FilesetResolver, PoseLandmarker, DrawingUtils } from "@mediapipe/tasks-vision";
+import { updateServerForPerson } from "./server";
 
 
 const runningMode = "VIDEO";
@@ -30,23 +31,6 @@ const getHexForDec = dec => {
     if(c.length>2)
         c = "ff";
     return c;
-}
-
-const drawColoursFromSkeleton = () => {
-
-    return;
-
-    for (let b = 0; b < 2; ++b) {
-        const body = bodies[b];
-        const skel = skels[b];
-        skel[0].style.backgroundColor = `#${getHexForDec(body.head[0]) + getHexForDec(body.head[1]) + getHexForDec(body.head[2])}`;
-        skel[1].style.backgroundColor = `#${getHexForDec(body.shoulder0[0]) + getHexForDec(body.shoulder0[1]) + getHexForDec(body.shoulder0[2])}`;
-        skel[2].style.backgroundColor = `#${getHexForDec(body.shoulder1[0]) + getHexForDec(body.shoulder1[1]) + getHexForDec(body.shoulder1[2])}`;
-        skel[3].style.backgroundColor = `#${getHexForDec(body.hand0[0]) + getHexForDec(body.hand0[1]) + getHexForDec(body.hand0[2])}`;
-        skel[4].style.backgroundColor = `#${getHexForDec(body.hand1[0]) + getHexForDec(body.hand1[1]) + getHexForDec(body.hand1[2])}`;
-        skel[5].style.backgroundColor = `#${getHexForDec(body.foot0[0]) + getHexForDec(body.foot0[1]) + getHexForDec(body.foot0[2])}`;
-        skel[6].style.backgroundColor = `#${getHexForDec(body.foot1[0]) + getHexForDec(body.foot1[1] )+ getHexForDec(body.foot1[2])}`;
-    }
 }
 
 const bodies = [
@@ -126,7 +110,7 @@ function updatePose(landmark, regIndex) {
 
     lastPoseTime = Date.now();
 
-    const velocity = velocities[regIndex];
+
 
     if (body.head.length === 2) {
         velocity.head[0] = landmark[0].x - body.head[0];
@@ -195,7 +179,6 @@ function updatePose(landmark, regIndex) {
         body.foot1[2] = landmark[28].z;
     }
 
-    drawColoursFromSkeleton();
 
 }
 
@@ -250,4 +233,7 @@ export function detectPose(bitmap, segIndex) {
             }
         })
     }
+
+    updateServerForPerson(segIndex, foundPoses[segIndex]);
+
 };

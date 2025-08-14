@@ -3,12 +3,12 @@ import { loadModels } from "./processing";
 import { setBrightnessContrast, setMaskColors, setAlphaThresholds } from './shader-program.js';
 import { activeBackground, activeForeground } from './threeview.js';
 import "./image-camera";
-import Globals from './globals.js';
 
 import experience0 from './experience0.js';
 import experience1 from './experience1.js';
 import eventController from "./EventController.js";
 import "./canvas2d.js";
+import "./server.js"
 
 
 const experiences = [experience0, experience1];
@@ -297,13 +297,3 @@ if (alphaMinInput && alphaMaxInput) {
     updateAlphaThresholds();
 }
 // ===============================
-
-// Server URL input handling
-const serverUrlInput = document.getElementById('server-url');
-if (serverUrlInput) {
-    serverUrlInput.addEventListener('input', (e) => {
-        Globals.serverUrl = e.target.value;
-        console.log("Server URL updated to:", Globals.serverUrl);
-    });
-}
-
