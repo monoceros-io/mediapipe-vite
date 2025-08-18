@@ -200,7 +200,7 @@ function Constellation(props = {}) {
         geometry = CONSTELLATION_DEFAULT_GEO,
         material = CONSTELLATION_DEFAULT_MAT,
         minLife = 1000, maxLife = 5000,
-        gravityForce = new THREE.Vector3(0, -9, 0),
+        gravityForce = new THREE.Vector3(0, 0, 0),
 
         initVelocityBase = new THREE.Vector3(0, 0, 0),
         initVelocityVariation = new THREE.Vector3(0, 0, 0),
@@ -208,7 +208,7 @@ function Constellation(props = {}) {
         initFrictionBase = new THREE.Vector3(1, 1, 1),
         initFrictionVariation = new THREE.Vector3(0, 0, 0),
 
-        initScaleBase = new THREE.Vector3(0.2, 0.2, 0.2),
+        initScaleBase = new THREE.Vector3(1, 1, 1),
         initScaleVariation = new THREE.Vector3(0, 0, 0),
         initScaleScalarVariation = 1,
         scaleCurve = new Curve([{ p: 0, v: 0 }, { p: 0.5, v: 1 }, { p: 1, v: 0 }]),

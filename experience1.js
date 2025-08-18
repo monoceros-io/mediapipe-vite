@@ -134,7 +134,7 @@ export default {
         scene.add(headCube);
 
         cheeseParticles = new Constellation({
-            
+            gravityForce: new THREE.Vector3(0, -5, 0)
         });
         scene.add(cheeseParticles.object3D);
         
