@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import SpiralShaderMaterial from './spiral-shader.js';
 import { CheeseParticles } from './CheeseParticles.js';
 import { bodies } from './processing.js';
+import { Constellation } from './Constellation.js';
 
 const EXPERIENCE_COLOR = 0x00953b;
 const ROT_SPEED = 0.1;
@@ -16,6 +17,7 @@ let rightChild = null;
 let cheeseParticles = null;
 let pepperParticles = null;
 let centerParticles = null;
+
 
 // Add these to hold internal state
 let background = { renderer: null, scene: null, camera: null, spiralMaterial: null };
@@ -32,27 +34,27 @@ export default {
         camera.position.set(0, 0, 5);
         const geometry = new THREE.BoxGeometry(1, 1, 1);
         
-        // Add three point lights and one ambient light
-        const directionalLight1 = new THREE.DirectionalLight(0xffffff, 1.5);
-        directionalLight1.position.set(5, 5, 5);
-        directionalLight1.target.position.set(0, 0, 0);
-        scene.add(directionalLight1);
-        scene.add(directionalLight1.target);
+        // // Add three point lights and one ambient light
+        // const directionalLight1 = new THREE.DirectionalLight(0xffffff, 1.5);
+        // directionalLight1.position.set(5, 5, 5);
+        // directionalLight1.target.position.set(0, 0, 0);
+        // scene.add(directionalLight1);
+        // scene.add(directionalLight1.target);
 
-        const directionalLight2 = new THREE.DirectionalLight(0xffffff, 1.5);
-        directionalLight2.position.set(-5, 5, 5);
-        directionalLight2.target.position.set(2, -2, 0);
-        scene.add(directionalLight2);
-        scene.add(directionalLight2.target);
+        // const directionalLight2 = new THREE.DirectionalLight(0xffffff, 1.5);
+        // directionalLight2.position.set(-5, 5, 5);
+        // directionalLight2.target.position.set(2, -2, 0);
+        // scene.add(directionalLight2);
+        // scene.add(directionalLight2.target);
 
-        const directionalLight3 = new THREE.DirectionalLight(0xffffff, 1.5);
-        directionalLight3.position.set(0, -5, -5);
-        directionalLight3.target.position.set(-2, 2, 2);
-        scene.add(directionalLight3);
-        scene.add(directionalLight3.target);
+        // const directionalLight3 = new THREE.DirectionalLight(0xffffff, 1.5);
+        // directionalLight3.position.set(0, -5, -5);
+        // directionalLight3.target.position.set(-2, 2, 2);
+        // scene.add(directionalLight3);
+        // scene.add(directionalLight3.target);
 
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-        scene.add(ambientLight);
+        // const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        // scene.add(ambientLight);
 
         background.renderer = renderer;
         background.scene = scene;
@@ -131,41 +133,47 @@ export default {
         scene.add(rightHandCube);
         scene.add(headCube);
 
+        cheeseParticles = new Constellation({
+            
+        });
+        scene.add(cheeseParticles.object3D);
+        
+
         // Create cheese particles - attracted to both hands
-        cheeseParticles = new CheeseParticles(
-            400, // Number of particles
-            [leftChild, rightChild], // Attracted to both hand spheres
-            'public/part-tex-atlas.png', 
-            { x: 1.5, y: 2.15, z: 0 }, // Right side of screen, at the top
-            null, // No color - use texture
-            0.01, // Base scale
-            0.03 // Scale range
-        );
-        scene.add(cheeseParticles.getGroup());
+        // cheeseParticles = new CheeseParticles(
+        //     400, // Number of particles
+        //     [leftChild, rightChild], // Attracted to both hand spheres
+        //     'public/part-tex-atlas.png', 
+        //     { x: 1.5, y: 2.15, z: 0 }, // Right side of screen, at the top
+        //     null, // No color - use texture
+        //     0.01, // Base scale
+        //     0.03 // Scale range
+        // );
+        // scene.add(cheeseParticles.getGroup());
 
-        // Create pepper particles - attracted to both hands
-        pepperParticles = new CheeseParticles(
-            400, // Number of particles
-            [leftChild, rightChild], // Attracted to both hand spheres
-            'public/salt_and_pepper.png', 
-            { x: -1.5, y: 2.15, z: 0 }, // Left side of screen, at the top
-            null, // No color - use texture
-            0.01, // Base scale
-            0.03 // Scale range
-        );
-        scene.add(pepperParticles.getGroup());
+        // // Create pepper particles - attracted to both hands
+        // pepperParticles = new CheeseParticles(
+        //     400, // Number of particles
+        //     [leftChild, rightChild], // Attracted to both hand spheres
+        //     'public/salt_and_pepper.png', 
+        //     { x: -1.5, y: 2.15, z: 0 }, // Left side of screen, at the top
+        //     null, // No color - use texture
+        //     0.01, // Base scale
+        //     0.03 // Scale range
+        // );
+        // scene.add(pepperParticles.getGroup());
 
-        // Create center particles - attracted to both hands
-        centerParticles = new CheeseParticles(
-            400, // Number of particles
-            [leftChild, rightChild], // Attracted to both hand spheres
-            'public/basepart.png', // Base part texture
-            { x: 0, y: 2.15, z: 0 }, // Center of screen, at the top
-            null, // No color - use texture
-            0.02, // Base scale
-            0.04 // Scale range
-        );
-        scene.add(centerParticles.getGroup());
+        // // Create center particles - attracted to both hands
+        // centerParticles = new CheeseParticles(
+        //     400, // Number of particles
+        //     [leftChild, rightChild], // Attracted to both hand spheres
+        //     'public/basepart.png', // Base part texture
+        //     { x: 0, y: 2.15, z: 0 }, // Center of screen, at the top
+        //     null, // No color - use texture
+        //     0.02, // Base scale
+        //     0.04 // Scale range
+        // );
+        // scene.add(centerParticles.getGroup());
 
         foreground.renderer = renderer;
         foreground.scene = scene;
