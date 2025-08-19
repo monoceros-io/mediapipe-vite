@@ -46,23 +46,23 @@
         <div class="qc qc-2" id="qc-full">
             <div class="canvas-container">
 
-                <div class="centred-canvases">
+                <div class="centred-canvases backing-canvases">
 
                     <canvas width="960" height="1080" class="backing-canvas bk-cvs" id="backing-canvas-0"></canvas>
                     <canvas width="960" height="1080" class="backing-canvas bk-cvs" id="backing-canvas-1"></canvas>
                 </div>
 
-                <div class="centred-canvases">
+                <div class="centred-canvases camera-mask-canvas">
                     <canvas width="1920" height="1080" class="final-canvas" id="final-canvas"></canvas>
                 </div>
 
 
-                <div class="centred-canvases">
+                <div class="centred-canvases fore-canvases">
                     <canvas width="1920" height="2160" class="backing-canvas fore-canvas" id="fore-canvas-0"></canvas>
                     <canvas width="1920" height="2160" class="backing-canvas fore-canvas" id="fore-canvas-1"></canvas>
 
                 </div>
-                <div class="centred-canvases">
+                <div class="centred-canvases photo-stuff">
 
                     <div class="fore-canvas-text-outer">
                         <div class="fore-canvas-text">
@@ -97,6 +97,11 @@
 
 
                     <div class="fore-canvas-prep-text">
+
+                    </div>
+
+
+                    <div class="fore-canvas-prep-text">
                         <div class="cta-overlay">
                             <div id="cta-inner-0" class="cta-inner"></div>
                         </div>
@@ -109,36 +114,20 @@
 
 
                 </div>
-                <div id="rgb-outputs" class="rgb-outputs">
-                    <div>
-                        <div>HEAD</div>
-                        <div id="head-1"></div>
+
+                <div class="centred-canvases hola">
+                    <div class="hola-container">
+                        <div id="hola-0" class="hola-inner">
+                            <div class="hola-text">¡HOLA NICK!</div>
+                        </div>
                     </div>
-                    <div>
-                        <div>L SHOULDER</div>
-                        <div id="sl-1"></div>
-                    </div>
-                    <div>
-                        <div>R SHOULDER</div>
-                        <div id="sr-1"></div>
-                    </div>
-                    <div>
-                        <div>L HAND</div>
-                        <div id="hl-1"></div>
-                    </div>
-                    <div>
-                        <div>R HAND</div>
-                        <div id="hr-1"></div>
-                    </div>
-                    <div>
-                        <div>L FOOT</div>
-                        <div id="fl-1"></div>
-                    </div>
-                    <div>
-                        <div>R FOOT</div>
-                        <div id="fr-1"></div>
+                    <div class="hola-container">
+                        <div id="hola-1" class="hola-inner">
+                            <div class="hola-text">¡HOLA NICK!</div>
+                        </div>
                     </div>
                 </div>
+               
                 <canvas id="photo-canvas" class="photo-canvas" width="975" height="1920">
                 </canvas>
                 <div class="konva-parent" id="fore-2d-0"></div>

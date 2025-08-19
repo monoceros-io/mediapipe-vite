@@ -440,3 +440,34 @@ body {
     font-size: 0.75em;
     margin-top: 0.5em;
 }
+
+.hola-container {
+    height: 100%;
+    aspect-ratio: 0.8888889;
+    display: flex;
+    justify-content: center;
+    
+}
+
+.hola-inner {
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-image: url("./yellow-backing.png");
+    width: 50%;
+    height: 20%;
+    color: black;
+    font-size: 3svh;
+    font-family: "Gilroy";
+    display: flex;
+    justify-content: center;
+    align-items: center;   
+    padding-bottom: 1.25em;
+    opacity: 0;
+    transition: 0.5s;
+    transform: rotate(360deg) scale(0.5);
+}
+
+.hola-text {
+    rotate: 16.5deg;
+}

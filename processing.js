@@ -1,6 +1,8 @@
 import eventController from "./EventController";
 import { ImageSegmenter, FilesetResolver, PoseLandmarker, DrawingUtils } from "@mediapipe/tasks-vision";
 import { updateServerForPerson } from "./server";
+import { hideHola, showHola } from "./script";
+
 
 
 const runningMode = "VIDEO";
@@ -234,6 +236,10 @@ export function detectPose(bitmap, segIndex) {
         })
     }
 
-    updateServerForPerson(segIndex, foundPoses[segIndex]);
+    const f = foundPoses[segIndex];
+
+    f ? showHola(1 - segIndex) : hideHola(1 - segIndex);
+
+    updateServerForPerson(segIndex, f);
 
 };

@@ -11,6 +11,7 @@ import "./canvas2d.js";
 import "./server.js"
 
 
+
 const experiences = [experience0, experience1];
 
 const foreCanvasArray = document.querySelectorAll('.fore-canvas');
@@ -52,7 +53,7 @@ let frameCounter = 0;
 
 const devices = await navigator.mediaDevices.enumerateDevices();
 
-let firstSet = true;// TODO NB FIRST SET TO FALSE TO RUN THE APP!
+let firstSet = false;// TODO NB FIRST SET TO FALSE TO RUN THE APP!
 
 
 const cameraChange = async (id) => {
@@ -297,3 +298,46 @@ if (alphaMinInput && alphaMaxInput) {
     updateAlphaThresholds();
 }
 // ===============================
+
+
+const holas = document.querySelectorAll(".hola-inner");
+
+let holaTimeout;
+
+let foundHolas = [false, false];
+
+function showHola(index, name = "Nick"){
+
+    console.log("HOLA show", index);
+
+    if(foundHolas[index])
+        return;
+    foundHolas[index] = true;
+
+
+    const elem = holas[index];
+    elem.style.opacity = 1;
+    elem.style.transform = "rotate(0deg) scale(1)";
+    clearTimeout(holaTimeout);
+
+    // holaTimeout = setTimeout(() => {
+    //     elem.style.opacity = 0;
+    //     elem.style.transform = "rotate(360deg) scale(0.5)";
+    // }, 1000);
+}
+
+function hideHola(index){
+
+    console.log("HOLA hide", index);
+
+    if(!foundHolas[index])
+        return;
+    foundHolas[index] = false;
+    
+    // clearTimeout(holaTimeout);
+    const elem = holas[index];
+    elem.style.opacity = 0;
+    elem.style.transform = "rotate(360deg) scale(0.5)";
+}
+
+export { showHola, hideHola };
