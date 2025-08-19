@@ -453,10 +453,9 @@ body {
     background-size: contain;
     background-position: center;
     background-repeat: no-repeat;
-    background-image: url("./yellow-backing.png");
     width: 50%;
     height: 20%;
-    color: black;
+    color: white;
     font-size: 3svh;
     font-family: "Gilroy";
     display: flex;
@@ -469,5 +468,5 @@ body {
 }
 
 .hola-text {
-    rotate: 16.5deg;
+    text-shadow: 0.1em 0.1em 0em black;
 }
