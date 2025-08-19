@@ -2,10 +2,12 @@ import * as THREE from 'three';
 import SpiralShaderMaterial from './spiral-shader.js';
 import { CheeseParticles } from './CheeseParticles.js';
 import { bodies } from './processing.js';
-import { Constellation } from './Constellation.js';
+import { Constellation, Curve, Emitter, Force } from './Constellation.js';
 
 const EXPERIENCE_COLOR = 0x00953b;
 const ROT_SPEED = 0.1;
+
+
 
 const nrm = v => (v - 0.5);
 
@@ -22,6 +24,16 @@ let centerParticles = null;
 // Add these to hold internal state
 let background = { renderer: null, scene: null, camera: null, spiralMaterial: null };
 let foreground = { renderer: null, scene: null, camera: null };
+
+const centreVortex = new Force({
+    type : "vortex",
+    position: new THREE.Vector3(0, 0, 0),
+    direction: new THREE.Vector3(0, 1, 1),
+    strength: 2,
+    radius: 1,
+    suction: 10
+});
+
 
 export default {
     foreBlendMode: "normal",
@@ -134,46 +146,70 @@ export default {
         scene.add(headCube);
 
         cheeseParticles = new Constellation({
-            gravityForce: new THREE.Vector3(0, -5, 0)
+            gravityForce: new THREE.Vector3(0, -0.2, 0),
+            emitters : [
+                new Emitter({
+                    position: new THREE.Vector3(0, 2, 0),
+                    dimensions: new THREE.Vector3(10, 2, 10),
+
+                })
+            ],
+            initScaleBase : new THREE.Vector3(1, 1, 1),
+            initScaleScalarVariation : 0.1,
+            minLife : 100, maxLife : 10000,
+            scaleCurve : new Curve([{ p: 0, v: 1 }, { p: 0.8, v: 1 }, { p: 1, v: 0 }]),
+            initRotationVelocity : new THREE.Vector3(0, 0, 0),
+            initRotationVelocityVariation : new THREE.Vector3(0, 0, 20),
+            rotationVelocityCurve : new Curve([{ p: 0, v: 0 }, { p: 1, v: 1 }]),
+
+            initAlpha : 1,
+            initAlphaVariation : 0.1,
+            alphaCurve : new Curve([
+                { p: 0, v: 0 }, { p: 0.5, v: 1 }, { p: 1, v: 1 }
+            ]),
+            forces : [centreVortex],
+            emitChance : 1,
+            emitMinCount : 1,
+            emitMaxCount : 1,
+            maxCount : 1000,
+            texture : "salt_and_pepper.png"
         });
         scene.add(cheeseParticles.object3D);
+
+        centerParticles = new Constellation({
+            gravityForce: new THREE.Vector3(0, 0.2, 0),
+            emitters : [
+                new Emitter({
+                    position: new THREE.Vector3(0, -2, 0),
+                    dimensions: new THREE.Vector3(10, 2, 10),
+
+                })
+            ],
+            initScaleBase : new THREE.Vector3(1, 1, 1),
+            initScaleScalarVariation : 0.1,
+            minLife : 100, maxLife : 10000,
+            scaleCurve : new Curve([{ p: 0, v: 1 }, { p: 0.8, v: 1 }, { p: 1, v: 0 }]),
+            initRotationVelocity : new THREE.Vector3(0, 0, 0),
+            initRotationVelocityVariation : new THREE.Vector3(0, 0, 20),
+            rotationVelocityCurve : new Curve([{ p: 0, v: 0 }, { p: 1, v: 1 }]),
+
+            initAlpha : 1,
+            initAlphaVariation : 0.1,
+            alphaCurve : new Curve([
+                { p: 0, v: 0 }, { p: 0.5, v: 1 }, { p: 1, v: 1 }
+            ]),
+            forces : [centreVortex],
+
+            emitChance : 1,
+            emitMinCount : 1,
+            emitMaxCount : 1,
+            maxCount : 1000,
+            texture : "part-tex-atlas.png"
+        });
+        
+        scene.add(centerParticles.object3D);
         
 
-        // Create cheese particles - attracted to both hands
-        // cheeseParticles = new CheeseParticles(
-        //     400, // Number of particles
-        //     [leftChild, rightChild], // Attracted to both hand spheres
-        //     'public/part-tex-atlas.png', 
-        //     { x: 1.5, y: 2.15, z: 0 }, // Right side of screen, at the top
-        //     null, // No color - use texture
-        //     0.01, // Base scale
-        //     0.03 // Scale range
-        // );
-        // scene.add(cheeseParticles.getGroup());
-
-        // // Create pepper particles - attracted to both hands
-        // pepperParticles = new CheeseParticles(
-        //     400, // Number of particles
-        //     [leftChild, rightChild], // Attracted to both hand spheres
-        //     'public/salt_and_pepper.png', 
-        //     { x: -1.5, y: 2.15, z: 0 }, // Left side of screen, at the top
-        //     null, // No color - use texture
-        //     0.01, // Base scale
-        //     0.03 // Scale range
-        // );
-        // scene.add(pepperParticles.getGroup());
-
-        // // Create center particles - attracted to both hands
-        // centerParticles = new CheeseParticles(
-        //     400, // Number of particles
-        //     [leftChild, rightChild], // Attracted to both hand spheres
-        //     'public/basepart.png', // Base part texture
-        //     { x: 0, y: 2.15, z: 0 }, // Center of screen, at the top
-        //     null, // No color - use texture
-        //     0.02, // Base scale
-        //     0.04 // Scale range
-        // );
-        // scene.add(centerParticles.getGroup());
 
         foreground.renderer = renderer;
         foreground.scene = scene;
@@ -196,6 +232,7 @@ export default {
         if (centerParticles) {
             centerParticles.update();
         }
+
         
         // Update hand tracking cubes
         // Use the correct skeleton based on view (matching threeview.js logic)
