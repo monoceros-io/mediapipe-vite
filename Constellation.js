@@ -1,13 +1,5 @@
 import * as THREE from 'three';
 
-function matrix4HasNaN(matrix) {
-    const e = matrix.elements;
-    for (let i = 0; i < 16; i++) {
-        if (isNaN(e[i])) return true;
-    }
-    return false;
-}
-
 function createConstellationShaderMaterial(texture, atlasCellSize, opts = {}) {
     return new THREE.ShaderMaterial({
         uniforms: {
@@ -48,11 +40,7 @@ function createConstellationShaderMaterial(texture, atlasCellSize, opts = {}) {
 
 const CONSTELLATION_DEFAULT_GEO = new THREE.PlaneGeometry(1, 1);
 const CONSTELLATION_DEFAULT_MAT = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide });
-const r = (rng) => {
-    let v = Math.random() * rng - rng / 2;
-    if(v != v) v = 0;
-    return v;
-}
+const r = (rng) => Math.random() * rng - rng / 2;
 const PI2 = Math.PI * 2;
 
 function Force(props = {}) {
@@ -173,10 +161,6 @@ function Curve(points = [
         this.points.push({ p, v });
         this.points.sort((a, b) => a.p - b.p);
     };
-
-    this.clone = () => {
-        return new Curve(this.points.map(p => ({ ...p })));
-    }
 }
 
 function Emitter(props = {}) {
@@ -198,44 +182,34 @@ function Emitter(props = {}) {
             this.position.z + Constellation.r(halfDimensions.z)
         );
     }
-
-    this.clone = () => {
-        return new Emitter({
-            type: this.type,
-            position: this.position.clone(),
-            dimensions: this.dimensions.clone()
-        });
-    }
 }
 
 
-function Constellation(props = {}) {
-
-    const {
+function Constellation({
         depthWrite = false,
         depthTest = false,
 
         emitChance = 0.5,
         emitMinCount = 1,
-        emitMaxCount = 1,
+        emitMaxCount = 5,
         maxCount = 1000,
         maxVelocity = 10,
         lerpToFaceMotion = 0.0,
-        geometry = CONSTELLATION_DEFAULT_GEO,
+        geometry = new THREE.PlaneGeometry(1, 1),
         material = CONSTELLATION_DEFAULT_MAT,
         minLife = 1000, maxLife = 5000,
-        gravityForce = new THREE.Vector3(0, 0, 0),
+        gravityForce = new THREE.Vector3(0, -9, 0),
 
         initVelocityBase = new THREE.Vector3(0, 0, 0),
-        initVelocityVariation = new THREE.Vector3(0, 0, 0),
+        initVelocityVariation = new THREE.Vector3(20, 20, 20),
 
         initFrictionBase = new THREE.Vector3(1, 1, 1),
         initFrictionVariation = new THREE.Vector3(0, 0, 0),
 
-        initScaleBase = new THREE.Vector3(1, 1, 1),
-        initScaleVariation = new THREE.Vector3(0, 0, 0),
-        initScaleScalarVariation = 0,
-        scaleCurve = new Curve([{ p: 0, v: 1 }, { p: 0.5, v: 1 }, { p: 1, v: 1 }]),
+        initScaleBase = new THREE.Vector3(0.2, 0.2, 0.2),
+        initScaleVariation = new THREE.Vector3(1, 1, 1),
+        initScaleScalarVariation = 1,
+        scaleCurve = new Curve([{ p: 0, v: 0 }, { p: 0.5, v: 1 }, { p: 1, v: 0 }]),
 
         initRotationBase = new THREE.Vector3(0, 0, 0),
         initRotationVariation = new THREE.Vector3(0, 0, 0),
@@ -264,6 +238,7 @@ function Constellation(props = {}) {
             a: new Curve([{ p: 0, v: 1 }, { p: 1, v: 1 }])
         },
 
+        // texture = "salt_and_pepper.png",
         texture = null,
         textureDimensions = new THREE.Vector2(4, 2),
 
@@ -281,20 +256,13 @@ function Constellation(props = {}) {
             //     radius : 10,
             //     strength : -1000
             // }),
-            // new Force({
-            //     type : "vortex",
-            //     position: new THREE.Vector3(10, 0, 0),
-            //     direction: new THREE.Vector3(1, 0, 0),
-            //     strength: 20,
-            //     radius: 200,
-            //     suction: 800
-            // })
+           
         ],
 
         emitters = [
             new Emitter({
                 position: new THREE.Vector3(0, 0, 0),
-                dimensions: new THREE.Vector3(0, 0, 0)
+                dimensions: new THREE.Vector3(100, 10, 10)
             })
         ],
 
@@ -305,7 +273,6 @@ function Constellation(props = {}) {
 
             const emitter = emitters[Math.floor(Math.random() * emitters.length)];
             const position = emitter.getEmissionPoint();
-            
 
             object.position.copy(position);
             const startVelocity = initVelocityBase.clone().add(
@@ -380,9 +347,6 @@ function Constellation(props = {}) {
                 object.quaternion,
                 initialScale
             );
-            if(matrix4HasNaN(matrix)){
-                console.error("Matrix4 contains NaN values", matrix);
-            }
             mesh.setMatrixAt(object.i, matrix);
 
 
@@ -453,13 +417,9 @@ function Constellation(props = {}) {
                 object.quaternion || new THREE.Quaternion(),
                 scaled
             );
-            
-            if(matrix4HasNaN(matrix)){
-                console.error("Matrix4 contains NaN values", matrix);
-            }
             mesh.setMatrixAt(object.i, matrix);
         }
-    } = props;
+}) {
 
     this.running = true;
 
