@@ -53,7 +53,7 @@ let frameCounter = 0;
 
 const devices = await navigator.mediaDevices.enumerateDevices();
 
-let firstSet = false;// TODO NB FIRST SET TO FALSE TO RUN THE APP!
+let firstSet = true;// TODO NB FIRST SET TO FALSE TO RUN THE APP!
 
 
 const cameraChange = async (id) => {

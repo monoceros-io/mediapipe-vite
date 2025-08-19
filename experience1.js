@@ -7,7 +7,15 @@ import { Constellation, Curve, Emitter, Force } from './Constellation.js';
 const EXPERIENCE_COLOR = 0x00953b;
 const ROT_SPEED = 0.1;
 
+// Equilateral triangle geometry centered at origin, side length 1
+const a = 1;
+const h = Math.sqrt(3) / 2 * a;
 
+// Salt plane geometry
+const saltGeo = new THREE.PlaneGeometry(1, 1);
+
+// Paprika plane geometry
+const paprikaGeo = new THREE.PlaneGeometry(1, 1);
 
 const nrm = v => (v - 0.5);
 
@@ -18,21 +26,42 @@ let leftChild = null;
 let rightChild = null;
 let cheeseParticles = null;
 let pepperParticles = null;
-let centerParticles = null;
+let saltParticles = null;
+let paprikaParticles = null;
 
 
 // Add these to hold internal state
 let background = { renderer: null, scene: null, camera: null, spiralMaterial: null };
 let foreground = { renderer: null, scene: null, camera: null };
 
-const centreVortex = new Force({
+const leftVortex = new Force({
     type : "vortex",
-    position: new THREE.Vector3(0, 0, 0),
-    direction: new THREE.Vector3(0, 1, 1),
-    strength: 2,
+    position: new THREE.Vector3(-1, 0, 0),
+    direction: new THREE.Vector3(-1, 0, 0),
+    strength: 1,
     radius: 1,
     suction: 10
 });
+
+const rightVortex = new Force({
+    type : "vortex",
+    position: new THREE.Vector3(1, 0, 0),
+    direction: new THREE.Vector3(1, 0, 0),
+    strength: 1,
+    radius: 1,
+    suction: 10
+});
+
+
+
+const headRepulsor = new Force({
+    type : "attractor",
+    position: new THREE.Vector3(0, 1.5, 0),
+    strength: 10,
+    radius: 1
+});
+
+const forces = [leftVortex, rightVortex, headRepulsor];
 
 
 export default {
@@ -46,27 +75,6 @@ export default {
         camera.position.set(0, 0, 5);
         const geometry = new THREE.BoxGeometry(1, 1, 1);
         
-        // // Add three point lights and one ambient light
-        // const directionalLight1 = new THREE.DirectionalLight(0xffffff, 1.5);
-        // directionalLight1.position.set(5, 5, 5);
-        // directionalLight1.target.position.set(0, 0, 0);
-        // scene.add(directionalLight1);
-        // scene.add(directionalLight1.target);
-
-        // const directionalLight2 = new THREE.DirectionalLight(0xffffff, 1.5);
-        // directionalLight2.position.set(-5, 5, 5);
-        // directionalLight2.target.position.set(2, -2, 0);
-        // scene.add(directionalLight2);
-        // scene.add(directionalLight2.target);
-
-        // const directionalLight3 = new THREE.DirectionalLight(0xffffff, 1.5);
-        // directionalLight3.position.set(0, -5, -5);
-        // directionalLight3.target.position.set(-2, 2, 2);
-        // scene.add(directionalLight3);
-        // scene.add(directionalLight3.target);
-
-        // const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-        // scene.add(ambientLight);
 
         background.renderer = renderer;
         background.scene = scene;
@@ -145,69 +153,158 @@ export default {
         scene.add(rightHandCube);
         scene.add(headCube);
 
+        const INIT_FRIC_FLOAT = 1.03;
+        const initFrictionBase = new THREE.Vector3(INIT_FRIC_FLOAT, INIT_FRIC_FLOAT, INIT_FRIC_FLOAT);
+
         cheeseParticles = new Constellation({
-            gravityForce: new THREE.Vector3(0, -0.2, 0),
+            gravityForce: new THREE.Vector3(0, -0.5, 0),
             emitters : [
                 new Emitter({
-                    position: new THREE.Vector3(0, 2, 0),
+                    position: new THREE.Vector3(0, 3, 0),
                     dimensions: new THREE.Vector3(10, 2, 10),
-
                 })
             ],
-            initScaleBase : new THREE.Vector3(1, 1, 1),
-            initScaleScalarVariation : 0.1,
-            minLife : 100, maxLife : 10000,
+            initScaleBase : new THREE.Vector3( 0.1, 0.1, 0.1),
+            initScaleVariation : new THREE.Vector3( 0.0, 0.0, 0.0),
+            initScaleScalarVariation : 1,
+            minLife : 1000, maxLife : 10000,
             scaleCurve : new Curve([{ p: 0, v: 1 }, { p: 0.8, v: 1 }, { p: 1, v: 0 }]),
             initRotationVelocity : new THREE.Vector3(0, 0, 0),
             initRotationVelocityVariation : new THREE.Vector3(0, 0, 20),
             rotationVelocityCurve : new Curve([{ p: 0, v: 0 }, { p: 1, v: 1 }]),
-
+            initVelocityBase : new THREE.Vector3(0, 0, 0),
+            initVelocityVariation : new THREE.Vector3(0, 0, 0),
             initAlpha : 1,
             initAlphaVariation : 0.1,
+            initFrictionBase,
             alphaCurve : new Curve([
                 { p: 0, v: 0 }, { p: 0.5, v: 1 }, { p: 1, v: 1 }
             ]),
-            forces : [centreVortex],
+            forces : forces,
             emitChance : 1,
             emitMinCount : 1,
-            emitMaxCount : 1,
-            maxCount : 1000,
-            texture : "salt_and_pepper.png"
-        });
-        scene.add(cheeseParticles.object3D);
-
-        centerParticles = new Constellation({
-            gravityForce: new THREE.Vector3(0, 0.2, 0),
-            emitters : [
-                new Emitter({
-                    position: new THREE.Vector3(0, -2, 0),
-                    dimensions: new THREE.Vector3(10, 2, 10),
-
-                })
-            ],
-            initScaleBase : new THREE.Vector3(1, 1, 1),
-            initScaleScalarVariation : 0.1,
-            minLife : 100, maxLife : 10000,
-            scaleCurve : new Curve([{ p: 0, v: 1 }, { p: 0.8, v: 1 }, { p: 1, v: 0 }]),
-            initRotationVelocity : new THREE.Vector3(0, 0, 0),
-            initRotationVelocityVariation : new THREE.Vector3(0, 0, 20),
-            rotationVelocityCurve : new Curve([{ p: 0, v: 0 }, { p: 1, v: 1 }]),
-
-            initAlpha : 1,
-            initAlphaVariation : 0.1,
-            alphaCurve : new Curve([
-                { p: 0, v: 0 }, { p: 0.5, v: 1 }, { p: 1, v: 1 }
-            ]),
-            forces : [centreVortex],
-
-            emitChance : 1,
-            emitMinCount : 1,
-            emitMaxCount : 1,
-            maxCount : 1000,
+            emitMaxCount : 10,
+            maxCount : 500,
+            maxVelocity : 10,
             texture : "part-tex-atlas.png"
         });
+        background.scene.add(cheeseParticles.object3D);
         
-        scene.add(centerParticles.object3D);
+
+        pepperParticles = new Constellation({
+            gravityForce: new THREE.Vector3(0, 0.5, 0),
+            emitters : [
+                new Emitter({
+                    position: new THREE.Vector3(0, -3, 0),
+                    dimensions: new THREE.Vector3(10, 2, 10),
+                })
+            ],
+            initScaleBase : new THREE.Vector3( 0.1, 0.1, 0.1),
+            initScaleVariation : new THREE.Vector3( 0.0, 0.0, 0.0),
+            initScaleScalarVariation : 1,
+            initFrictionBase,
+            minLife : 1000, maxLife : 10000,
+            scaleCurve : new Curve([{ p: 0, v: 1 }, { p: 0.8, v: 1 }, { p: 1, v: 0 }]),
+            initRotationVelocity : new THREE.Vector3(0, 0, 0),
+            initRotationVelocityVariation : new THREE.Vector3(0, 0, 20),
+            rotationVelocityCurve : new Curve([{ p: 0, v: 0 }, { p: 1, v: 1 }]),
+            initVelocityBase : new THREE.Vector3(0, 0, 0),
+            initVelocityVariation : new THREE.Vector3(0, 0, 0),
+            initAlpha : 1,
+            initAlphaVariation : 0.1,
+            alphaCurve : new Curve([
+                { p: 0, v: 0 }, { p: 0.5, v: 1 }, { p: 1, v: 1 }
+            ]),
+            forces : forces,
+            emitChance : 1,
+            emitMinCount : 1,
+            emitMaxCount : 10,
+            maxCount : 500,
+            maxVelocity : 10,
+            texture : "salt_and_pepper.png"
+        });
+        scene.add(pepperParticles.object3D);
+ 
+        
+        
+
+        saltParticles = new Constellation({
+            geometry : saltGeo,
+            gravityForce: new THREE.Vector3(0, 0.5, 0),
+            emitters : [
+                new Emitter({
+                    position: new THREE.Vector3(-2, 0, 0),
+                    dimensions: new THREE.Vector3(0, 10, 10),
+                })
+            ],
+            initScaleBase : new THREE.Vector3( 0.02, 0.02, 0.02),
+            initScaleVariation : new THREE.Vector3( 0.0, 0.0, 0.0),
+            initScaleScalarVariation : 0.0,
+            initFrictionBase,
+            minLife : 100, maxLife : 10000,
+            scaleCurve : new Curve([{ p: 0, v: 1 }, { p: 0.8, v: 1 }, { p: 1, v: 0 }]),
+            initRotationVelocity : new THREE.Vector3(0, 0, 0),
+            initRotationVelocityVariation : new THREE.Vector3(20, 20, 20),
+            rotationVelocityCurve : new Curve([{ p: 0, v: 0 }, { p: 1, v: 1 }]),
+            initVelocityBase : new THREE.Vector3(0, 0, 0),
+            initVelocityVariation : new THREE.Vector3(0, 0, 0),
+            initAlpha : 1,
+            initAlphaVariation : 0.8,
+            alphaCurve : new Curve([
+                { p: 0, v: 0 }, { p: 0.5, v: 1 }, { p: 1, v: 0 }
+            ]),
+            forces : forces,
+            emitChance : 1,
+            emitMinCount : 1,
+            emitMaxCount : 100,
+            maxCount : 9000,
+            maxVelocity : 30,
+            texture : "basepart.png",
+            textureDimensions : new THREE.Vector2(1, 1),
+            colours : [0xffffff, 0xffff33, 0xffdd22]
+        });
+        scene.add(saltParticles.object3D);
+        
+        
+        
+
+        paprikaParticles = new Constellation({
+            geometry : paprikaGeo,
+            gravityForce: new THREE.Vector3(0, 0.5, 0),
+            emitters : [
+                new Emitter({
+                    position: new THREE.Vector3(2, 0, 0),
+                    dimensions: new THREE.Vector3(0, 10, 10),
+                })
+            ],
+            initScaleBase : new THREE.Vector3( 0.02, 0.02, 0.02),
+            initScaleVariation : new THREE.Vector3( 0.0, 0.0, 0.0),
+            initScaleScalarVariation : 0.0,
+            minLife : 100, maxLife : 10000,
+            scaleCurve : new Curve([{ p: 0, v: 1 }, { p: 0.8, v: 1 }, { p: 1, v: 0 }]),
+            initRotationVelocity : new THREE.Vector3(0, 0, 0),
+            initRotationVelocityVariation : new THREE.Vector3(20, 20, 20),
+            rotationVelocityCurve : new Curve([{ p: 0, v: 0 }, { p: 1, v: 1 }]),
+            initVelocityBase : new THREE.Vector3(0, 0, 0),
+            initVelocityVariation : new THREE.Vector3(0, 0, 0),
+            initAlpha : 1,
+            initAlphaVariation : 0.8,
+            initFrictionBase,
+            alphaCurve : new Curve([
+                { p: 0, v: 0 }, { p: 0.5, v: 1 }, { p: 1, v: 0 }
+            ]),
+            forces : forces,
+            emitChance : 1,
+            emitMinCount : 1,
+            emitMaxCount : 100,
+            maxCount : 9000,
+            maxVelocity : 30,
+            texture : "basepart.png",
+            textureDimensions : new THREE.Vector2(1, 1),
+            colours : [0xffff00, 0xffffcc, 0xffcc44]
+        });
+        scene.add(paprikaParticles.object3D);
+
         
 
 
@@ -227,11 +324,15 @@ export default {
         if (pepperParticles) {
             pepperParticles.update();
         }
-        
-        // Update center particles
-        if (centerParticles) {
-            centerParticles.update();
+
+        if(saltParticles){
+            saltParticles.update();
         }
+
+        if(paprikaParticles){
+            paprikaParticles.update();
+        }
+       
 
         
         // Update hand tracking cubes
