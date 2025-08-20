@@ -62,7 +62,7 @@ function Force(props = {}) {
     this.radius = radius;
     this.suction = suction;
 
-    this.checkEffect = (point, particle, delta) => {
+    this.checkEffect = (point, particle, delta, maxVelocity) => {
         switch (type) {
             case "wind_box":
                 {
@@ -86,7 +86,7 @@ function Force(props = {}) {
                     // Also applies suction toward the center, controlled by this.suction
                     const dir = point.clone().sub(this.position);
                     const distSq = dir.lengthSq();
-                    const minDist = 0.1; // avoid infinite force at center
+                    const minDist = 0.001; // avoid infinite force at center
                     const radius = this.radius !== undefined ? this.radius : 10;
                     const dist = Math.sqrt(distSq);
                     if (dist > minDist && dist < radius) {
@@ -95,7 +95,7 @@ function Force(props = {}) {
                         // Perpendicular vector to axis and dir
                         let perp = new THREE.Vector3().crossVectors(axis, dir).normalize();
                         // Spin force: increases as particle gets closer to center
-                        const forceMag = this.strength * (radius / dist);
+                        const forceMag = Math.min(this.strength * (radius / dist), maxVelocity / delta);
                         if (particle && particle.velocity) {
                             // Spin force
                             particle.velocity.add(perp.multiplyScalar(forceMag * delta));
@@ -112,6 +112,8 @@ function Force(props = {}) {
                                     particle.velocity.add(toCenter.multiplyScalar(suctionMag * delta));
                                 }
                             }
+
+                            particle.velocity.clampLength(0, maxVelocity);
                         }
                     }
                     break;
@@ -302,7 +304,8 @@ function Constellation({
                     Constellation.r(initScaleVariation.z)
                 )
             );
-            particleScale.multiplyScalar(Math.random() * initScaleScalarVariation);
+            
+            particleScale.multiplyScalar(1 + Math.random() * initScaleScalarVariation);
             object.scale.copy(particleScale);
 
             // Set initial rotation
@@ -361,7 +364,7 @@ function Constellation({
             // Apply all forces
             for (let f = 0; f < forces.length; f++) {
                 const force = forces[f];
-                force.checkEffect(object.position, object, delta);
+                force.checkEffect(object.position, object, delta, maxVelocity);
             }
 
 

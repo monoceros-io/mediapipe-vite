@@ -7,32 +7,61 @@ import { Constellation, Curve, Emitter, Force } from './Constellation.js';
 const EXPERIENCE_COLOR = 0x00953b;
 const ROT_SPEED = 0.1;
 
+// Equilateral triangle geometry centered at origin, side length 1
+const a = 1;
+const h = Math.sqrt(3) / 2 * a;
 
+// Salt plane geometry
+const saltGeo = new THREE.PlaneGeometry(1, 1);
+
+// Paprika plane geometry
+const paprikaGeo = new THREE.PlaneGeometry(1, 1);
 
 const nrm = v => (v - 0.5);
 
 let leftHandCube = null;
 let rightHandCube = null;
 let headCube = null;
-let leftChild = null;
-let rightChild = null;
 let cheeseParticles = null;
 let pepperParticles = null;
-let centerParticles = null;
+let saltParticles = null;
+let paprikaParticles = null;
 
 
 // Add these to hold internal state
 let background = { renderer: null, scene: null, camera: null, spiralMaterial: null };
 let foreground = { renderer: null, scene: null, camera: null };
 
-const centreVortex = new Force({
+const leftVortexPosition = new THREE.Vector3(-1, 0, 0);
+const rightVortexPosition = new THREE.Vector3(1, 0, 0);
+const headRepulsorPosition = new THREE.Vector3(0, 1.5, 0);
+
+const leftVortex = new Force({
     type : "vortex",
-    position: new THREE.Vector3(0, 0, 0),
-    direction: new THREE.Vector3(0, 1, 1),
-    strength: 2,
-    radius: 1,
-    suction: 10
+    position: leftVortexPosition,
+    direction: new THREE.Vector3(-1, 0, 0),
+    strength: 1,
+    radius: 2,
+    suction: 6
 });
+
+const rightVortex = new Force({
+    type : "vortex",
+    position: rightVortexPosition,
+    direction: new THREE.Vector3(1, 0, 0),
+    strength: 1,
+    radius: 2,
+    suction: 6
+});
+
+const headRepulsor = new Force({
+    type : "attractor",
+    position: headRepulsorPosition,
+    strength: 1,
+    radius: 3
+});
+
+const forces = [leftVortex, rightVortex, headRepulsor];
 
 
 export default {
@@ -46,27 +75,6 @@ export default {
         camera.position.set(0, 0, 5);
         const geometry = new THREE.BoxGeometry(1, 1, 1);
         
-        // // Add three point lights and one ambient light
-        // const directionalLight1 = new THREE.DirectionalLight(0xffffff, 1.5);
-        // directionalLight1.position.set(5, 5, 5);
-        // directionalLight1.target.position.set(0, 0, 0);
-        // scene.add(directionalLight1);
-        // scene.add(directionalLight1.target);
-
-        // const directionalLight2 = new THREE.DirectionalLight(0xffffff, 1.5);
-        // directionalLight2.position.set(-5, 5, 5);
-        // directionalLight2.target.position.set(2, -2, 0);
-        // scene.add(directionalLight2);
-        // scene.add(directionalLight2.target);
-
-        // const directionalLight3 = new THREE.DirectionalLight(0xffffff, 1.5);
-        // directionalLight3.position.set(0, -5, -5);
-        // directionalLight3.target.position.set(-2, 2, 2);
-        // scene.add(directionalLight3);
-        // scene.add(directionalLight3.target);
-
-        // const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-        // scene.add(ambientLight);
 
         background.renderer = renderer;
         background.scene = scene;
@@ -97,119 +105,180 @@ export default {
         scene.add(light);
 
         // Create hand tracking cubes first
+        // Create left hand cube and add a box mesh
         leftHandCube = new THREE.Object3D();
+
+        // Create right hand cube and add a box mesh
         rightHandCube = new THREE.Object3D();
+        // Create head cube and add a box mesh
         headCube = new THREE.Object3D();
 
-        // Create rotating child objects
-        const childGeometry = new THREE.SphereGeometry(0.2, 8, 8);
-        const childMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
-        
-        leftChild = new THREE.Mesh(childGeometry, childMaterial);
-        leftChild.position.set(0, 0.5, 0);
-        leftHandCube.add(leftChild);
-        
-        rightChild = new THREE.Mesh(childGeometry, childMaterial);
-        rightChild.position.set(0, 0.5, 0);
-        rightHandCube.add(rightChild);
-
-
-        // Add cube children to the hand objects
-        const cubeGeometry = new THREE.BoxGeometry(1.0, 1.0, 1.0);
-        const redMaterial = new THREE.MeshBasicMaterial({ 
-            color: 0xff0000,
-            transparent: false,
-            opacity: 1.0
-        });
-        
-        const leftCube = new THREE.Mesh(cubeGeometry, redMaterial);
-        leftCube.position.set(0, 0, 0); // At the parent center
-        leftHandCube.add(leftCube);
-        
-        const rightCube = new THREE.Mesh(cubeGeometry, redMaterial);
-        rightCube.position.set(0, 0, 0); // At the parent center
-        rightHandCube.add(rightCube);
         
         // Position cubes initially visible for testing
         leftHandCube.position.set(-2, 0, 0);
         rightHandCube.position.set(2, 0, 0);
 
-        
-        leftChild.visible = false;
-        rightChild.visible = false;
+/*         
         leftHandCube.visible = false;
         rightHandCube.visible = false;
         headCube.visible = false;
-
+ */
         scene.add(leftHandCube);
         scene.add(rightHandCube);
         scene.add(headCube);
 
+        const INIT_FRIC_FLOAT = 1.03;
+        const initFrictionBase = new THREE.Vector3(INIT_FRIC_FLOAT, INIT_FRIC_FLOAT, INIT_FRIC_FLOAT);
+
         cheeseParticles = new Constellation({
-            gravityForce: new THREE.Vector3(0, -0.2, 0),
+            gravityForce: new THREE.Vector3(0, 0, 0),
             emitters : [
                 new Emitter({
-                    position: new THREE.Vector3(0, 2, 0),
-                    dimensions: new THREE.Vector3(10, 2, 10),
-
+                    position: new THREE.Vector3(1.5, 2, 0),
+                    dimensions: new THREE.Vector3(1, 1, 1),
                 })
             ],
-            initScaleBase : new THREE.Vector3(1, 1, 1),
-            initScaleScalarVariation : 0.1,
-            minLife : 100, maxLife : 10000,
+            initScaleBase : new THREE.Vector3( 0.2, 0.2, 0.2),
+            initScaleVariation : new THREE.Vector3( 0.0, 0.0, 0.0),
+            initScaleScalarVariation : 1,
+            minLife : 1000, maxLife : 10000,
             scaleCurve : new Curve([{ p: 0, v: 1 }, { p: 0.8, v: 1 }, { p: 1, v: 0 }]),
             initRotationVelocity : new THREE.Vector3(0, 0, 0),
             initRotationVelocityVariation : new THREE.Vector3(0, 0, 20),
             rotationVelocityCurve : new Curve([{ p: 0, v: 0 }, { p: 1, v: 1 }]),
-
+            initVelocityBase : new THREE.Vector3(0, 0, 0),
+            initVelocityVariation : new THREE.Vector3(0, 0, 0),
             initAlpha : 1,
             initAlphaVariation : 0.1,
+            initFrictionBase,
             alphaCurve : new Curve([
                 { p: 0, v: 0 }, { p: 0.5, v: 1 }, { p: 1, v: 1 }
             ]),
-            forces : [centreVortex],
-            emitChance : 1,
+            forces : forces,
+            emitChance : 0.5,
             emitMinCount : 1,
             emitMaxCount : 1,
-            maxCount : 1000,
-            texture : "salt_and_pepper.png"
-        });
-        scene.add(cheeseParticles.object3D);
-
-        centerParticles = new Constellation({
-            gravityForce: new THREE.Vector3(0, 0.2, 0),
-            emitters : [
-                new Emitter({
-                    position: new THREE.Vector3(0, -2, 0),
-                    dimensions: new THREE.Vector3(10, 2, 10),
-
-                })
-            ],
-            initScaleBase : new THREE.Vector3(1, 1, 1),
-            initScaleScalarVariation : 0.1,
-            minLife : 100, maxLife : 10000,
-            scaleCurve : new Curve([{ p: 0, v: 1 }, { p: 0.8, v: 1 }, { p: 1, v: 0 }]),
-            initRotationVelocity : new THREE.Vector3(0, 0, 0),
-            initRotationVelocityVariation : new THREE.Vector3(0, 0, 20),
-            rotationVelocityCurve : new Curve([{ p: 0, v: 0 }, { p: 1, v: 1 }]),
-
-            initAlpha : 1,
-            initAlphaVariation : 0.1,
-            alphaCurve : new Curve([
-                { p: 0, v: 0 }, { p: 0.5, v: 1 }, { p: 1, v: 1 }
-            ]),
-            forces : [centreVortex],
-
-            emitChance : 1,
-            emitMinCount : 1,
-            emitMaxCount : 1,
-            maxCount : 1000,
+            maxCount : 500,
+            maxVelocity : 10,
             texture : "part-tex-atlas.png"
         });
         
-        scene.add(centerParticles.object3D);
+        scene.add(cheeseParticles.object3D);
         
 
+        pepperParticles = new Constellation({
+            gravityForce: new THREE.Vector3(0, 0, 0),
+            emitters : [
+                new Emitter({
+                    position: new THREE.Vector3(-1.5, 2, 0),
+                    dimensions: new THREE.Vector3(1, 1, 1),
+                })
+            ],
+            initScaleBase : new THREE.Vector3( 0.1, 0.1, 0.1),
+            initScaleVariation : new THREE.Vector3( 0.0, 0.0, 0.0),
+            initScaleScalarVariation : 1,
+            initFrictionBase,
+            minLife : 1000, maxLife : 10000,
+            scaleCurve : new Curve([{ p: 0, v: 1 }, { p: 0.8, v: 1 }, { p: 1, v: 0 }]),
+            initRotationVelocity : new THREE.Vector3(0, 0, 0),
+            initRotationVelocityVariation : new THREE.Vector3(0, 0, 20),
+            rotationVelocityCurve : new Curve([{ p: 0, v: 0 }, { p: 1, v: 1 }]),
+            initVelocityBase : new THREE.Vector3(0, 0, 0),
+            initVelocityVariation : new THREE.Vector3(0, 0, 0),
+            initAlpha : 1,
+            initAlphaVariation : 0.1,
+            alphaCurve : new Curve([
+                { p: 0, v: 0 }, { p: 0.5, v: 1 }, { p: 1, v: 1 }
+            ]),
+            forces : forces,
+            emitChance : 0.5,
+            emitMinCount : 1,
+            emitMaxCount : 1,
+            maxCount : 500,
+            maxVelocity : 10,
+            texture : "salt_and_pepper.png"
+        });
+        scene.add(pepperParticles.object3D);
+ 
+        
+        
+
+        saltParticles = new Constellation({
+            geometry : saltGeo,
+            gravityForce: new THREE.Vector3(0, 0, 0),
+            emitters : [
+                new Emitter({
+                    position: new THREE.Vector3(1.5, -2, 0),
+                    dimensions: new THREE.Vector3(1, 1, 1),
+                })
+            ],
+            initScaleBase : new THREE.Vector3( 0.02, 0.02, 0.02),
+            initScaleVariation : new THREE.Vector3( 0.0, 0.0, 0.0),
+            initScaleScalarVariation : 1.0,
+            initFrictionBase,
+            minLife : 100, maxLife : 10000,
+            scaleCurve : new Curve([{ p: 0, v: 1 }, { p: 0.8, v: 1 }, { p: 1, v: 0 }]),
+            initRotationVelocity : new THREE.Vector3(0, 0, 0),
+            initRotationVelocityVariation : new THREE.Vector3(20, 20, 20),
+            rotationVelocityCurve : new Curve([{ p: 0, v: 0 }, { p: 1, v: 1 }]),
+            initVelocityBase : new THREE.Vector3(0, 0, 0),
+            initVelocityVariation : new THREE.Vector3(0, 0, 0),
+            initAlpha : 1,
+            initAlphaVariation : 0.8,
+            alphaCurve : new Curve([
+                { p: 0, v: 0 }, { p: 0.5, v: 1 }, { p: 1, v: 0 }
+            ]),
+            forces : forces,
+            emitChance : 1,
+            emitMinCount : 1,
+            emitMaxCount : 100,
+            maxCount : 2000,
+            maxVelocity : 60,
+            texture : "basepart.png",
+            textureDimensions : new THREE.Vector2(1, 1),
+            colours : [0xffffff, 0xffff33, 0xffdd22]
+        });
+        scene.add(saltParticles.object3D);
+        
+        
+        
+
+        paprikaParticles = new Constellation({
+            geometry : paprikaGeo,
+            gravityForce: new THREE.Vector3(0, 0, 0),
+            emitters : [
+                new Emitter({
+                    position: new THREE.Vector3(-1.5, -2, 0),
+                    dimensions: new THREE.Vector3(1, 1, 1),
+                })
+            ],
+            initScaleBase : new THREE.Vector3( 0.02, 0.02, 0.02),
+            initScaleVariation : new THREE.Vector3( 0.0, 0.0, 0.0),
+            initScaleScalarVariation : 1.0,
+            minLife : 100, maxLife : 10000,
+            scaleCurve : new Curve([{ p: 0, v: 1 }, { p: 0.8, v: 1 }, { p: 1, v: 0 }]),
+            initRotationVelocity : new THREE.Vector3(0, 0, 0),
+            initRotationVelocityVariation : new THREE.Vector3(20, 20, 20),
+            rotationVelocityCurve : new Curve([{ p: 0, v: 0 }, { p: 1, v: 1 }]),
+            initVelocityBase : new THREE.Vector3(0, 0, 0),
+            initVelocityVariation : new THREE.Vector3(0, 0, 0),
+            initAlpha : 1,
+            initAlphaVariation : 0.8,
+            initFrictionBase,
+            alphaCurve : new Curve([
+                { p: 0, v: 0 }, { p: 0.5, v: 1 }, { p: 1, v: 0 }
+            ]),
+            forces : forces,
+            emitChance : 1,
+            emitMinCount : 1,
+            emitMaxCount : 100,
+            maxCount : 2000,
+            maxVelocity : 60,
+            texture : "basepart.png",
+            textureDimensions : new THREE.Vector2(1, 1),
+            colours : [0xffff00, 0xffffcc, 0xffcc44]
+        });
+        scene.add(paprikaParticles.object3D);
 
         foreground.renderer = renderer;
         foreground.scene = scene;
@@ -227,11 +296,15 @@ export default {
         if (pepperParticles) {
             pepperParticles.update();
         }
-        
-        // Update center particles
-        if (centerParticles) {
-            centerParticles.update();
+
+        if(saltParticles){
+            saltParticles.update();
         }
+
+        if(paprikaParticles){
+            paprikaParticles.update();
+        }
+       
 
         
         // Update hand tracking cubes
@@ -262,22 +335,12 @@ export default {
                     leftHandCube.position.y += (targetY - leftHandCube.position.y) * 0.1;
                     leftHandCube.position.z += (targetZ - leftHandCube.position.z) * 0.1;
                     
-                    // Update left sphere based on hand Y position
-                    if (leftChild) {
-                        const handY = nrm(hand0[1]); // -0.5 to 0.5
-                        const distance = 0.5 + Math.abs(handY) * 2; // 0.5 to 2.5 distance
-                        leftChild.position.y = distance;
-                    }
                 } else {
                     // Ease to default visible position more slowly
                     leftHandCube.position.x += (-2 - leftHandCube.position.x) * 0.1;
                     leftHandCube.position.y += (0 - leftHandCube.position.y) * 0.1;
                     leftHandCube.position.z += (0 - leftHandCube.position.z) * 0.1;
-                    
-                    // Reset left sphere to default position
-                    if (leftChild) {
-                        leftChild.position.y = 0.5;
-                    }
+                   
                 }
             }
             
@@ -292,23 +355,13 @@ export default {
                     rightHandCube.position.x += (targetX - rightHandCube.position.x) * 0.1;
                     rightHandCube.position.y += (targetY - rightHandCube.position.y) * 0.1;
                     rightHandCube.position.z += (targetZ - rightHandCube.position.z) * 0.1;
-                    
-                    // Update right sphere based on hand Y position
-                    if (rightChild) {
-                        const handY = nrm(hand1[1]); // -0.5 to 0.5
-                        const distance = 0.5 + Math.abs(handY) * 2; // 0.5 to 2.5 distance
-                        rightChild.position.y = distance;
-                    }
+                 
                 } else {
                     // Ease to default visible position more slowly
                     rightHandCube.position.x += (2 - rightHandCube.position.x) * 0.1;
                     rightHandCube.position.y += (0 - rightHandCube.position.y) * 0.1;
                     rightHandCube.position.z += (0 - rightHandCube.position.z) * 0.1;
                     
-                    // Reset right sphere to default position
-                    if (rightChild) {
-                        rightChild.position.y = 0.5;
-                    }
                 }
             }
         } else {
@@ -323,43 +376,12 @@ export default {
                 rightHandCube.position.y += (0 - rightHandCube.position.y) * 0.1;
                 rightHandCube.position.z += (0 - rightHandCube.position.z) * 0.1;
             }
-            // Reset spheres to default positions
-            if (leftChild) leftChild.position.y = 0.5;
-            if (rightChild) rightChild.position.y = 0.5;
         }
-        
-        // Rotate the parent cubes around Z axis with speed and direction based on hand Y position
-        if (leftHandCube) {
-            let rotSpeed = ROT_SPEED;
-            if (body && body.hand0.length > 0) {
-                const handY = nrm(body.hand0[1]); // -0.5 to 0.5
-                rotSpeed = ROT_SPEED * (1 + Math.abs(handY) * 3); // 1x to 4x speed
-                // Change direction based on hand height: positive Y (higher) = positive rotation
-                if (handY > 0) {
-                    leftHandCube.rotation.z += rotSpeed;
-                } else {
-                    leftHandCube.rotation.z -= rotSpeed;
-                }
-            } else {
-                leftHandCube.rotation.z += rotSpeed; // Default positive rotation
-            }
-        }
-        if (rightHandCube) {
-            let rotSpeed = ROT_SPEED;
-            if (body && body.hand1.length > 0) {
-                const handY = nrm(body.hand1[1]); // -0.5 to 0.5
-                rotSpeed = ROT_SPEED * (1 + Math.abs(handY) * 3); // 1x to 4x speed
-                // Change direction based on hand height: positive Y (higher) = negative rotation (opposite of left)
-                if (handY > 0) {
-                    rightHandCube.rotation.z -= rotSpeed;
-                } else {
-                    rightHandCube.rotation.z += rotSpeed;
-                }
-            } else {
-                rightHandCube.rotation.z -= rotSpeed; // Default negative rotation
-            }
-        }
-        
+
+        leftVortexPosition.copy(leftHandCube.position).divideScalar(2);
+        rightVortexPosition.copy(rightHandCube.position).divideScalar(2);
+        headRepulsorPosition.copy(headCube.position).divideScalar(2);
+
         if (renderer.domElement.width !== canvas.width || renderer.domElement.height !== canvas.height) {
             renderer.setSize(canvas.width, canvas.height, false);
         }

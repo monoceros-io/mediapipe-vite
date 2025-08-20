@@ -195,7 +195,6 @@ body {
 
 .fore-canvases {
     position: absolute;
-    display: none;
     flex-direction: row;
     height: 100%;
 }
