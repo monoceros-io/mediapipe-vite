@@ -53,6 +53,8 @@ const devices = await navigator.mediaDevices.enumerateDevices();
 let firstSet = false;// TODO NB FIRST SET TO FALSE TO RUN THE APP!
 
 
+const canvas4k = document.getElementById("canvas-4k");
+
 const cameraChange = async (id) => {
     cameraSourceActive[0] = false;
     const video = document.getElementById(`vid-0`);
@@ -68,9 +70,8 @@ const cameraChange = async (id) => {
     // Request 4K resolution (3840x2160)
     const stream = await navigator.mediaDevices.getUserMedia({
         video: {
-            width: { ideal: 3840, max: 3840 },
-            height: { ideal: 2160, max: 2160 },
-            aspectRatio: { ideal: 16 / 9 },
+            width: { exact: 3840 },
+            height: { exact: 2160 },
             deviceId: { exact: id },
             frameRate: { ideal: 60, max: 60 },
         }
@@ -100,6 +101,9 @@ const cameraChange = async (id) => {
     video.addEventListener('loadeddata', streamStart);
     video.srcObject = stream;
     video.play();
+
+
+
 }
 
 devices.filter(device => device.kind === 'videoinput').forEach((device, index) => {

@@ -469,3 +469,11 @@ body {
 .hola-text {
     text-shadow: 0.1em 0.1em 0em black;
 }
+
+.canvas-4k {
+    background-color: red;
+    position: absolute;
+    height: 100%;
+    aspect-ratio: 16 / 9;
+    left: 75%;
+}
