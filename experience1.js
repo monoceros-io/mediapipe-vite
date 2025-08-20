@@ -22,8 +22,6 @@ const nrm = v => (v - 0.5);
 let leftHandCube = null;
 let rightHandCube = null;
 let headCube = null;
-let leftChild = null;
-let rightChild = null;
 let cheeseParticles = null;
 let pepperParticles = null;
 let saltParticles = null;
@@ -34,34 +32,36 @@ let paprikaParticles = null;
 let background = { renderer: null, scene: null, camera: null, spiralMaterial: null };
 let foreground = { renderer: null, scene: null, camera: null };
 
+const leftVortexPosition = new THREE.Vector3(-1, 0, 0);
+const rightVortexPosition = new THREE.Vector3(1, 0, 0);
+const headRepulsorPosition = new THREE.Vector3(0, 1.5, 0);
+
 const leftVortex = new Force({
     type : "vortex",
-    position: new THREE.Vector3(-1, 0, 0),
+    position: leftVortexPosition,
     direction: new THREE.Vector3(-1, 0, 0),
     strength: 1,
-    radius: 1,
+    radius: 3,
     suction: 10
 });
 
 const rightVortex = new Force({
     type : "vortex",
-    position: new THREE.Vector3(1, 0, 0),
+    position: rightVortexPosition,
     direction: new THREE.Vector3(1, 0, 0),
     strength: 1,
-    radius: 1,
+    radius: 3,
     suction: 10
 });
 
-
-
 const headRepulsor = new Force({
     type : "attractor",
-    position: new THREE.Vector3(0, 1.5, 0),
+    position: headRepulsorPosition,
     strength: 10,
     radius: 1
 });
 
-const forces = [leftVortex, rightVortex, headRepulsor];
+const forces = [leftVortex, rightVortex];
 
 
 export default {
@@ -105,50 +105,24 @@ export default {
         scene.add(light);
 
         // Create hand tracking cubes first
+        // Create left hand cube and add a box mesh
         leftHandCube = new THREE.Object3D();
+
+        // Create right hand cube and add a box mesh
         rightHandCube = new THREE.Object3D();
+        // Create head cube and add a box mesh
         headCube = new THREE.Object3D();
 
-        // Create rotating child objects
-        const childGeometry = new THREE.SphereGeometry(0.2, 8, 8);
-        const childMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
-        
-        leftChild = new THREE.Mesh(childGeometry, childMaterial);
-        leftChild.position.set(0, 0.5, 0);
-        leftHandCube.add(leftChild);
-        
-        rightChild = new THREE.Mesh(childGeometry, childMaterial);
-        rightChild.position.set(0, 0.5, 0);
-        rightHandCube.add(rightChild);
-
-
-        // Add cube children to the hand objects
-        const cubeGeometry = new THREE.BoxGeometry(1.0, 1.0, 1.0);
-        const redMaterial = new THREE.MeshBasicMaterial({ 
-            color: 0xff0000,
-            transparent: false,
-            opacity: 1.0
-        });
-        
-        const leftCube = new THREE.Mesh(cubeGeometry, redMaterial);
-        leftCube.position.set(0, 0, 0); // At the parent center
-        leftHandCube.add(leftCube);
-        
-        const rightCube = new THREE.Mesh(cubeGeometry, redMaterial);
-        rightCube.position.set(0, 0, 0); // At the parent center
-        rightHandCube.add(rightCube);
         
         // Position cubes initially visible for testing
         leftHandCube.position.set(-2, 0, 0);
         rightHandCube.position.set(2, 0, 0);
 
-        
-        leftChild.visible = false;
-        rightChild.visible = false;
+/*         
         leftHandCube.visible = false;
         rightHandCube.visible = false;
         headCube.visible = false;
-
+ */
         scene.add(leftHandCube);
         scene.add(rightHandCube);
         scene.add(headCube);
@@ -160,11 +134,11 @@ export default {
             gravityForce: new THREE.Vector3(0, -0.5, 0),
             emitters : [
                 new Emitter({
-                    position: new THREE.Vector3(0, 3, 0),
-                    dimensions: new THREE.Vector3(10, 2, 10),
+                    position: new THREE.Vector3(2, 3, 0),
+                    dimensions: new THREE.Vector3(1, 1, 1),
                 })
             ],
-            initScaleBase : new THREE.Vector3( 0.1, 0.1, 0.1),
+            initScaleBase : new THREE.Vector3( 0.2, 0.2, 0.2),
             initScaleVariation : new THREE.Vector3( 0.0, 0.0, 0.0),
             initScaleScalarVariation : 1,
             minLife : 1000, maxLife : 10000,
@@ -181,22 +155,23 @@ export default {
                 { p: 0, v: 0 }, { p: 0.5, v: 1 }, { p: 1, v: 1 }
             ]),
             forces : forces,
-            emitChance : 1,
+            emitChance : 0.5,
             emitMinCount : 1,
-            emitMaxCount : 10,
+            emitMaxCount : 1,
             maxCount : 500,
             maxVelocity : 10,
             texture : "part-tex-atlas.png"
         });
-        background.scene.add(cheeseParticles.object3D);
+        
+        scene.add(cheeseParticles.object3D);
         
 
         pepperParticles = new Constellation({
             gravityForce: new THREE.Vector3(0, 0.5, 0),
             emitters : [
                 new Emitter({
-                    position: new THREE.Vector3(0, -3, 0),
-                    dimensions: new THREE.Vector3(10, 2, 10),
+                    position: new THREE.Vector3(-2, 3, 0),
+                    dimensions: new THREE.Vector3(1, 1, 1),
                 })
             ],
             initScaleBase : new THREE.Vector3( 0.1, 0.1, 0.1),
@@ -216,9 +191,9 @@ export default {
                 { p: 0, v: 0 }, { p: 0.5, v: 1 }, { p: 1, v: 1 }
             ]),
             forces : forces,
-            emitChance : 1,
+            emitChance : 0.5,
             emitMinCount : 1,
-            emitMaxCount : 10,
+            emitMaxCount : 1,
             maxCount : 500,
             maxVelocity : 10,
             texture : "salt_and_pepper.png"
@@ -233,13 +208,13 @@ export default {
             gravityForce: new THREE.Vector3(0, 0.5, 0),
             emitters : [
                 new Emitter({
-                    position: new THREE.Vector3(-2, 0, 0),
-                    dimensions: new THREE.Vector3(0, 10, 10),
+                    position: new THREE.Vector3(-2, -3, 0),
+                    dimensions: new THREE.Vector3(1, 1, 1),
                 })
             ],
             initScaleBase : new THREE.Vector3( 0.02, 0.02, 0.02),
             initScaleVariation : new THREE.Vector3( 0.0, 0.0, 0.0),
-            initScaleScalarVariation : 0.0,
+            initScaleScalarVariation : 1.0,
             initFrictionBase,
             minLife : 100, maxLife : 10000,
             scaleCurve : new Curve([{ p: 0, v: 1 }, { p: 0.8, v: 1 }, { p: 1, v: 0 }]),
@@ -257,8 +232,8 @@ export default {
             emitChance : 1,
             emitMinCount : 1,
             emitMaxCount : 100,
-            maxCount : 9000,
-            maxVelocity : 30,
+            maxCount : 2000,
+            maxVelocity : 60,
             texture : "basepart.png",
             textureDimensions : new THREE.Vector2(1, 1),
             colours : [0xffffff, 0xffff33, 0xffdd22]
@@ -273,13 +248,13 @@ export default {
             gravityForce: new THREE.Vector3(0, 0.5, 0),
             emitters : [
                 new Emitter({
-                    position: new THREE.Vector3(2, 0, 0),
-                    dimensions: new THREE.Vector3(0, 10, 10),
+                    position: new THREE.Vector3(2, -3, 0),
+                    dimensions: new THREE.Vector3(1, 1, 1),
                 })
             ],
             initScaleBase : new THREE.Vector3( 0.02, 0.02, 0.02),
             initScaleVariation : new THREE.Vector3( 0.0, 0.0, 0.0),
-            initScaleScalarVariation : 0.0,
+            initScaleScalarVariation : 1.0,
             minLife : 100, maxLife : 10000,
             scaleCurve : new Curve([{ p: 0, v: 1 }, { p: 0.8, v: 1 }, { p: 1, v: 0 }]),
             initRotationVelocity : new THREE.Vector3(0, 0, 0),
@@ -297,16 +272,13 @@ export default {
             emitChance : 1,
             emitMinCount : 1,
             emitMaxCount : 100,
-            maxCount : 9000,
-            maxVelocity : 30,
+            maxCount : 2000,
+            maxVelocity : 60,
             texture : "basepart.png",
             textureDimensions : new THREE.Vector2(1, 1),
             colours : [0xffff00, 0xffffcc, 0xffcc44]
         });
         scene.add(paprikaParticles.object3D);
-
-        
-
 
         foreground.renderer = renderer;
         foreground.scene = scene;
@@ -363,22 +335,12 @@ export default {
                     leftHandCube.position.y += (targetY - leftHandCube.position.y) * 0.1;
                     leftHandCube.position.z += (targetZ - leftHandCube.position.z) * 0.1;
                     
-                    // Update left sphere based on hand Y position
-                    if (leftChild) {
-                        const handY = nrm(hand0[1]); // -0.5 to 0.5
-                        const distance = 0.5 + Math.abs(handY) * 2; // 0.5 to 2.5 distance
-                        leftChild.position.y = distance;
-                    }
                 } else {
                     // Ease to default visible position more slowly
                     leftHandCube.position.x += (-2 - leftHandCube.position.x) * 0.1;
                     leftHandCube.position.y += (0 - leftHandCube.position.y) * 0.1;
                     leftHandCube.position.z += (0 - leftHandCube.position.z) * 0.1;
-                    
-                    // Reset left sphere to default position
-                    if (leftChild) {
-                        leftChild.position.y = 0.5;
-                    }
+                   
                 }
             }
             
@@ -393,23 +355,13 @@ export default {
                     rightHandCube.position.x += (targetX - rightHandCube.position.x) * 0.1;
                     rightHandCube.position.y += (targetY - rightHandCube.position.y) * 0.1;
                     rightHandCube.position.z += (targetZ - rightHandCube.position.z) * 0.1;
-                    
-                    // Update right sphere based on hand Y position
-                    if (rightChild) {
-                        const handY = nrm(hand1[1]); // -0.5 to 0.5
-                        const distance = 0.5 + Math.abs(handY) * 2; // 0.5 to 2.5 distance
-                        rightChild.position.y = distance;
-                    }
+                 
                 } else {
                     // Ease to default visible position more slowly
                     rightHandCube.position.x += (2 - rightHandCube.position.x) * 0.1;
                     rightHandCube.position.y += (0 - rightHandCube.position.y) * 0.1;
                     rightHandCube.position.z += (0 - rightHandCube.position.z) * 0.1;
                     
-                    // Reset right sphere to default position
-                    if (rightChild) {
-                        rightChild.position.y = 0.5;
-                    }
                 }
             }
         } else {
@@ -424,43 +376,12 @@ export default {
                 rightHandCube.position.y += (0 - rightHandCube.position.y) * 0.1;
                 rightHandCube.position.z += (0 - rightHandCube.position.z) * 0.1;
             }
-            // Reset spheres to default positions
-            if (leftChild) leftChild.position.y = 0.5;
-            if (rightChild) rightChild.position.y = 0.5;
         }
-        
-        // Rotate the parent cubes around Z axis with speed and direction based on hand Y position
-        if (leftHandCube) {
-            let rotSpeed = ROT_SPEED;
-            if (body && body.hand0.length > 0) {
-                const handY = nrm(body.hand0[1]); // -0.5 to 0.5
-                rotSpeed = ROT_SPEED * (1 + Math.abs(handY) * 3); // 1x to 4x speed
-                // Change direction based on hand height: positive Y (higher) = positive rotation
-                if (handY > 0) {
-                    leftHandCube.rotation.z += rotSpeed;
-                } else {
-                    leftHandCube.rotation.z -= rotSpeed;
-                }
-            } else {
-                leftHandCube.rotation.z += rotSpeed; // Default positive rotation
-            }
-        }
-        if (rightHandCube) {
-            let rotSpeed = ROT_SPEED;
-            if (body && body.hand1.length > 0) {
-                const handY = nrm(body.hand1[1]); // -0.5 to 0.5
-                rotSpeed = ROT_SPEED * (1 + Math.abs(handY) * 3); // 1x to 4x speed
-                // Change direction based on hand height: positive Y (higher) = negative rotation (opposite of left)
-                if (handY > 0) {
-                    rightHandCube.rotation.z -= rotSpeed;
-                } else {
-                    rightHandCube.rotation.z += rotSpeed;
-                }
-            } else {
-                rightHandCube.rotation.z -= rotSpeed; // Default negative rotation
-            }
-        }
-        
+
+        leftVortexPosition.copy(leftHandCube.position).divideScalar(2);
+        rightVortexPosition.copy(rightHandCube.position).divideScalar(2);
+        headRepulsorPosition.copy(headCube.position).divideScalar(2);
+
         if (renderer.domElement.width !== canvas.width || renderer.domElement.height !== canvas.height) {
             renderer.setSize(canvas.width, canvas.height, false);
         }

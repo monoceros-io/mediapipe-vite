@@ -53,7 +53,7 @@ let frameCounter = 0;
 
 const devices = await navigator.mediaDevices.enumerateDevices();
 
-let firstSet = true;// TODO NB FIRST SET TO FALSE TO RUN THE APP!
+let firstSet = false;// TODO NB FIRST SET TO FALSE TO RUN THE APP!
 
 
 const cameraChange = async (id) => {
@@ -308,8 +308,6 @@ let foundHolas = [false, false];
 
 function showHola(index, name = "Nick"){
 
-    console.log("HOLA show", index);
-
     if(foundHolas[index])
         return;
     foundHolas[index] = true;
@@ -327,8 +325,6 @@ function showHola(index, name = "Nick"){
 }
 
 function hideHola(index){
-
-    console.log("HOLA hide", index);
 
     if(!foundHolas[index])
         return;
