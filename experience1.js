@@ -63,11 +63,11 @@ const rightVortex = new Force({
 const headRepulsor = new Force({
     type : "attractor",
     position: headRepulsorPosition,
-    strength: 1,
+    strength: 10,
     radius: 3
 });
 
-const forces = [leftVortex, rightVortex, headRepulsor];
+const forces = [leftVortex, rightVortex];
 
 
 export default {
@@ -133,18 +133,20 @@ export default {
         scene.add(rightHandCube);
         scene.add(headCube);
 
-        const INIT_FRIC_FLOAT = 1.03;
+        const INIT_FRIC_FLOAT = 1.2;
         const initFrictionBase = new THREE.Vector3(INIT_FRIC_FLOAT, INIT_FRIC_FLOAT, INIT_FRIC_FLOAT);
+
+        const MAX_PART_VELOCITY = 20;
 
         cheeseParticles = new Constellation({
             gravityForce: new THREE.Vector3(0, 0, 0),
             emitters : [
                 new Emitter({
-                    position: new THREE.Vector3(1.5, 2, 0),
+                    position: new THREE.Vector3(1, 1, 0),
                     dimensions: new THREE.Vector3(1, 1, 1),
                 })
             ],
-            initScaleBase : new THREE.Vector3( 0.2, 0.2, 0.2),
+            initScaleBase : new THREE.Vector3( 0.15, 0.15, 0.15),
             initScaleVariation : new THREE.Vector3( 0.0, 0.0, 0.0),
             initScaleScalarVariation : 1,
             minLife : 1000, maxLife : 10000,
@@ -165,7 +167,7 @@ export default {
             emitMinCount : 1,
             emitMaxCount : 1,
             maxCount : 20,
-            maxVelocity : 10,
+            maxVelocity : MAX_PART_VELOCITY,
             texture : "part-tex-atlas.png"
         });
         
@@ -176,11 +178,11 @@ export default {
             gravityForce: new THREE.Vector3(0, 0, 0),
             emitters : [
                 new Emitter({
-                    position: new THREE.Vector3(-1.5, 2, 0),
+                    position: new THREE.Vector3(-1, 1, 0),
                     dimensions: new THREE.Vector3(1, 1, 1),
                 })
             ],
-            initScaleBase : new THREE.Vector3( 0.2, 0.2, 0.2),
+            initScaleBase : new THREE.Vector3( 0.15, 0.15, 0.15),
             initScaleVariation : new THREE.Vector3( 0.0, 0.0, 0.0),
             initScaleScalarVariation : 1,
             initFrictionBase,
@@ -201,7 +203,7 @@ export default {
             emitMinCount : 1,
             emitMaxCount : 1,
             maxCount : 20,
-            maxVelocity : 10,
+            maxVelocity : MAX_PART_VELOCITY,
             texture : "salt_and_pepper.png"
         });
         scene.add(pepperParticles.object3D);
@@ -214,7 +216,7 @@ export default {
             gravityForce: new THREE.Vector3(0, 0, 0),
             emitters : [
                 new Emitter({
-                    position: new THREE.Vector3(1.5, -2, 0),
+                    position: new THREE.Vector3(1, -1, 0),
                     dimensions: new THREE.Vector3(1, 1, 1),
                 })
             ],
@@ -238,8 +240,8 @@ export default {
             emitChance : 1,
             emitMinCount : 1,
             emitMaxCount : 100,
-            maxCount : 2000,
-            maxVelocity : 60,
+            maxCount : 1000,
+            maxVelocity : MAX_PART_VELOCITY,
             textureDimensions : new THREE.Vector2(1, 1),
             colours : [0xffffff, 0xffffff, 0xffffff]
         });
@@ -253,7 +255,7 @@ export default {
             gravityForce: new THREE.Vector3(0, 0, 0),
             emitters : [
                 new Emitter({
-                    position: new THREE.Vector3(-1.5, -2, 0),
+                    position: new THREE.Vector3(-1, -1, 0),
                     dimensions: new THREE.Vector3(1, 1, 1),
                 })
             ],
@@ -282,8 +284,8 @@ export default {
             emitChance : 1,
             emitMinCount : 1,
             emitMaxCount : 100,
-            maxCount : 4000,
-            maxVelocity : 60,
+            maxCount : 1000,
+            maxVelocity : MAX_PART_VELOCITY,
             texture : "basepart.png",
             textureDimensions : new THREE.Vector2(1, 1),
             colours : [0xffff00, 0xffffcc, 0xffcc44]
@@ -295,38 +297,41 @@ export default {
             gravityForce: new THREE.Vector3(0, -0.5, 0),
             emitters : [
                 new Emitter({
-                    position: new THREE.Vector3(0, 3, 0),
-                    dimensions: new THREE.Vector3(6, 0, 0),
+                    position: new THREE.Vector3(0, 0, 0),
+                    dimensions: new THREE.Vector3(10, 10, 10),
                 })
             ],
             initScaleBase : new THREE.Vector3( 0.1, 0.1, 0.1),
             initScaleVariation : new THREE.Vector3( 0.0, 0.0, 0.0),
-            initScaleScalarVariation : 20.0,
+            initScaleScalarVariation : 5.0,
             initVelocityBase : new THREE.Vector3(0, 0, 0),
             initVelocityVariation : new THREE.Vector3(),
-            minLife : 3000, maxLife : 12000,
-            scaleCurve : new Curve([{ p: 0, v: 1 }, { p: 0.8, v: 1 }, { p: 1, v: 1 }]),
+            minLife : 3000, maxLife : 8000,
+            scaleCurve : new Curve([{ p: 0, v: 0 }, { p: 0.3, v: 1 }, { p: 0.7, v: 1 },{ p: 1, v: 0 }]),
             initRotationVelocity : new THREE.Vector3(0, 0, 0),
             initRotationVelocityVariation : new THREE.Vector3(0, 0, 2),
             rotationVelocityCurve : new Curve([{ p: 0, v: 0 }, { p: 1, v: 1 }]),
             initAlpha : 1,
             initAlphaVariation : 0,
+            initFrictionBase, 
             alphaCurve : new Curve([
                 { p: 0, v: 1 }, { p: 0.5, v: 1 }, { p: 1, v: 1 }
             ]),
+            forces : [headRepulsor],
             colourCurves : {
-                r: new Curve([{ p: 0, v: 1 }, { p: 1, v: 1 }]),
-                g: new Curve([{ p: 0, v: 1 }, { p: 1, v: 0.3 }]),
-                b: new Curve([{ p: 0, v: 1 }, { p: 1, v: 0 }])
+                r: new Curve([{ p: 0, v: 0 }, { p: 1, v: 1 }]),
+                g: new Curve([{ p: 0, v: 0 }, { p:  1, v: 1 }]),
+                b: new Curve([{ p: 0, v: 1 }, { p: 1, v: 1 }])
             },
-            emitChance : 1,
+            sineSpeedVariation : new THREE.Vector3(35, 35, 35),
+            sineAmountVariation : new THREE.Vector3(0.5, 0.5, 0.5),
+            emitChance : 0.1,
             emitMinCount : 2,
             emitMaxCount : 2,
-            maxCount : 100,
+            maxCount : 10,
             maxVelocity : 60,
             texture : "four-chips.png",
-            textureDimensions : new THREE.Vector2(4, 2),
-            colours : [0x666666, 0x686868, 0x6a6a6a]
+            textureDimensions : new THREE.Vector2(4, 2)
         });
         background.scene.add(backgroundParticles.object3D);
 
@@ -430,9 +435,11 @@ export default {
             }
         }
 
-        leftVortexPosition.copy(leftHandCube.position).divideScalar(2);
-        rightVortexPosition.copy(rightHandCube.position).divideScalar(2);
-        headRepulsorPosition.copy(headCube.position).divideScalar(2);
+        const POS_MUL_VEC = new THREE.Vector3(0.5, 0.75, 1);
+
+        leftVortexPosition.copy(leftHandCube.position).multiply(POS_MUL_VEC);
+        rightVortexPosition.copy(rightHandCube.position).multiply(POS_MUL_VEC);
+        headRepulsorPosition.copy(headCube.position).multiply(POS_MUL_VEC);
 
         if (renderer.domElement.width !== canvas.width || renderer.domElement.height !== canvas.height) {
             renderer.setSize(canvas.width, canvas.height, false);

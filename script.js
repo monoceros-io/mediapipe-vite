@@ -70,8 +70,8 @@ const cameraChange = async (id) => {
     // Request 4K resolution (3840x2160)
     const stream = await navigator.mediaDevices.getUserMedia({
         video: {
-            width: { exact: 3840 },
-            height: { exact: 2160 },
+            width: { ideal: 3840 / 2 },
+            height: { ideal: 2160 / 2 },
             deviceId: { exact: id },
             frameRate: { ideal: 60, max: 60 },
         }
