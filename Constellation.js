@@ -357,6 +357,9 @@ function Constellation({
         },
         onParticleUpdate = (object, mesh, delta, deltaBig) => {
 
+            if(object.readyToEmit)
+                return;
+
             object.life -= deltaBig; // convert delta back to ms for life
             let p = 1 - object.life / object.startLife;
             let sc = scaleCurve.getValueAtPoint(p);
