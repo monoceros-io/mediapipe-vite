@@ -51,25 +51,28 @@ vec2 cropSample(vec2 t, vec4 area) {
 }
 
 bool aspectFitHalf(vec2 tex, float halfX0, float halfX1, vec4 area, out vec2 cropUV) {
-    float halfW = u_width / 2.0;
+
+    float halfW = u_width / 4.0;
     float halfH = u_height;
     float cropW = area.z * u_width;
     float cropH = area.w * u_height;
     float cropAspect = cropW / cropH;
-    float halfAspect = halfW / halfH;
-    float scale, padX, padY, drawW, drawH;
-    if (cropAspect > halfAspect) {
-        scale = halfW / cropW;
-        drawW = halfW;
-        drawH = cropH * scale;
-        padX = 0.0;
-        padY = (halfH - drawH) / 2.0;
-    } else {
-        scale = halfH / cropH;
+    float regionAspect = halfW / halfH;
+    float drawW, drawH, padX, padY;
+
+    // Fit the crop into the largest centered rectangle in the half-canvas, maintaining aspect
+    if (regionAspect > cropAspect) {
+        // Region is wider than crop: use full height
         drawH = halfH;
-        drawW = cropW * scale;
+        drawW = drawH * cropAspect;
         padY = 0.0;
         padX = (halfW - drawW) / 2.0;
+    } else {
+        // Region is taller than crop: use full width
+        drawW = halfW;
+        drawH = drawW / cropAspect;
+        padX = 0.0;
+        padY = (halfH - drawH) / 2.0;
     }
 
     float localX = (tex.x - halfX0) / (halfX1 - halfX0);

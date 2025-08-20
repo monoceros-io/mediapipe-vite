@@ -1,6 +1,4 @@
 import * as THREE from 'three';
-import SpiralShaderMaterial from './spiral-shader.js';
-import { CheeseParticles } from './CheeseParticles.js';
 import { bodies } from './processing.js';
 import { Constellation, Curve, Emitter, Force } from './Constellation.js';
 

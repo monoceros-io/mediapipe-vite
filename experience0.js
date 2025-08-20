@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { InstancedParticleSystem } from './InstancedParticleSystem.js';
+
 import SmokeSystem from './SmokeSystem.js';
 import SparkSystem from './SparkSystem.js';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';

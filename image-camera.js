@@ -1,13 +1,5 @@
 import eventController from "./EventController";
-import Globals from "./globals.js";
 
-const messageElements0 = document.querySelectorAll('.fsmall-0');
-const messageElements1 = document.querySelectorAll('.fsmall-1');
-
-const countdown0 = document.querySelector('#fcount-0');
-const countdown1 = document.querySelector('#fcount-1');
-
-const photoElements = document.querySelectorAll(".photo-overlay-outer");
 const foreCanvases = document.querySelectorAll(".fore-canvas");
 
 const photoEffectCanvases = document.querySelectorAll(".photo-overlay-inner");
@@ -95,6 +87,7 @@ const takePhoto = index => {
 
 
         requestAnimationFrame(() => {
+            return;
             const isLeft = index === 0;
 
             const sx = isLeft ? 0 : finalCanvas.width / 2;  // source x
@@ -105,7 +98,7 @@ const takePhoto = index => {
             const dx = 0;
             const dy = 0;
             const dWidth = photoCanvas.width;
-            const dHeight = photoCanvas.height;
+            const dHeight = photoCanvas.height / 2;
 
             photoCtx.drawImage(
                 finalCanvas,
