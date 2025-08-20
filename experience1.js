@@ -26,6 +26,7 @@ let cheeseParticles = null;
 let pepperParticles = null;
 let saltParticles = null;
 let paprikaParticles = null;
+let backgroundParticles = null;
 
 
 // Add these to hold internal state
@@ -39,7 +40,7 @@ const headRepulsorPosition = new THREE.Vector3(0, 1.5, 0);
 const leftVortex = new Force({
     type : "vortex",
     position: leftVortexPosition,
-    direction: new THREE.Vector3(-1, 0, 0),
+    direction: leftVortexPosition,
     strength: 1,
     radius: 2,
     suction: 6
@@ -48,7 +49,7 @@ const leftVortex = new Force({
 const rightVortex = new Force({
     type : "vortex",
     position: rightVortexPosition,
-    direction: new THREE.Vector3(1, 0, 0),
+    direction: rightVortexPosition,
     strength: 1,
     radius: 2,
     suction: 6
@@ -142,23 +143,23 @@ export default {
             initScaleVariation : new THREE.Vector3( 0.0, 0.0, 0.0),
             initScaleScalarVariation : 1,
             minLife : 1000, maxLife : 10000,
-            scaleCurve : new Curve([{ p: 0, v: 1 }, { p: 0.8, v: 1 }, { p: 1, v: 0 }]),
+            scaleCurve : new Curve([{ p: 0, v: 0 }, { p: 0.8, v: 1 }, { p: 1, v: 0 }]),
             initRotationVelocity : new THREE.Vector3(0, 0, 0),
             initRotationVelocityVariation : new THREE.Vector3(0, 0, 20),
             rotationVelocityCurve : new Curve([{ p: 0, v: 0 }, { p: 1, v: 1 }]),
             initVelocityBase : new THREE.Vector3(0, 0, 0),
             initVelocityVariation : new THREE.Vector3(0, 0, 0),
             initAlpha : 1,
-            initAlphaVariation : 0.1,
+            initAlphaVariation : 0,
             initFrictionBase,
             alphaCurve : new Curve([
-                { p: 0, v: 0 }, { p: 0.5, v: 1 }, { p: 1, v: 1 }
+                { p: 0, v: 1 }, { p: 1, v: 1 }
             ]),
             forces : forces,
             emitChance : 0.5,
             emitMinCount : 1,
             emitMaxCount : 1,
-            maxCount : 500,
+            maxCount : 20,
             maxVelocity : 10,
             texture : "part-tex-atlas.png"
         });
@@ -174,27 +175,27 @@ export default {
                     dimensions: new THREE.Vector3(1, 1, 1),
                 })
             ],
-            initScaleBase : new THREE.Vector3( 0.1, 0.1, 0.1),
+            initScaleBase : new THREE.Vector3( 0.2, 0.2, 0.2),
             initScaleVariation : new THREE.Vector3( 0.0, 0.0, 0.0),
             initScaleScalarVariation : 1,
             initFrictionBase,
             minLife : 1000, maxLife : 10000,
-            scaleCurve : new Curve([{ p: 0, v: 1 }, { p: 0.8, v: 1 }, { p: 1, v: 0 }]),
+            scaleCurve : new Curve([{ p: 0, v: 0 }, { p: 0.8, v: 1 }, { p: 1, v: 0 }]),
             initRotationVelocity : new THREE.Vector3(0, 0, 0),
-            initRotationVelocityVariation : new THREE.Vector3(0, 0, 20),
+            initRotationVelocityVariation : new THREE.Vector3(0, 0, 3),
             rotationVelocityCurve : new Curve([{ p: 0, v: 0 }, { p: 1, v: 1 }]),
             initVelocityBase : new THREE.Vector3(0, 0, 0),
             initVelocityVariation : new THREE.Vector3(0, 0, 0),
             initAlpha : 1,
-            initAlphaVariation : 0.1,
+            initAlphaVariation : 0,
             alphaCurve : new Curve([
-                { p: 0, v: 0 }, { p: 0.5, v: 1 }, { p: 1, v: 1 }
+                { p: 0, v: 1 }, { p: 1, v: 1 }
             ]),
             forces : forces,
             emitChance : 0.5,
             emitMinCount : 1,
             emitMaxCount : 1,
-            maxCount : 500,
+            maxCount : 20,
             maxVelocity : 10,
             texture : "salt_and_pepper.png"
         });
@@ -212,9 +213,9 @@ export default {
                     dimensions: new THREE.Vector3(1, 1, 1),
                 })
             ],
-            initScaleBase : new THREE.Vector3( 0.02, 0.02, 0.02),
+            initScaleBase : new THREE.Vector3( 0.01, 0.01, 0.01),
             initScaleVariation : new THREE.Vector3( 0.0, 0.0, 0.0),
-            initScaleScalarVariation : 1.0,
+            initScaleScalarVariation : 2.0,
             initFrictionBase,
             minLife : 100, maxLife : 10000,
             scaleCurve : new Curve([{ p: 0, v: 1 }, { p: 0.8, v: 1 }, { p: 1, v: 0 }]),
@@ -232,11 +233,11 @@ export default {
             emitChance : 1,
             emitMinCount : 1,
             emitMaxCount : 100,
-            maxCount : 2000,
+            maxCount : 4000,
             maxVelocity : 60,
             texture : "basepart.png",
             textureDimensions : new THREE.Vector2(1, 1),
-            colours : [0xffffff, 0xffff33, 0xffdd22]
+            colours : [0xffffff, 0xffffff, 0xffffff]
         });
         scene.add(saltParticles.object3D);
         
@@ -252,9 +253,9 @@ export default {
                     dimensions: new THREE.Vector3(1, 1, 1),
                 })
             ],
-            initScaleBase : new THREE.Vector3( 0.02, 0.02, 0.02),
+            initScaleBase : new THREE.Vector3( 0.01, 0.01, 0.01),
             initScaleVariation : new THREE.Vector3( 0.0, 0.0, 0.0),
-            initScaleScalarVariation : 1.0,
+            initScaleScalarVariation : 2.0,
             minLife : 100, maxLife : 10000,
             scaleCurve : new Curve([{ p: 0, v: 1 }, { p: 0.8, v: 1 }, { p: 1, v: 0 }]),
             initRotationVelocity : new THREE.Vector3(0, 0, 0),
@@ -268,17 +269,62 @@ export default {
             alphaCurve : new Curve([
                 { p: 0, v: 0 }, { p: 0.5, v: 1 }, { p: 1, v: 0 }
             ]),
+            colourCurves : {
+                r: new Curve([{ p: 0, v: 1 }, { p: 1, v: 1 }]),
+                g: new Curve([{ p: 0, v: 1 }, { p: 1, v: 0 }]),
+                b: new Curve([{ p: 0, v: 1 }, { p: 1, v: 0 }])
+            },
             forces : forces,
             emitChance : 1,
             emitMinCount : 1,
             emitMaxCount : 100,
-            maxCount : 2000,
+            maxCount : 4000,
             maxVelocity : 60,
             texture : "basepart.png",
             textureDimensions : new THREE.Vector2(1, 1),
             colours : [0xffff00, 0xffffcc, 0xffcc44]
         });
         scene.add(paprikaParticles.object3D);
+
+
+        backgroundParticles = new Constellation({
+            gravityForce: new THREE.Vector3(0, -0.5, 0),
+            emitters : [
+                new Emitter({
+                    position: new THREE.Vector3(0, 3, 0),
+                    dimensions: new THREE.Vector3(6, 0, 0),
+                })
+            ],
+            initScaleBase : new THREE.Vector3( 0.1, 0.1, 0.1),
+            initScaleVariation : new THREE.Vector3( 0.0, 0.0, 0.0),
+            initScaleScalarVariation : 20.0,
+            initVelocityBase : new THREE.Vector3(0, 0, 0),
+            initVelocityVariation : new THREE.Vector3(),
+            minLife : 3000, maxLife : 12000,
+            scaleCurve : new Curve([{ p: 0, v: 1 }, { p: 0.8, v: 1 }, { p: 1, v: 1 }]),
+            initRotationVelocity : new THREE.Vector3(0, 0, 0),
+            initRotationVelocityVariation : new THREE.Vector3(0, 0, 2),
+            rotationVelocityCurve : new Curve([{ p: 0, v: 0 }, { p: 1, v: 1 }]),
+            initAlpha : 1,
+            initAlphaVariation : 0,
+            alphaCurve : new Curve([
+                { p: 0, v: 1 }, { p: 0.5, v: 1 }, { p: 1, v: 1 }
+            ]),
+            colourCurves : {
+                r: new Curve([{ p: 0, v: 1 }, { p: 1, v: 1 }]),
+                g: new Curve([{ p: 0, v: 1 }, { p: 1, v: 0.3 }]),
+                b: new Curve([{ p: 0, v: 1 }, { p: 1, v: 0 }])
+            },
+            emitChance : 1,
+            emitMinCount : 2,
+            emitMaxCount : 2,
+            maxCount : 100,
+            maxVelocity : 60,
+            texture : "four-chips.png",
+            textureDimensions : new THREE.Vector2(4, 2),
+            colours : [0x666666, 0x686868, 0x6a6a6a]
+        });
+        background.scene.add(backgroundParticles.object3D);
 
         foreground.renderer = renderer;
         foreground.scene = scene;
@@ -304,9 +350,11 @@ export default {
         if(paprikaParticles){
             paprikaParticles.update();
         }
-       
 
-        
+        if(backgroundParticles){
+            backgroundParticles.update();
+        }
+
         // Update hand tracking cubes
         // Use the correct skeleton based on view (matching threeview.js logic)
         const body = bodies[1 - view];
