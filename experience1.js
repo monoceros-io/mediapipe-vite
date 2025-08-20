@@ -41,8 +41,8 @@ const leftVortex = new Force({
     position: leftVortexPosition,
     direction: new THREE.Vector3(-1, 0, 0),
     strength: 1,
-    radius: 3,
-    suction: 10
+    radius: 2,
+    suction: 6
 });
 
 const rightVortex = new Force({
@@ -50,18 +50,18 @@ const rightVortex = new Force({
     position: rightVortexPosition,
     direction: new THREE.Vector3(1, 0, 0),
     strength: 1,
-    radius: 3,
-    suction: 10
+    radius: 2,
+    suction: 6
 });
 
 const headRepulsor = new Force({
     type : "attractor",
     position: headRepulsorPosition,
-    strength: 10,
-    radius: 1
+    strength: 1,
+    radius: 3
 });
 
-const forces = [leftVortex, rightVortex];
+const forces = [leftVortex, rightVortex, headRepulsor];
 
 
 export default {
@@ -131,10 +131,10 @@ export default {
         const initFrictionBase = new THREE.Vector3(INIT_FRIC_FLOAT, INIT_FRIC_FLOAT, INIT_FRIC_FLOAT);
 
         cheeseParticles = new Constellation({
-            gravityForce: new THREE.Vector3(0, -0.5, 0),
+            gravityForce: new THREE.Vector3(0, 0, 0),
             emitters : [
                 new Emitter({
-                    position: new THREE.Vector3(2, 3, 0),
+                    position: new THREE.Vector3(1.5, 2, 0),
                     dimensions: new THREE.Vector3(1, 1, 1),
                 })
             ],
@@ -167,10 +167,10 @@ export default {
         
 
         pepperParticles = new Constellation({
-            gravityForce: new THREE.Vector3(0, 0.5, 0),
+            gravityForce: new THREE.Vector3(0, 0, 0),
             emitters : [
                 new Emitter({
-                    position: new THREE.Vector3(-2, 3, 0),
+                    position: new THREE.Vector3(-1.5, 2, 0),
                     dimensions: new THREE.Vector3(1, 1, 1),
                 })
             ],
@@ -205,10 +205,10 @@ export default {
 
         saltParticles = new Constellation({
             geometry : saltGeo,
-            gravityForce: new THREE.Vector3(0, 0.5, 0),
+            gravityForce: new THREE.Vector3(0, 0, 0),
             emitters : [
                 new Emitter({
-                    position: new THREE.Vector3(-2, -3, 0),
+                    position: new THREE.Vector3(1.5, -2, 0),
                     dimensions: new THREE.Vector3(1, 1, 1),
                 })
             ],
@@ -245,10 +245,10 @@ export default {
 
         paprikaParticles = new Constellation({
             geometry : paprikaGeo,
-            gravityForce: new THREE.Vector3(0, 0.5, 0),
+            gravityForce: new THREE.Vector3(0, 0, 0),
             emitters : [
                 new Emitter({
-                    position: new THREE.Vector3(2, -3, 0),
+                    position: new THREE.Vector3(-1.5, -2, 0),
                     dimensions: new THREE.Vector3(1, 1, 1),
                 })
             ],
