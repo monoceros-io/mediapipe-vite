@@ -10,9 +10,16 @@ const ROT_SPEED = 0.1;
 // Equilateral triangle geometry centered at origin, side length 1
 const a = 1;
 const h = Math.sqrt(3) / 2 * a;
-
-// Salt plane geometry
-const saltGeo = new THREE.PlaneGeometry(1, 1);
+// Salt triangle geometry
+const saltGeo = new THREE.BufferGeometry();
+const vertices = new Float32Array([
+    0, h / 3, 0,
+    -a / 2, -h / 3 * 2, 0,
+    a / 2, -h / 3 * 2, 0
+]);
+saltGeo.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+saltGeo.setIndex([0, 1, 2]);
+saltGeo.computeVertexNormals();
 
 // Paprika plane geometry
 const paprikaGeo = new THREE.PlaneGeometry(1, 1);
@@ -40,7 +47,7 @@ const headRepulsorPosition = new THREE.Vector3(0, 1.5, 0);
 const leftVortex = new Force({
     type : "vortex",
     position: leftVortexPosition,
-    direction: leftVortexPosition,
+    direction: rightVortexPosition,
     strength: 1,
     radius: 2,
     suction: 6
@@ -49,7 +56,7 @@ const leftVortex = new Force({
 const rightVortex = new Force({
     type : "vortex",
     position: rightVortexPosition,
-    direction: rightVortexPosition,
+    direction: leftVortexPosition,
     strength: 1,
     radius: 2,
     suction: 6
@@ -218,9 +225,9 @@ export default {
             initScaleScalarVariation : 2.0,
             initFrictionBase,
             minLife : 100, maxLife : 10000,
-            scaleCurve : new Curve([{ p: 0, v: 1 }, { p: 0.8, v: 1 }, { p: 1, v: 0 }]),
+            scaleCurve : new Curve([{ p: 0, v: 0 }, { p: 0.8, v: 1 }, { p: 1, v: 0 }]),
             initRotationVelocity : new THREE.Vector3(0, 0, 0),
-            initRotationVelocityVariation : new THREE.Vector3(20, 20, 20),
+            initRotationVelocityVariation : new THREE.Vector3(100, 100, 100),
             rotationVelocityCurve : new Curve([{ p: 0, v: 0 }, { p: 1, v: 1 }]),
             initVelocityBase : new THREE.Vector3(0, 0, 0),
             initVelocityVariation : new THREE.Vector3(0, 0, 0),
@@ -233,9 +240,8 @@ export default {
             emitChance : 1,
             emitMinCount : 1,
             emitMaxCount : 100,
-            maxCount : 4000,
+            maxCount : 2000,
             maxVelocity : 60,
-            texture : "basepart.png",
             textureDimensions : new THREE.Vector2(1, 1),
             colours : [0xffffff, 0xffffff, 0xffffff]
         });
