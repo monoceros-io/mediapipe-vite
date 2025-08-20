@@ -308,6 +308,8 @@ let foundHolas = [false, false];
 
 function showHola(index, name = "Nick"){
 
+    return;
+
     if(foundHolas[index])
         return;
     foundHolas[index] = true;
@@ -325,6 +327,9 @@ function showHola(index, name = "Nick"){
 }
 
 function hideHola(index){
+
+    
+    return;
 
     if(!foundHolas[index])
         return;
