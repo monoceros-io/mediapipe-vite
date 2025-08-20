@@ -303,7 +303,7 @@ export default {
             ],
             initScaleBase : new THREE.Vector3( 0.1, 0.1, 0.1),
             initScaleVariation : new THREE.Vector3( 0.0, 0.0, 0.0),
-            initScaleScalarVariation : 5.0,
+            initScaleScalarVariation : 40.0,
             initVelocityBase : new THREE.Vector3(0, 0, 0),
             initVelocityVariation : new THREE.Vector3(),
             minLife : 3000, maxLife : 8000,
@@ -328,7 +328,7 @@ export default {
             emitChance : 0.1,
             emitMinCount : 2,
             emitMaxCount : 2,
-            maxCount : 10,
+            maxCount : 100,
             maxVelocity : 60,
             texture : "four-chips.png",
             textureDimensions : new THREE.Vector2(4, 2)
