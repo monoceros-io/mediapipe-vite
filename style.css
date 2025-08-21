@@ -473,3 +473,7 @@ body {
 .hola-text {
     text-shadow: 0.1em 0.1em 0em black;
 }
+
+#fore-canvas-0 {
+    mix-blend-mode: color-dodge;
+}

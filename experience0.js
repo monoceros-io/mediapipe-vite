@@ -65,7 +65,7 @@ const ChromaticAberrationShader = {
 
 const nrm = v => (v - 0.5);
 
-let backParticles, backParticlesBig, backParticlesSpirals, frontParticles;
+let backParticles, backParticlesBig, backParticlesSpirals, frontParticles, foregroundParticles, backTrackParticles;
 
 const bigChillies = [];
 
@@ -85,10 +85,32 @@ const bigChiliGeo = new THREE.PlaneGeometry(1, 1);
 const leftHandCube = new THREE.Object3D();
         // Create right hand cube and add a box mesh
 const rightHandCube = new THREE.Object3D();
-        // Create head cube and add a box mesh
-const headCube = new THREE.Object3D();
 
 
+const leftForcePosition = new THREE.Vector3(-2, 1, 0);
+const rightForcePosition = new THREE.Vector3(2, 1, 0);
+
+
+const forces = [
+    new Force({
+        type : "attractor",
+        position: leftForcePosition,
+        strength: 100,
+        radius: 10,
+        suction : 100,
+        direction : new THREE.Vector3(0, 0, 1)
+    }),
+    new Force({
+        type : "attractor",
+        position: rightForcePosition,
+        strength: 100,
+        radius: 10,
+        suction : 100,
+        direction : new THREE.Vector3(0, 0, 1)
+    })
+];
+
+const bigChiliContainer = new THREE.Object3D();
 
 export default {
     foreBlendMode: "plus-lighter",
@@ -132,28 +154,6 @@ export default {
         composer.addPass(chromaticAberrationPass);
 
 
-        const leftForcePosition = new THREE.Vector3(-2, 1, 0);
-        const rightForcePosition = new THREE.Vector3(2, 1, 0);
-
-        const forces = [
-            new Force({
-                type : "vortex",
-                position: leftForcePosition,
-                strength: 10,
-                radius: 10,
-                suction : 100,
-                direction : new THREE.Vector3(0, 0, 1)
-            }),
-            new Force({
-                type : "vortex",
-                position: rightForcePosition,
-                strength: 10,
-                radius: 10,
-                suction : 100,
-                direction : new THREE.Vector3(0, 0, 1)
-            })
-        ];
-
         const geometry = new THREE.PlaneGeometry(1, 1);
         starPlanes = [];
         starScales = [];
@@ -189,6 +189,7 @@ export default {
         background.scene = scene;
         background.camera = camera;
 
+      
         
         
         backParticles = new Constellation({
@@ -196,16 +197,16 @@ export default {
             emitters : [
                 new Emitter({
                     position: new THREE.Vector3(0, 0, 0),
-                    dimensions: new THREE.Vector3(0, 0, 0),
+                    dimensions: new THREE.Vector3(10, 10, 10),
                 })
             ],
-            initScaleBase : new THREE.Vector3( 0.04, 0.5, 0.05),
-            initScaleVariation : new THREE.Vector3( 0.0, 1, 0.0),
+            initScaleBase : new THREE.Vector3( 0.02, 0.2, 0.02),
+            initScaleVariation : new THREE.Vector3( 0.0, 0.2, 0.0),
             initScaleScalarVariation : 1,
-            minLife : 100, maxLife : 2000,
+            minLife : 300, maxLife : 3000,
             scaleCurve : new Curve([{ p: 0, v: 0 }, { p: 0.9, v: 1 }, { p: 1, v: 0 }]),
             initVelocityBase : new THREE.Vector3(0, 0, 0),
-            initVelocityVariation : new THREE.Vector3(100, 100, 100),
+            initVelocityVariation : new THREE.Vector3(2, 2, 2),
             initAlpha : 1,
             initAlphaVariation : 1,
             alphaCurve : new Curve([{ p: 0, v: 0 }, { p: 0.9, v: 1 }, { p: 1, v: 0 }]),
@@ -215,11 +216,11 @@ export default {
                 b: new Curve([{ p: 0, v: 1 }, { p: 1, v: 0.5 }])
             },
             lerpToFaceMotion : 1,
-            forces : [],
             emitChance : 1,
+            forces : forces,
             emitMinCount : 1,
-            emitMaxCount : 20,
-            maxCount : 100,
+            emitMaxCount : 100,
+            maxCount : 2000,
             maxVelocity : 15,
             texture : "basepart.png",
             textureDimensions: new THREE.Vector2(1, 1),
@@ -243,7 +244,7 @@ export default {
             scaleCurve : new Curve([{ p: 0, v: 0 }, { p: 0.8, v: 1 }, { p: 1, v: 0 }]),
             initVelocityBase : new THREE.Vector3(0, 0, 0),
             initVelocityVariation : new THREE.Vector3(10, 10, 10),
-            initAlpha : 0.02,
+            initAlpha : 0.1,
             initAlphaVariation : 0.1,
             alphaCurve : new Curve([{ p: 0, v: 0 }, { p: 0.8, v: 1 }, { p: 1, v: 0 }]),
             colourCurves : {
@@ -279,7 +280,7 @@ export default {
             scaleCurve : new Curve([{ p: 0, v: 0 }, { p: 0.2, v: 1 }, { p: 1, v: 1 }]),
             initVelocityBase : new THREE.Vector3(0, 0, 20),
             initVelocityVariation : new THREE.Vector3(0, 0, 5),
-            initAlpha : 0.02,
+            initAlpha : 0.2,
             initAlphaVariation : 0.02,
             alphaCurve : new Curve([{ p: 0, v: 0 }, { p: 0.2, v: 1 }, { p: 1, v: 0 }]),
             colourCurves : {
@@ -288,56 +289,18 @@ export default {
                 b: new Curve([{ p: 0, v: 1 }, { p: 1, v: 0.5 }])
             },
             forces : [],
-            emitChance : 0.04,
+            emitChance : 0.1,
             emitMinCount : 1,
             emitMaxCount : 1,
-            maxCount : 10,
+            maxCount : 1,
             maxVelocity : 10,
             texture : "jala/six-chili.png",
             textureDimensions: new THREE.Vector2(1, 1),
         });
         scene.add(backParticlesSpirals.object3D);
 
-        
-        frontParticles = new Constellation({
-            gravityForce: new THREE.Vector3(0, 0, 0),
-            emitters : [
-                new Emitter({
-                    position: new THREE.Vector3(0, 0, 0),
-                    dimensions: new THREE.Vector3(10, 30, 0),
-                })
-            ],
-            initScaleBase : new THREE.Vector3( 0.2, 0.2, 0.2),
-            initScaleVariation : new THREE.Vector3( 0.0, 0.0, 0.0),
-            initScaleScalarVariation : 2.3,
-            initRotationVelocityVariation : new THREE.Vector3(0, 0, 4),
-            minLife : 2000, maxLife : 5000,
-            scaleCurve : new Curve([{ p: 0, v: 0 }, { p: 0.5, v: 1 }, { p: 1, v: 0 }]),
-            initVelocityBase : new THREE.Vector3(0, 0, 0),
-            initVelocityVariation : new THREE.Vector3(0, 0, 0),
-            initAlpha : 1,
-            lerpToFaceMotion : 0.9,
-            initAlphaVariation : 0.5,
-            sineSpeedBase : new THREE.Vector3(4, 5, 6),
-            sineAmountBase : new THREE.Vector3(0.2, 0.2, 0.2),
-            sineCurve : new Curve([{ p: 0.0, v: 1 }, { p: 1, v: 0 }]),
-            alphaCurve : new Curve([{ p: 0, v: 0 }, { p: 0.5, v: 1 }, { p: 1, v: 0 }]),
-            colourCurves : {
-                r: new Curve([{ p: 0, v: 1 }, { p: 1, v: 0.1 }]),
-                g: new Curve([{ p: 0, v: 1 }, { p: 1, v: 1 }]),
-                b: new Curve([{ p: 0, v: 1 }, { p: 1, v: 0.5 }])
-            },
-            forces : forces,
-            emitChance : 1,
-            emitMinCount : 1,
-            emitMaxCount : 10,
-            maxCount : 100,
-            maxVelocity : 10,
-            texture : "jala/back-single.png",
-            textureDimensions: new THREE.Vector2(1, 1),
-        });
-        scene.add(frontParticles.object3D);
 
+        scene.add(bigChiliContainer);
 
         for(let i = 0; i < 6; i++) {
             const bigChiliMesh = new THREE.Mesh(bigChiliGeo, bigChiliMat);
@@ -346,8 +309,10 @@ export default {
                 Math.sin((i / 6) * Math.PI * 2) * 2,
                 0
             );
+            bigChiliMesh.baseRot = bigChiliMesh.rotation.z = (i / 6) * Math.PI * 2 + Math.PI / 2;
+            
             bigChillies.push(bigChiliMesh);
-            scene.add(bigChiliMesh);
+            bigChiliContainer.add(bigChiliMesh);
         }
 
         
@@ -376,75 +341,60 @@ export default {
         backParticles.update();
         backParticlesBig.update();
         backParticlesSpirals.update();
-        frontParticles.update();
-
-        const body = bodies[1 - view];
+        const MOVE_SCALE_X = -10;
+        const MOVE_SCALE_Y = -25;
+        const body = bodies[view];
         if (body) {
             const { hand0, hand1 } = body;
-
-            
-            // Position head cube using body.head data
-            if (headCube && body.head && body.head.length > 0) {
-                const targetX = nrm(body.head[0]) * -5;
-                const targetY = nrm(body.head[1]) * -5;
-                const targetZ = body.head[2] || 0;
-                headCube.position.x += (targetX - headCube.position.x) * 0.25;
-                headCube.position.y += (targetY - headCube.position.y) * 0.25;
-                headCube.position.z += (targetZ - headCube.position.z) * 0.25;
-            }
-            
-            if (hand0.length > 0) {
-                // Use smaller scale factor to keep cubes in view
-                const targetX = nrm(hand0[0]) * -5;
-                const targetY = nrm(hand0[1]) * -5;
-                const targetZ = 0;
-                // Ease to target position more slowly
-                leftHandCube.position.x += (targetX - leftHandCube.position.x);
-                leftHandCube.position.y += (targetY - leftHandCube.position.y);
-                leftHandCube.position.z += (targetZ - leftHandCube.position.z);
-                
-            } else {
-                // Ease to default visible position more slowly
-                leftHandCube.position.x += (-2 - leftHandCube.position.x);
-                leftHandCube.position.y += (1 - leftHandCube.position.y);
-                leftHandCube.position.z += (0 - leftHandCube.position.z);
-                
-            }
-            
             
             // Position right hand cube
-            
-            if (hand1.length > 0) {
-                // Use smaller scale factor to keep cubes in view
-                const targetX = nrm(hand1[0]) * -5;
-                const targetY = nrm(hand1[1]) * -5;
-                const targetZ = 0;
-                // Ease to target position more slowly
-                rightHandCube.position.x += (targetX - rightHandCube.position.x);
-                rightHandCube.position.y += (targetY - rightHandCube.position.y);
-                rightHandCube.position.z += (targetZ - rightHandCube.position.z);
-                
-            } else {
-                // Ease to default visible position more slowly
-                rightHandCube.position.x += (2 - rightHandCube.position.x);
-                rightHandCube.position.y += (-1 - rightHandCube.position.y);
-                rightHandCube.position.z += (0 - rightHandCube.position.z);
-
+            if (rightHandCube) {
+                if (hand1.length > 0) {
+                    rightHandCube.position.x += (nrm(hand1[0]) * MOVE_SCALE_X - rightHandCube.position.x) * 0.3;
+                    rightHandCube.position.y += (nrm(hand1[1]) * MOVE_SCALE_Y - rightHandCube.position.y) * 0.3;
+                }
             }
-            
+
+            if (leftHandCube) {
+                if (hand0.length > 0) {
+                    leftHandCube.position.x += (nrm(hand0[0]) * MOVE_SCALE_X - leftHandCube.position.x) * 0.3;
+                    leftHandCube.position.y += (nrm(hand0[1]) * MOVE_SCALE_Y - leftHandCube.position.y) * 0.3;
+                }
+            }
+
         } else {
             // If no body data, ease cubes to default positions more slowly
-            
-                leftHandCube.position.x += (-2 - leftHandCube.position.x);
-                leftHandCube.position.y += (1 - leftHandCube.position.y);
-                leftHandCube.position.z += (0 - leftHandCube.position.z);
-
-                rightHandCube.position.x += (2 - rightHandCube.position.x);
-                rightHandCube.position.y += (-1 - rightHandCube.position.y);
-                rightHandCube.position.z += (0 - rightHandCube.position.z);
-            
+           
         }
+
+        leftForcePosition.copy(leftHandCube.position);
+
+        rightForcePosition.copy(rightHandCube.position);
+
+        // Ease bigChiliContainer.rotation.z towards target value
+        const targetRotationZ = leftHandCube.position.y / 10;
+        bigChiliContainer.rotation.z += (targetRotationZ - bigChiliContainer.rotation.z) * 0.1;
+
         
+        // Smoothly ease bigChiliContainer.scale towards targetScale
+        const targetScale = Math.max(0.1, 1 + rightHandCube.position.y / 10);
+        const ease = 0.08; // Lower = smoother/slower
+        const currentScale = bigChiliContainer.scale.x;
+        const newScale = currentScale + (targetScale - currentScale) * ease;
+        //bigChiliContainer.scale.setScalar(newScale);
+
+
+        const rhx = rightHandCube.position.y * 0.1;
+        const lhx = leftHandCube.position.y * 0.5;
+
+        // Add easing for rotation and z position
+        bigChillies.forEach((chili, i) => {
+            const targetRotation = chili.baseRot + (rhx * Math.PI * 2);
+            const targetZ = lhx * i;
+
+            // Easing factor (0.1 for smoothness, adjust as needed)
+            chili.rotation.z += (targetRotation - chili.rotation.z) * 0.1;
+        });
 
     },
 
@@ -487,19 +437,15 @@ export default {
         const smallCubeMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
 
         const leftHandSmallCube = new THREE.Mesh(smallCubeGeometry, smallCubeMaterial);
-        leftHandCube.add(leftHandSmallCube);
+        //leftHandCube.add(leftHandSmallCube);
 
         const rightHandSmallCube = new THREE.Mesh(smallCubeGeometry, smallCubeMaterial);
-        rightHandCube.add(rightHandSmallCube);
-
-        const headSmallCube = new THREE.Mesh(smallCubeGeometry, smallCubeMaterial);
-        headCube.add(headSmallCube);
+        //rightHandCube.add(rightHandSmallCube);
 
         // Add cubes to the scene
         scene.add(leftHandCube);
         scene.add(rightHandCube);
-        scene.add(headCube);
-        
+
 
  
     },

@@ -142,14 +142,14 @@ export default {
             gravityForce: new THREE.Vector3(0, 0, 0),
             emitters : [
                 new Emitter({
-                    position: new THREE.Vector3(0.5, 1, 0),
+                    position: new THREE.Vector3(0.75, 2, 0),
                     dimensions: new THREE.Vector3(1, 1, 1),
                 })
             ],
-            initScaleBase : new THREE.Vector3( 0.05, 0.05, 0.05),
+            initScaleBase : new THREE.Vector3( 0.1, 0.1, 0.1),
             initScaleVariation : new THREE.Vector3( 0.0, 0.0, 0.0),
             initScaleScalarVariation : 1,
-            minLife : 1000, maxLife : 10000,
+            minLife : 1000, maxLife : 4000,
             scaleCurve : new Curve([{ p: 0, v: 0 }, { p: 0.8, v: 1 }, { p: 1, v: 0 }]),
             initRotationVelocity : new THREE.Vector3(0, 0, 0),
             initRotationVelocityVariation : new THREE.Vector3(0, 0, 20),
@@ -178,13 +178,13 @@ export default {
             gravityForce: new THREE.Vector3(0, 0, 0),
             emitters : [
                 new Emitter({
-                    position: new THREE.Vector3(-0.5, 1, 0),
+                    position: new THREE.Vector3(-0.75, 2, 0),
                     dimensions: new THREE.Vector3(1, 1, 1),
                 })
             ],
-            initScaleBase : new THREE.Vector3( 0.05, 0.05, 0.05),
+            initScaleBase : new THREE.Vector3( 0.1, 0.1, 0.1),
             initScaleVariation : new THREE.Vector3( 0.0, 0.0, 0.0),
-            initScaleScalarVariation : 1,
+            initScaleScalarVariation : 2,
             initFrictionBase,
             minLife : 1000, maxLife : 10000,
             scaleCurve : new Curve([{ p: 0, v: 0 }, { p: 0.8, v: 1 }, { p: 1, v: 0 }]),
@@ -216,7 +216,7 @@ export default {
             gravityForce: new THREE.Vector3(0, 0, 0),
             emitters : [
                 new Emitter({
-                    position: new THREE.Vector3(0.5, -1, 0),
+                    position: new THREE.Vector3(0.75, -2, 0),
                     dimensions: new THREE.Vector3(1, 1, 1),
                 })
             ],
@@ -240,7 +240,7 @@ export default {
             emitChance : 1,
             emitMinCount : 1,
             emitMaxCount : 100,
-            maxCount : 2000,
+            maxCount : 1000,
             maxVelocity : MAX_PART_VELOCITY,
             textureDimensions : new THREE.Vector2(1, 1),
             colours : [0xffffff, 0xffffff, 0xffffff]
@@ -255,7 +255,7 @@ export default {
             gravityForce: new THREE.Vector3(0, 0, 0),
             emitters : [
                 new Emitter({
-                    position: new THREE.Vector3(-0.5, -1, 0),
+                    position: new THREE.Vector3(-0.75, -2, 0),
                     dimensions: new THREE.Vector3(1, 1, 1),
                 })
             ],
@@ -284,7 +284,7 @@ export default {
             emitChance : 1,
             emitMinCount : 1,
             emitMaxCount : 100,
-            maxCount : 2000,
+            maxCount : 1000,
             maxVelocity : MAX_PART_VELOCITY,
             texture : "basepart.png",
             textureDimensions : new THREE.Vector2(1, 1),
