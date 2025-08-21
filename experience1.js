@@ -142,11 +142,11 @@ export default {
             gravityForce: new THREE.Vector3(0, 0, 0),
             emitters : [
                 new Emitter({
-                    position: new THREE.Vector3(1, 1, 0),
+                    position: new THREE.Vector3(0.5, 1, 0),
                     dimensions: new THREE.Vector3(1, 1, 1),
                 })
             ],
-            initScaleBase : new THREE.Vector3( 0.15, 0.15, 0.15),
+            initScaleBase : new THREE.Vector3( 0.05, 0.05, 0.05),
             initScaleVariation : new THREE.Vector3( 0.0, 0.0, 0.0),
             initScaleScalarVariation : 1,
             minLife : 1000, maxLife : 10000,
@@ -178,11 +178,11 @@ export default {
             gravityForce: new THREE.Vector3(0, 0, 0),
             emitters : [
                 new Emitter({
-                    position: new THREE.Vector3(-1, 1, 0),
+                    position: new THREE.Vector3(-0.5, 1, 0),
                     dimensions: new THREE.Vector3(1, 1, 1),
                 })
             ],
-            initScaleBase : new THREE.Vector3( 0.15, 0.15, 0.15),
+            initScaleBase : new THREE.Vector3( 0.05, 0.05, 0.05),
             initScaleVariation : new THREE.Vector3( 0.0, 0.0, 0.0),
             initScaleScalarVariation : 1,
             initFrictionBase,
@@ -216,7 +216,7 @@ export default {
             gravityForce: new THREE.Vector3(0, 0, 0),
             emitters : [
                 new Emitter({
-                    position: new THREE.Vector3(1, -1, 0),
+                    position: new THREE.Vector3(0.5, -1, 0),
                     dimensions: new THREE.Vector3(1, 1, 1),
                 })
             ],
@@ -240,7 +240,7 @@ export default {
             emitChance : 1,
             emitMinCount : 1,
             emitMaxCount : 100,
-            maxCount : 1000,
+            maxCount : 2000,
             maxVelocity : MAX_PART_VELOCITY,
             textureDimensions : new THREE.Vector2(1, 1),
             colours : [0xffffff, 0xffffff, 0xffffff]
@@ -255,7 +255,7 @@ export default {
             gravityForce: new THREE.Vector3(0, 0, 0),
             emitters : [
                 new Emitter({
-                    position: new THREE.Vector3(-1, -1, 0),
+                    position: new THREE.Vector3(-0.5, -1, 0),
                     dimensions: new THREE.Vector3(1, 1, 1),
                 })
             ],
@@ -284,7 +284,7 @@ export default {
             emitChance : 1,
             emitMinCount : 1,
             emitMaxCount : 100,
-            maxCount : 1000,
+            maxCount : 2000,
             maxVelocity : MAX_PART_VELOCITY,
             texture : "basepart.png",
             textureDimensions : new THREE.Vector2(1, 1),
@@ -333,7 +333,7 @@ export default {
             texture : "four-chips.png",
             textureDimensions : new THREE.Vector2(4, 2)
         });
-        background.scene.add(backgroundParticles.object3D);
+        //background.scene.add(backgroundParticles.object3D);
 
         foreground.renderer = renderer;
         foreground.scene = scene;
@@ -360,9 +360,9 @@ export default {
             paprikaParticles.update();
         }
 
-        if(backgroundParticles){
+        /* if(backgroundParticles){
             backgroundParticles.update();
-        }
+        } */
 
         // Update hand tracking cubes
         // Use the correct skeleton based on view (matching threeview.js logic)

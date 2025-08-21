@@ -1,13 +1,12 @@
 import * as THREE from 'three';
 import { InstancedParticleSystem } from './InstancedParticleSystem.js';
 
-import SmokeSystem from './SmokeSystem.js';
-import SparkSystem from './SparkSystem.js';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { bodies } from './processing.js';
+import { Constellation, Curve, Emitter, Force } from './Constellation.js';
 
 const EXPERIENCE_COLOR = 0xffff00;
 const FORE_SPRITE_COUNT = 0;
@@ -31,54 +30,8 @@ let background = { renderer: null, scene: null, camera: null };
 let foreground = { renderer: null, scene: null, camera: null };
 
 let scene, camera;
-let chiliParticles = null; // reference to InstancedParticleSystem
-let smokeSystem = null; // reference to SmokeSystem
-let sparkSystem = null; // reference to SparkSystem
 let composer = null; // Post-processing composer
 
-const dummyGeometry = new THREE.SphereGeometry(0.5, 8, 8); // Dummy geometry for instancing
-const dummyMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
-
-const dummyLH = new THREE.Mesh(dummyGeometry, dummyMaterial);
-// dummyLH.position.set(-5, 4.5, 0);
-const dummyRH = new THREE.Mesh(dummyGeometry, dummyMaterial);
-// dummyRH.position.set(5, -2, 0);
-const dummyHH = new THREE.Mesh(dummyGeometry, dummyMaterial);
-// dummyHH.position.set(0, 6, 0);
-
-const dummyLF = new THREE.Mesh(dummyGeometry, dummyMaterial);
-// dummyLF.position.set(-3, -6, 0);
-const dummyRF = new THREE.Mesh(dummyGeometry, dummyMaterial);
-// dummyRF.position.set(3, -6, 0);
-
-dummyLH.visible = false;
-dummyRH.visible = false;
-dummyHH.visible = false;
-dummyLF.visible = false;
-dummyRF.visible = false;
-
-const dummies = [dummyLH, dummyRH, dummyHH, dummyLF, dummyRF];
-
-// Store initial positions for dummies
-const dummyInitialPositions = dummies.map(d => d.position.clone());
-
-// Oscillation parameters for each dummy: [xSpeed, ySpeed, xAmplitude, yAmplitude]
-const dummyOscillationParams = [
-    [0.7, 4.1, 1.0, 0.7], // dummyLH
-    [1.3, 2.8, 0.8, 1.2], // dummyRH
-    [0.9, 6.5, 1.1, 1.1],  // dummyHH
-];
-
-// In updateBackground, oscillate dummies
-function oscillateDummies(time) {
-    return;
-    for (let i = 0; i < 3; i++) {
-        const [xSpeed, ySpeed, xAmp, yAmp] = dummyOscillationParams[i];
-        const initPos = dummyInitialPositions[i];
-        dummies[i].position.x = initPos.x + Math.sin(time * xSpeed) * xAmp;
-        dummies[i].position.y = initPos.y + Math.cos(time * ySpeed) * yAmp;
-    }
-}
 
 const singleChiliPlaneGeometry = new THREE.PlaneGeometry(6, 6);
 const singleChiliPlaneMaterial = new THREE.MeshBasicMaterial({
@@ -158,10 +111,25 @@ const ChromaticAberrationShader = {
     `
 };
 
-let leftHandY = 0, rightHandY = 0;
-let leftHandX = 0, rightHandX = 0;
 
 const nrm = v => (v - 0.5);
+
+let backParticles, backParticlesBig, backParticlesSpirals, frontParticles;
+
+const bigChillies = [];
+
+let leftHandCube, rightHandCube, headCube;
+
+const bigChiliMat = new THREE.MeshBasicMaterial({
+    map: new THREE.TextureLoader().load('jala/six-chili.png'),
+    transparent: true,
+    depthTest: false,
+    depthWrite: false
+});
+
+const bigChiliGeo = new THREE.PlaneGeometry(1, 1);
+
+
 
 export default {
     foreBlendMode: "plus-lighter",
@@ -176,6 +144,7 @@ export default {
 
         const renderer = new THREE.WebGLRenderer({ alpha: true });
         renderer.setSize(canvas.width, canvas.height, false);
+        console.log("SHAFFO", canvas.width, canvas.height);
         renderer.outputEncoding = THREE.sRGBEncoding;
 
         scene = new THREE.Scene();
@@ -204,18 +173,31 @@ export default {
         composer.addPass(chromaticAberrationPass);
 
 
-        scene.add(dummyLH);
-        scene.add(dummyRH);
-        scene.add(dummyHH);
-        scene.add(dummyLF);
-        scene.add(dummyRF);
 
+        // Create hand tracking cubes first
+        // Create left hand cube and add a box mesh
+        leftHandCube = new THREE.Object3D();
 
-        // scene.add(chiliGroup);
+        // Create right hand cube and add a box mesh
+        rightHandCube = new THREE.Object3D();
+        // Create head cube and add a box mesh
+        headCube = new THREE.Object3D();
 
-        // Chili meshes are already created in chiliGroup at the top of the file
+        const forces = [
+            new Force({
+                type : "attractor",
+                position: leftHandCube.position,
+                strength: 10,
+                radius: 3
+            }),
+            new Force({
+                type : "attractor",
+                position: rightHandCube.position,
+                strength: 10,
+                radius: 3
+            })
+        ];
 
-        // Starfield planes
         const geometry = new THREE.PlaneGeometry(1, 1);
         starPlanes = [];
         starScales = [];
@@ -244,119 +226,201 @@ export default {
         renderer.setRenderTarget(chiliRenderTarget);
         renderer.render(chiliRenderScene, chiliRenderCamera);
         renderer.setRenderTarget(null);
+
+
         
-        chiliParticles = new InstancedParticleSystem(chiliRenderTarget.texture, 50, 50, 0.5, dummies);
-        chiliParticles.position.z = 0; // in front of most stars
-        chiliParticles.scale.set(1, 1, 1); // big enough to see
-        chiliParticles.renderOrder = 1; // render after stars
-        scene.add(chiliParticles);
-
-        // Add smoke system
-        smokeSystem = new SmokeSystem(700, 8, dummies);
-        smokeSystem.position.set(0, 0, 0);
-        smokeSystem.scale.set(1, 1, 1);
-        scene.add(smokeSystem);
-
-        // Add spark system
-        sparkSystem = new SparkSystem(3000, 6, dummies);
-        sparkSystem.position.set(0, 0, 0);
-        sparkSystem.scale.set(1, 1, 1);
-        scene.add(sparkSystem);
 
 
         background.renderer = renderer;
         background.scene = scene;
         background.camera = camera;
+
+        
+        
+        backParticles = new Constellation({
+            gravityForce: new THREE.Vector3(0, 0, 0),
+            emitters : [
+                new Emitter({
+                    position: new THREE.Vector3(0, 0, 0),
+                    dimensions: new THREE.Vector3(0, 0, 0),
+                })
+            ],
+            initScaleBase : new THREE.Vector3( 0.04, 0.5, 0.05),
+            initScaleVariation : new THREE.Vector3( 0.0, 1, 0.0),
+            initScaleScalarVariation : 1,
+            minLife : 100, maxLife : 2000,
+            scaleCurve : new Curve([{ p: 0, v: 0 }, { p: 0.9, v: 1 }, { p: 1, v: 0 }]),
+            initVelocityBase : new THREE.Vector3(0, 0, 0),
+            initVelocityVariation : new THREE.Vector3(100, 100, 100),
+            initAlpha : 1,
+            initAlphaVariation : 1,
+            alphaCurve : new Curve([{ p: 0, v: 0 }, { p: 0.9, v: 1 }, { p: 1, v: 0 }]),
+            colourCurves : {
+                r: new Curve([{ p: 0, v: 1 }, { p: 1, v: 0.1 }]),
+                g: new Curve([{ p: 0, v: 1 }, { p: 1, v: 1 }]),
+                b: new Curve([{ p: 0, v: 1 }, { p: 1, v: 0.5 }])
+            },
+            lerpToFaceMotion : 1,
+            forces : [],
+            emitChance : 1,
+            emitMinCount : 1,
+            emitMaxCount : 20,
+            maxCount : 100,
+            maxVelocity : 15,
+            texture : "basepart.png",
+            textureDimensions: new THREE.Vector2(1, 1),
+        });
+        scene.add(backParticles.object3D);
+
+        
+        
+        backParticlesBig = new Constellation({
+            gravityForce: new THREE.Vector3(0, 0, 0),
+            emitters : [
+                new Emitter({
+                    position: new THREE.Vector3(0, 0, 0),
+                    dimensions: new THREE.Vector3(1, 1, 1),
+                })
+            ],
+            initScaleBase : new THREE.Vector3( 3.15, 3.15, 3.15),
+            initScaleVariation : new THREE.Vector3( 0.0, 0.0, 0.0),
+            initScaleScalarVariation : 6,
+            minLife : 1000, maxLife : 5000,
+            scaleCurve : new Curve([{ p: 0, v: 0 }, { p: 0.8, v: 1 }, { p: 1, v: 0 }]),
+            initVelocityBase : new THREE.Vector3(0, 0, 0),
+            initVelocityVariation : new THREE.Vector3(10, 10, 10),
+            initAlpha : 0.02,
+            initAlphaVariation : 0.1,
+            alphaCurve : new Curve([{ p: 0, v: 0 }, { p: 0.8, v: 1 }, { p: 1, v: 0 }]),
+            colourCurves : {
+                r: new Curve([{ p: 0, v: 1 }, { p: 1, v: 0.1 }]),
+                g: new Curve([{ p: 0, v: 1 }, { p: 1, v: 1 }]),
+                b: new Curve([{ p: 0, v: 1 }, { p: 1, v: 0.5 }])
+            },
+            forces : [],
+            emitChance : 0.5,
+            emitMinCount : 1,
+            emitMaxCount : 2,
+            maxCount : 100,
+            maxVelocity : 2,
+            texture : "jala/back-pure.png",
+            textureDimensions: new THREE.Vector2(1, 1),
+        });
+        scene.add(backParticlesBig.object3D);
+        
+        
+        backParticlesSpirals = new Constellation({
+            gravityForce: new THREE.Vector3(0, 0, 0),
+            emitters : [
+                new Emitter({
+                    position: new THREE.Vector3(0, 0, 0),
+                    dimensions: new THREE.Vector3(0, 0, 0),
+                })
+            ],
+            initScaleBase : new THREE.Vector3( 2, 2, 2),
+            initScaleVariation : new THREE.Vector3( 0.0, 0.0, 0.0),
+            initScaleScalarVariation : 10,
+            initRotationVelocityVariation : new THREE.Vector3(0, 0, 4),
+            minLife : 2000, maxLife : 5000,
+            scaleCurve : new Curve([{ p: 0, v: 0 }, { p: 0.2, v: 1 }, { p: 1, v: 1 }]),
+            initVelocityBase : new THREE.Vector3(0, 0, 20),
+            initVelocityVariation : new THREE.Vector3(0, 0, 5),
+            initAlpha : 0.02,
+            initAlphaVariation : 0.02,
+            alphaCurve : new Curve([{ p: 0, v: 0 }, { p: 0.2, v: 1 }, { p: 1, v: 0 }]),
+            colourCurves : {
+                r: new Curve([{ p: 0, v: 1 }, { p: 1, v: 0.1 }]),
+                g: new Curve([{ p: 0, v: 1 }, { p: 1, v: 1 }]),
+                b: new Curve([{ p: 0, v: 1 }, { p: 1, v: 0.5 }])
+            },
+            forces : [],
+            emitChance : 0.04,
+            emitMinCount : 1,
+            emitMaxCount : 1,
+            maxCount : 10,
+            maxVelocity : 10,
+            texture : "jala/six-chili.png",
+            textureDimensions: new THREE.Vector2(1, 1),
+        });
+        scene.add(backParticlesSpirals.object3D);
+
+        
+        frontParticles = new Constellation({
+            gravityForce: new THREE.Vector3(0, 0, 0),
+            emitters : [
+                new Emitter({
+                    position: new THREE.Vector3(0, 0, 0),
+                    dimensions: new THREE.Vector3(10, 30, 0),
+                })
+            ],
+            initScaleBase : new THREE.Vector3( 0.5, 0.5, 0.5),
+            initScaleVariation : new THREE.Vector3( 0.0, 0.0, 0.0),
+            initScaleScalarVariation : 0.3,
+            initRotationVelocityVariation : new THREE.Vector3(0, 0, 4),
+            minLife : 2000, maxLife : 5000,
+            scaleCurve : new Curve([{ p: 0, v: 0 }, { p: 0.5, v: 1 }, { p: 1, v: 0 }]),
+            initVelocityBase : new THREE.Vector3(0, 0, 0),
+            initVelocityVariation : new THREE.Vector3(0, 0, 0),
+            initAlpha : 1,
+            lerpToFaceMotion : 0.9,
+            initAlphaVariation : 0.5,
+            alphaCurve : new Curve([{ p: 0, v: 0 }, { p: 0.5, v: 1 }, { p: 1, v: 0 }]),
+            colourCurves : {
+                r: new Curve([{ p: 0, v: 1 }, { p: 1, v: 0.1 }]),
+                g: new Curve([{ p: 0, v: 1 }, { p: 1, v: 1 }]),
+                b: new Curve([{ p: 0, v: 1 }, { p: 1, v: 0.5 }])
+            },
+            forces : forces,
+            emitChance : 1,
+            emitMinCount : 1,
+            emitMaxCount : 10,
+            maxCount : 100,
+            maxVelocity : 10,
+            texture : "jala/back-single.png",
+            textureDimensions: new THREE.Vector2(1, 1),
+        });
+        scene.add(frontParticles.object3D);
+
+
+        for(let i = 0; i < 6; i++) {
+            const bigChiliMesh = new THREE.Mesh(bigChiliGeo, bigChiliMat);
+            bigChiliMesh.position.set(
+                Math.cos((i / 6) * Math.PI * 2) * 2,
+                Math.sin((i / 6) * Math.PI * 2) * 2,
+                0
+            );
+            bigChillies.push(bigChiliMesh);
+            scene.add(bigChiliMesh);
+        }
+
+        
+
+        const smallCubeGeometry = new THREE.BoxGeometry(0.3, 0.3, 0.3);
+        const smallCubeMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+
+        const leftHandSmallCube = new THREE.Mesh(smallCubeGeometry, smallCubeMaterial);
+        leftHandCube.add(leftHandSmallCube);
+
+        const rightHandSmallCube = new THREE.Mesh(smallCubeGeometry, smallCubeMaterial);
+        rightHandCube.add(rightHandSmallCube);
+
+        const headSmallCube = new THREE.Mesh(smallCubeGeometry, smallCubeMaterial);
+        headCube.add(headSmallCube);
+
+        // Add cubes to the scene
+        scene.add(leftHandCube);
+        scene.add(rightHandCube);
+        scene.add(headCube);
+        
+        // Position cubes initially visible for testing
+        leftHandCube.position.set(-1, 1, 0);
+        rightHandCube.position.set(1, -1, 0);
+
     },
 
     updateBackground({ canvas, time, view }) {
         if (!background.renderer) return;
         const { renderer } = background;
-
-        // Use the correct skeleton based on view (matching threeview.js logic)
-        const body = bodies[1 - view];
-        const { foot0, foot1, hand0, hand1, head } = body;
-
-        if(head.length > 0){
-            dummyHH.position.set(nrm(head[0]) * -15, nrm(head[1]) * -20, 0);
-        } else {
-            dummyHH.position.set(0, 20, 0); // Reset position if no head data
-        }
-
-        if(hand0.length > 0){
-            dummyLH.position.set(nrm(hand0[0]) * -15, nrm(hand0[1]) * -20, 0);
-        } else {
-            dummyLH.position.set(0, 20, 0); // Reset position if no hand0 data
-        }
-
-        if(hand1.length > 0){
-            dummyRH.position.set(nrm(hand1[0]) * -15, nrm(hand1[1]) * -20, 0);
-        } else {
-            dummyRH.position.set(0, 20, 0); // Reset position if no hand1 data
-        }
-
-        if(foot0.length > 0){
-            dummyLF.position.set(nrm(foot0[0]) * -15, nrm(foot0[1]) * -20, 0);
-        } else {
-            dummyLF.position.set(0, 20, 0); // Reset position if no foot0 data
-        }
-
-        if(foot1.length > 0){
-            dummyRF.position.set(nrm(foot1[0]) * -15, nrm(foot1[1]) * -20, 0);
-        } else {
-            dummyRF.position.set(0, 20, 0); // Reset position if no foot1 data
-        }
-
-        oscillateDummies(performance.now() * 0.001); // Use performance.now() for smoother oscillation
-
-        chiliParticles.update();
-        smokeSystem.update(time * 0.001); // Convert time to seconds
-        sparkSystem.update(time * 0.001); // Convert time to seconds
-        
-        // Hand controls for chili group
-        if (hand1.length > 0) {
-            // Right hand controls rotation
-            rightHandX = nrm(hand1[0]);
-            rightHandY = nrm(hand1[1]);
-        }
-        
-        if (hand0.length > 0) {
-            // Left hand controls Z position
-            leftHandX = nrm(hand0[0]);
-            leftHandY = nrm(hand0[1]);
-            // Ease chiliGroup.position.z towards target
-            
-        }
-        
-        const targetZ = -leftHandY * 80;
-        chiliGroup.position.z += (targetZ - chiliGroup.position.z) * 0.15;
-        chiliGroup.rotation.z = chiliGroup.position.z * 0.05; // Rotate based on Z position
-
-        for (let j = 0; j < starPlanes.length; j++) {
-            const plane = starPlanes[j];
-            // Move towards camera
-            plane.position.z += HYPER_SPEED;
-            // Rotate
-            plane.rotation.z += starRotations[j];
-            // Respawn if passed camera
-            if (plane.position.z > camera.position.z) {
-                plane.position.x = Math.random() * 10 - 5;
-                plane.position.y = Math.random() * 10 - 5;
-                plane.position.z = Math.random() * -30 - 5;
-                starScales[j] = 0;
-                starRotations[j] = (Math.random() * 2 - 1) * MAX_ROT;
-            }
-            // Grow scale if not yet at target
-            if (starScales[j] < CHILI_SCALE) {
-                starScales[j] = Math.min(1, starScales[j] + CHILI_GROW);
-            }
-            plane.scale.setScalar(starScales[j]);
-        }
-
-        // Animate chili particle system
-        if (chiliParticles) {
-            chiliParticles.rotation.z += 0.001;
-        }
 
         if (renderer.domElement.width !== canvas.width || renderer.domElement.height !== canvas.height) {
             renderer.setSize(canvas.width, canvas.height, false);
@@ -376,20 +440,78 @@ export default {
         renderer.setRenderTarget(chiliRenderTarget);
         renderer.render(chiliRenderScene, chiliRenderCamera);
         renderer.setRenderTarget(null);
+
+        backParticles.update();
+        backParticlesBig.update();
+        backParticlesSpirals.update();
+        frontParticles.update();
+
+        const body = bodies[1 - view];
+        if (body) {
+            const { hand0, hand1 } = body;
+            
+            // Position head cube using body.head data
+            if (headCube && body.head && body.head.length > 0) {
+                const targetX = nrm(body.head[0]) * -5;
+                const targetY = nrm(body.head[1]) * -5;
+                const targetZ = body.head[2] || 0;
+                headCube.position.x += (targetX - headCube.position.x) * 0.25;
+                headCube.position.y += (targetY - headCube.position.y) * 0.25;
+                headCube.position.z += (targetZ - headCube.position.z) * 0.25;
+            }
+            
+            if (hand0.length > 0) {
+                // Use smaller scale factor to keep cubes in view
+                const targetX = nrm(hand0[0]) * -5;
+                const targetY = nrm(hand0[1]) * -5;
+                const targetZ = 0;
+                // Ease to target position more slowly
+                leftHandCube.position.x += (targetX - leftHandCube.position.x) * 0.1;
+                leftHandCube.position.y += (targetY - leftHandCube.position.y) * 0.1;
+                leftHandCube.position.z += (targetZ - leftHandCube.position.z) * 0.1;
+                
+            } else {
+                // Ease to default visible position more slowly
+                leftHandCube.position.x += (-2 - leftHandCube.position.x) * 0.1;
+                leftHandCube.position.y += (1 - leftHandCube.position.y) * 0.1;
+                leftHandCube.position.z += (0 - leftHandCube.position.z) * 0.1;
+                
+            }
+            
+            
+            // Position right hand cube
+            
+            if (hand1.length > 0) {
+                // Use smaller scale factor to keep cubes in view
+                const targetX = nrm(hand1[0]) * -5;
+                const targetY = nrm(hand1[1]) * -5;
+                const targetZ = 0;
+                // Ease to target position more slowly
+                rightHandCube.position.x += (targetX - rightHandCube.position.x) * 0.1;
+                rightHandCube.position.y += (targetY - rightHandCube.position.y) * 0.1;
+                rightHandCube.position.z += (targetZ - rightHandCube.position.z) * 0.1;
+                
+            } else {
+                // Ease to default visible position more slowly
+                rightHandCube.position.x += (2 - rightHandCube.position.x) * 0.1;
+                rightHandCube.position.y += (-1 - rightHandCube.position.y) * 0.1;
+                rightHandCube.position.z += (0 - rightHandCube.position.z) * 0.1;
+                
+            }
+            
+        } else {
+            // If no body data, ease cubes to default positions more slowly
+            
+                leftHandCube.position.x += (-2 - leftHandCube.position.x) * 0.1;
+                leftHandCube.position.y += (1 - leftHandCube.position.y) * 0.1;
+                leftHandCube.position.z += (0 - leftHandCube.position.z) * 0.1;
+            
+                rightHandCube.position.x += (2 - rightHandCube.position.x) * 0.1;
+                rightHandCube.position.y += (-1 - rightHandCube.position.y) * 0.1;
+                rightHandCube.position.z += (0 - rightHandCube.position.z) * 0.1;
+            
+        }
         
-        // Update the instanced particle system texture
-        if (chiliParticles) {
-            chiliParticles.setTexture(chiliRenderTarget.texture);
-        }
-
-        for (let i = 0; i < singleChiliMeshes.length; i++) {
-            const mesh = singleChiliMeshes[i];
-            const target = Math.sin(rightHandY * i) * 20.0; // Oscillate Z position based on right hand Y
-            mesh.position.z += (target - mesh.position.z) * 0.25; //
-            const targetR = i * Math.PI / 3 + rightHandX * 6;
-            mesh.rotation.z += (targetR - mesh.rotation.z) * 0.25;
-        }
-
 
     },
 
@@ -421,59 +543,17 @@ export default {
             ];
             life[j] = Math.floor(Math.random() * MAX_LIFE);
         }
-        const light = new THREE.DirectionalLight(0xffffff, 1);
-        light.position.set(2, 2, 5);
-        scene.add(light);
 
         foreground.renderer = renderer;
         foreground.scene = scene;
         foreground.camera = camera;
+
+ 
     },
 
     updateForeground({ canvas, gravityPoints, time }) {
         const { renderer, scene, camera } = foreground;
 
-        for (let j = 0; j < sprites.length; j++) {
-            const sprite = sprites[j];
-            let v = velocities[j];
-            let l = life[j];
-            for (let k = 0; k < gravityPoints.length; k++) {
-                const pt = gravityPoints[k];
-                const dx = pt.x - sprite.position.x;
-                const dy = pt.y - sprite.position.y;
-                const dz = pt.z - sprite.position.z;
-                const distSq = dx * dx + dy * dy + dz * dz + 0.0001;
-                const force = pt.g / (distSq / 3);
-                v[0] += force * dx;
-                v[1] += force * dy;
-                v[2] += force * dz;
-            }
-            v[0] *= PARTICLE_FRICTION;
-            v[1] *= PARTICLE_FRICTION;
-            v[2] *= PARTICLE_FRICTION;
-            sprite.position.x += v[0];
-            sprite.position.y += v[1];
-            sprite.position.z += v[2];
-            l--;
-            const scale = 0.7 * l / MAX_LIFE;
-            sprite.scale.set(scale, scale, scale);
-            let wrapped = false;
-            if (sprite.position.x > 2) { sprite.position.x = -2; wrapped = true; }
-            if (sprite.position.x < -2) { sprite.position.x = 2; wrapped = true; }
-            if (sprite.position.y > 2) { sprite.position.y = -2; wrapped = true; }
-            if (sprite.position.y < -2) { sprite.position.y = 2; wrapped = true; }
-            if (sprite.position.z > 2) { sprite.position.z = -2; wrapped = true; }
-            if (sprite.position.z < -2) { sprite.position.z = 2; wrapped = true; }
-            if (l <= 0 || wrapped) {
-                const respawnPt = gravityPoints[Math.floor(Math.random() * gravityPoints.length)];
-                sprite.position.set(respawnPt.x, respawnPt.y, respawnPt.z);
-                v[0] = (Math.random() - 0.5) * 0.05;
-                v[1] = (Math.random() - 0.5) * 0.05;
-                v[2] = (Math.random() - 0.5) * 0.05;
-                l = Math.floor(Math.random() * MAX_LIFE);
-            }
-            life[j] = l;
-        }
         if (renderer.domElement.width !== canvas.width || renderer.domElement.height !== canvas.height) {
             renderer.setSize(canvas.width, canvas.height, false);
         }

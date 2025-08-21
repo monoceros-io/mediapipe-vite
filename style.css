@@ -67,6 +67,10 @@ body {
 }
 
 
+#backing-canvas-1 {
+    background-color: rgb(58, 64, 100);
+}
+
 .control-panel {
     position: absolute;
     padding: 1em;

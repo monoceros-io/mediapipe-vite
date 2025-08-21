@@ -209,8 +209,8 @@ document.addEventListener('fullscreenchange', () => {
 // --- Experience switching logic ---
 
 const EXPERIENCE_COLORS = [
-    [0.2, 1.0, 0.1],  // Yellow
-    [0.7, 0.8, 1.0],  // Yellow
+    [0.1, 1.0, 0.5],  // Yellow
+    [1.0, 1.0, 1.0],  // Yellow
     [1, 1, 0], // Blue
     [1.0, 0.5, 0]  // Yellow
 ];

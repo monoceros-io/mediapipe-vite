@@ -27,7 +27,7 @@ document.getElementById("pose-frames").addEventListener("change", e=>{
     SKEL_FRAMES = Math.max(2, e.target.value);
 });
 
-let SKEL_FRAMES = 20; // Only detect pose every 5 frames (adjust as needed)
+let SKEL_FRAMES = 1; // Only detect pose every 5 frames (adjust as needed)
 let skelFrameCounter = 0;
 
 init();
