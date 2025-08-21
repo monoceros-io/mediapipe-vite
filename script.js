@@ -342,4 +342,13 @@ function hideHola(index){
     elem.style.transform = "rotate(360deg) scale(0.5)";
 }
 
+const blockoid = document.getElementById("blockoid");
+let blockoidLeftState = true; // true = 50%, false = 0%
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'q' || e.key === 'Q') {
+        blockoidLeftState = !blockoidLeftState;
+        blockoid.style.left = blockoidLeftState ? '50%' : '0';
+    }
+});
+
 export { showHola, hideHola };

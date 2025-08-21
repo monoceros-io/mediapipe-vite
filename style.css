@@ -477,3 +477,11 @@ body {
 #fore-canvas-0 {
     mix-blend-mode: color-dodge;
 }
+
+.blockoid {
+    background-color: black;
+    position: absolute;
+    height: 100%;
+    width: 50%;
+    left: 50%;
+}
