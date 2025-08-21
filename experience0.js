@@ -33,55 +33,6 @@ let scene, camera;
 let composer = null; // Post-processing composer
 
 
-const singleChiliPlaneGeometry = new THREE.PlaneGeometry(6, 6);
-const singleChiliPlaneMaterial = new THREE.MeshBasicMaterial({
-    map: new THREE.TextureLoader().load('jala/back-single.png'),
-    transparent: true,
-    depthTest: false,
-    depthWrite: false
-});
-
-const singleChiliMeshes = [];
-const chiliCount = 6;
-const chiliRadius = 4;
-
-// Create a parent group for small chili meshes
-const chiliGroup = new THREE.Group();
-chiliGroup.position.set(0, 0, 0);
-
-
-// Move chili mesh creation into the group
-for (let i = 0; i < chiliCount; i++) {
-    const angle = (i / chiliCount) * Math.PI * 2;
-    const mesh = new THREE.Mesh(singleChiliPlaneGeometry, singleChiliPlaneMaterial);
-    mesh.position.set(
-        Math.cos(angle) * chiliRadius,
-        Math.sin(angle) * chiliRadius,
-        0
-    );
-    mesh.rotation.z = angle + Math.PI / 2;
-    chiliGroup.add(mesh);
-    singleChiliMeshes.push(mesh);
-}
-
-const chiliRenderScene = new THREE.Scene();
-const chiliRenderCamera = new THREE.PerspectiveCamera(
-    45,
-    1, // square aspect for canvas texture
-    0.1,
-    100
-);
-chiliRenderCamera.position.set(0, 0, 40);
-
-// Add the chili group to the new scene
-chiliRenderScene.add(chiliGroup);
-
-// Create a render target for the chili scene
-const chiliRenderTarget = new THREE.WebGLRenderTarget(2048, 2048, {
-    minFilter: THREE.LinearFilter,
-    magFilter: THREE.LinearFilter,
-    format: THREE.RGBAFormat
-});
 
 // Chromatic aberration shader
 const ChromaticAberrationShader = {
@@ -118,16 +69,24 @@ let backParticles, backParticlesBig, backParticlesSpirals, frontParticles;
 
 const bigChillies = [];
 
-let leftHandCube, rightHandCube, headCube;
 
 const bigChiliMat = new THREE.MeshBasicMaterial({
-    map: new THREE.TextureLoader().load('jala/six-chili.png'),
+    map: new THREE.TextureLoader().load('jala/back-single.png'),
     transparent: true,
     depthTest: false,
     depthWrite: false
 });
 
 const bigChiliGeo = new THREE.PlaneGeometry(1, 1);
+
+
+        // Create hand tracking cubes first
+        // Create left hand cube and add a box mesh
+const leftHandCube = new THREE.Object3D();
+        // Create right hand cube and add a box mesh
+const rightHandCube = new THREE.Object3D();
+        // Create head cube and add a box mesh
+const headCube = new THREE.Object3D();
 
 
 
@@ -173,28 +132,25 @@ export default {
         composer.addPass(chromaticAberrationPass);
 
 
-
-        // Create hand tracking cubes first
-        // Create left hand cube and add a box mesh
-        leftHandCube = new THREE.Object3D();
-
-        // Create right hand cube and add a box mesh
-        rightHandCube = new THREE.Object3D();
-        // Create head cube and add a box mesh
-        headCube = new THREE.Object3D();
+        const leftForcePosition = new THREE.Vector3(-2, 1, 0);
+        const rightForcePosition = new THREE.Vector3(2, 1, 0);
 
         const forces = [
             new Force({
-                type : "attractor",
-                position: leftHandCube.position,
+                type : "vortex",
+                position: leftForcePosition,
                 strength: 10,
-                radius: 3
+                radius: 10,
+                suction : 100,
+                direction : new THREE.Vector3(0, 0, 1)
             }),
             new Force({
-                type : "attractor",
-                position: rightHandCube.position,
+                type : "vortex",
+                position: rightForcePosition,
                 strength: 10,
-                radius: 3
+                radius: 10,
+                suction : 100,
+                direction : new THREE.Vector3(0, 0, 1)
             })
         ];
 
@@ -223,9 +179,7 @@ export default {
 
         // Instanced particle system — large & in front
         // First render the chili scene to get the texture
-        renderer.setRenderTarget(chiliRenderTarget);
-        renderer.render(chiliRenderScene, chiliRenderCamera);
-        renderer.setRenderTarget(null);
+       
 
 
         
@@ -353,9 +307,9 @@ export default {
                     dimensions: new THREE.Vector3(10, 30, 0),
                 })
             ],
-            initScaleBase : new THREE.Vector3( 0.5, 0.5, 0.5),
+            initScaleBase : new THREE.Vector3( 0.2, 0.2, 0.2),
             initScaleVariation : new THREE.Vector3( 0.0, 0.0, 0.0),
-            initScaleScalarVariation : 0.3,
+            initScaleScalarVariation : 2.3,
             initRotationVelocityVariation : new THREE.Vector3(0, 0, 4),
             minLife : 2000, maxLife : 5000,
             scaleCurve : new Curve([{ p: 0, v: 0 }, { p: 0.5, v: 1 }, { p: 1, v: 0 }]),
@@ -364,6 +318,9 @@ export default {
             initAlpha : 1,
             lerpToFaceMotion : 0.9,
             initAlphaVariation : 0.5,
+            sineSpeedBase : new THREE.Vector3(4, 5, 6),
+            sineAmountBase : new THREE.Vector3(0.2, 0.2, 0.2),
+            sineCurve : new Curve([{ p: 0.0, v: 1 }, { p: 1, v: 0 }]),
             alphaCurve : new Curve([{ p: 0, v: 0 }, { p: 0.5, v: 1 }, { p: 1, v: 0 }]),
             colourCurves : {
                 r: new Curve([{ p: 0, v: 1 }, { p: 1, v: 0.1 }]),
@@ -395,27 +352,6 @@ export default {
 
         
 
-        const smallCubeGeometry = new THREE.BoxGeometry(0.3, 0.3, 0.3);
-        const smallCubeMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-
-        const leftHandSmallCube = new THREE.Mesh(smallCubeGeometry, smallCubeMaterial);
-        leftHandCube.add(leftHandSmallCube);
-
-        const rightHandSmallCube = new THREE.Mesh(smallCubeGeometry, smallCubeMaterial);
-        rightHandCube.add(rightHandSmallCube);
-
-        const headSmallCube = new THREE.Mesh(smallCubeGeometry, smallCubeMaterial);
-        headCube.add(headSmallCube);
-
-        // Add cubes to the scene
-        scene.add(leftHandCube);
-        scene.add(rightHandCube);
-        scene.add(headCube);
-        
-        // Position cubes initially visible for testing
-        leftHandCube.position.set(-1, 1, 0);
-        rightHandCube.position.set(1, -1, 0);
-
     },
 
     updateBackground({ canvas, time, view }) {
@@ -436,10 +372,6 @@ export default {
             ctx.drawImage(renderer.domElement, 0, 0);
         }
 
-        // Render the chili scene to texture for the instanced particle system
-        renderer.setRenderTarget(chiliRenderTarget);
-        renderer.render(chiliRenderScene, chiliRenderCamera);
-        renderer.setRenderTarget(null);
 
         backParticles.update();
         backParticlesBig.update();
@@ -449,6 +381,7 @@ export default {
         const body = bodies[1 - view];
         if (body) {
             const { hand0, hand1 } = body;
+
             
             // Position head cube using body.head data
             if (headCube && body.head && body.head.length > 0) {
@@ -466,15 +399,15 @@ export default {
                 const targetY = nrm(hand0[1]) * -5;
                 const targetZ = 0;
                 // Ease to target position more slowly
-                leftHandCube.position.x += (targetX - leftHandCube.position.x) * 0.1;
-                leftHandCube.position.y += (targetY - leftHandCube.position.y) * 0.1;
-                leftHandCube.position.z += (targetZ - leftHandCube.position.z) * 0.1;
+                leftHandCube.position.x += (targetX - leftHandCube.position.x);
+                leftHandCube.position.y += (targetY - leftHandCube.position.y);
+                leftHandCube.position.z += (targetZ - leftHandCube.position.z);
                 
             } else {
                 // Ease to default visible position more slowly
-                leftHandCube.position.x += (-2 - leftHandCube.position.x) * 0.1;
-                leftHandCube.position.y += (1 - leftHandCube.position.y) * 0.1;
-                leftHandCube.position.z += (0 - leftHandCube.position.z) * 0.1;
+                leftHandCube.position.x += (-2 - leftHandCube.position.x);
+                leftHandCube.position.y += (1 - leftHandCube.position.y);
+                leftHandCube.position.z += (0 - leftHandCube.position.z);
                 
             }
             
@@ -487,28 +420,28 @@ export default {
                 const targetY = nrm(hand1[1]) * -5;
                 const targetZ = 0;
                 // Ease to target position more slowly
-                rightHandCube.position.x += (targetX - rightHandCube.position.x) * 0.1;
-                rightHandCube.position.y += (targetY - rightHandCube.position.y) * 0.1;
-                rightHandCube.position.z += (targetZ - rightHandCube.position.z) * 0.1;
+                rightHandCube.position.x += (targetX - rightHandCube.position.x);
+                rightHandCube.position.y += (targetY - rightHandCube.position.y);
+                rightHandCube.position.z += (targetZ - rightHandCube.position.z);
                 
             } else {
                 // Ease to default visible position more slowly
-                rightHandCube.position.x += (2 - rightHandCube.position.x) * 0.1;
-                rightHandCube.position.y += (-1 - rightHandCube.position.y) * 0.1;
-                rightHandCube.position.z += (0 - rightHandCube.position.z) * 0.1;
-                
+                rightHandCube.position.x += (2 - rightHandCube.position.x);
+                rightHandCube.position.y += (-1 - rightHandCube.position.y);
+                rightHandCube.position.z += (0 - rightHandCube.position.z);
+
             }
             
         } else {
             // If no body data, ease cubes to default positions more slowly
             
-                leftHandCube.position.x += (-2 - leftHandCube.position.x) * 0.1;
-                leftHandCube.position.y += (1 - leftHandCube.position.y) * 0.1;
-                leftHandCube.position.z += (0 - leftHandCube.position.z) * 0.1;
-            
-                rightHandCube.position.x += (2 - rightHandCube.position.x) * 0.1;
-                rightHandCube.position.y += (-1 - rightHandCube.position.y) * 0.1;
-                rightHandCube.position.z += (0 - rightHandCube.position.z) * 0.1;
+                leftHandCube.position.x += (-2 - leftHandCube.position.x);
+                leftHandCube.position.y += (1 - leftHandCube.position.y);
+                leftHandCube.position.z += (0 - leftHandCube.position.z);
+
+                rightHandCube.position.x += (2 - rightHandCube.position.x);
+                rightHandCube.position.y += (-1 - rightHandCube.position.y);
+                rightHandCube.position.z += (0 - rightHandCube.position.z);
             
         }
         
@@ -547,6 +480,26 @@ export default {
         foreground.renderer = renderer;
         foreground.scene = scene;
         foreground.camera = camera;
+
+        
+
+        const smallCubeGeometry = new THREE.BoxGeometry(0.3, 0.3, 0.3);
+        const smallCubeMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+
+        const leftHandSmallCube = new THREE.Mesh(smallCubeGeometry, smallCubeMaterial);
+        leftHandCube.add(leftHandSmallCube);
+
+        const rightHandSmallCube = new THREE.Mesh(smallCubeGeometry, smallCubeMaterial);
+        rightHandCube.add(rightHandSmallCube);
+
+        const headSmallCube = new THREE.Mesh(smallCubeGeometry, smallCubeMaterial);
+        headCube.add(headSmallCube);
+
+        // Add cubes to the scene
+        scene.add(leftHandCube);
+        scene.add(rightHandCube);
+        scene.add(headCube);
+        
 
  
     },
